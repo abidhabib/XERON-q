@@ -1,9 +1,9 @@
-import React, { useContext, useEffect, useState } from 'react';
+import  { useContext, useEffect, useState } from 'react';
 import '../Dashboard/AdminLogin.css';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import { UserContext } from '../UserContext/UserContext';
-import { jwtDecode } from 'jwt-decode'; // Corrected import
+import { jwtDecode } from 'jwt-decode';
 const AdminLogin = () => {
     const { setAdminAuthenticated } = useContext(UserContext);
     const [isLoading, setIsLoading] = useState(false);
@@ -12,12 +12,11 @@ const AdminLogin = () => {
     const navigateTo = useNavigate();
     const [loginStatus, setLoginStatus] = useState('');
 
-    // Check for existing valid token on component mount
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
         if (token) {
             try {
-                const decoded = jwtDecode(token); // Use jwtDecode directly
+                const decoded = jwtDecode(token); 
                 if (decoded.exp * 1000 > Date.now()) {
                     setAdminAuthenticated(true);
                     navigateTo('/adminpanel');
@@ -43,8 +42,8 @@ const AdminLogin = () => {
           const response = await Axios.post(
             `${import.meta.env.VITE_API_BASE_URL}/admin-login`,
             {
-              LoginUserName: loginUserName,  // Must match backend expectation
-              LoginPassword: loginPassword   // Must match backend expectation
+              LoginUserName: loginUserName, 
+              LoginPassword: loginPassword  
             },
             {
               headers: {

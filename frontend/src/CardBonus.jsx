@@ -30,7 +30,6 @@ export const BonusCard = () => {
     fetchLevelData();
   }, []);
 
-  // ADDED: Get current level data
   const currentLevelData = levelsData.find((data) => data.level === level);
   const nextLevelData = levelsData.find((data) => data.level === level + 1);
 
@@ -80,7 +79,6 @@ export const BonusCard = () => {
     }
   };
 
-  // Custom SVG Icons
   const SuccessIcon = () => (
     <motion.svg
       xmlns="http://www.w3.org/2000/svg"
@@ -127,7 +125,6 @@ export const BonusCard = () => {
     </motion.svg>
   );
 
-  // Color scheme
   const colors = {
     primary: "#4F46E5",       // Indigo
     secondary: "#2563eb",     // Emerald
@@ -136,12 +133,11 @@ export const BonusCard = () => {
     dark: "#19202a",          // Gray-800
     text: "#374151",          // Gray-700
     lightText: "#6B7280",     // Gray-500
-    currentReward: "#0EA5E9"  // Sky-500 - ADDED for current reward
+    currentReward: "#0EA5E9"  // Sky-500 
   };
 
   return (
     <div className="min-h-screen pb-8 " style={{ backgroundColor: colors.background }}>
-      {/* Header Section */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -149,7 +145,6 @@ export const BonusCard = () => {
         style={{ backgroundColor: colors.dark }}
       >
         <div className="container mx-auto px-4 max-w-md ">
-          {/* Level Badge */}
           <div className="flex justify-center mb-6">
             <motion.div 
               className="relative w-24 h-24 rounded-full flex items-center justify-center"
@@ -169,13 +164,11 @@ export const BonusCard = () => {
                 <span className="text-xs font-semibold text-indigo-200 uppercase tracking-wide">Level</span>
               </div>
               
-              {/* Decorative elements */}
               <div className="absolute -top-2 -right-2 w-4 h-4 bg-purple-400 rounded-full animate-ping"></div>
               <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-indigo-400 rounded-full animate-pulse"></div>
             </motion.div>
           </div>
 
-          {/* Progress Bar */}
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -204,7 +197,6 @@ export const BonusCard = () => {
         </div>
       </motion.div>
 
-      {/* ADDED: Current Reward Card */}
       {currentLevelData && (
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
@@ -256,7 +248,6 @@ export const BonusCard = () => {
         </motion.div>
       )}
 
-      {/* Next Reward Card */}
       {nextLevelData && (
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
@@ -295,7 +286,6 @@ export const BonusCard = () => {
         </motion.div>
       )}
 
-      {/* Animation Overlay */}
       <AnimatePresence>
         {showAnimation && collectionStatus && (
           <motion.div

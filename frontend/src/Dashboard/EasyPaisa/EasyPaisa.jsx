@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import  { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Sidebar } from "../SideBarSection/Sidebar";
 import { 
@@ -41,7 +41,6 @@ const CryptoUsers = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
-  // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     actionType: null,

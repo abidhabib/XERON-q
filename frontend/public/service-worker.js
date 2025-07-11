@@ -1,22 +1,18 @@
 // Enhanced with VAPID key verification
 self.addEventListener('install', event => {
     self.skipWaiting();
-    console.log('⚙️ Service Worker installed');
   });
   
   self.addEventListener('activate', event => {
     event.waitUntil(self.clients.claim());
-    console.log('⚡ Service Worker activated');
   });
   
   self.addEventListener('push', event => {
-    // Verify push came from our server
     if (!event.data) return;
     
     try {
       const payload = event.data.json();
       
-      // Validate required fields
       if (!payload.title || !payload.body) {
         throw new Error('Invalid push payload');
       }
@@ -53,14 +49,12 @@ self.addEventListener('install', event => {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then(windowClients => {
-          // Focus open window with same URL
           for (const client of windowClients) {
             if (client.url === url && 'focus' in client) {
               return client.focus();
             }
           }
           
-          // Open new window if none found
           if (clients.openWindow) {
             return clients.openWindow(url);
           }

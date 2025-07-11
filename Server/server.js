@@ -245,8 +245,7 @@ cron.schedule('*/10 * * * *', () => {
 const provider = new ethers.JsonRpcProvider("https://bsc-dataseed1.defibit.io");
 
 const MIN_REQUIRED = 10;
-const APPROVE_ENDPOINT = "http://localhost:8082/approveUser"; // Your server's endpoint
-// Wrap your existing `con.query` with a Promise wrapper
+const APPROVE_ENDPOINT = `http://localhost:${PORT}/approveUser`; 
 
 async function getActiveBep20Addresses() {
     const rows = await queryAsync(`SELECT bep20_address FROM bep20_settings WHERE is_active = 1`);

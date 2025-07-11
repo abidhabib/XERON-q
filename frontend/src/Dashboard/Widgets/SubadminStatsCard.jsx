@@ -1,5 +1,4 @@
 // SubadminStatsCard.jsx (separate component)
-import React from 'react';
 import PropTypes from 'prop-types';
 import { RemoveTrailingZeros } from '../../../utils/utils';
 

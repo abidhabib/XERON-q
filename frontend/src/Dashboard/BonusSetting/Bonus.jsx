@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import {Sidebar} from '../SideBarSection/Sidebar';
 import { Button, Table, Modal, Form } from 'react-bootstrap';
 import axios from 'axios';
 
 const Bonus = () => {
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
     const [bonusSettings, setBonusSettings] = useState([]);

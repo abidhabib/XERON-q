@@ -4,7 +4,6 @@ import axios from 'axios';
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  // User-related state
   const [userData, setUserData] = useState(null);
   const [Userid, setUserid] = useState(null);
   const [NewName, setNewName] = useState('');
@@ -15,21 +14,18 @@ export const UserProvider = ({ children }) => {
   const [team_earning  , setTeam_earning] = useState(0);
   const [bonus_earning, setBonus_earning] = useState(0);
   const [level_earning, setLevel_earning] = useState(0);
-  // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
   const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const [approved, setApproved] = useState(0);
   const [isRejected, setIsRejected] = useState(false);
 
-  // Financial state
   const [currBalance, setCurrBalance] = useState(0);
   const [backend_wallet, setBackend_wallet] = useState(0);
   const [paymentOk, setPaymentOk] = useState(0);
   const [total_withdrawal, setTotal_withdrawal] = useState(0);
   const [withdrawalAttempts, setWithdrawalAttempts] = useState(0);
   const [trx_id,setTrxid]=useState(null)
-  // Fetch user data (Optimized)
   const fetchUserData = useCallback(async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/getUserData`, {
@@ -59,7 +55,6 @@ export const UserProvider = ({ children }) => {
         setLevel_earning(user.level_earning);
         setTrxid(user.trx_id)
         
-        // Store authentication status in local storage
         localStorage.setItem('userApproved', user.approved);
         localStorage.setItem('userAuthenticated', true);
       } else {
@@ -74,13 +69,11 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
-  // Logout function (Optimized)
   const logout = useCallback(async () => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/logout`, {}, { withCredentials: true });
 
       if (response.data.Status === 'Success') {
-        // Clear user data and reset authentication state
         setUserData(null);
         setUserid(null);
         setNewName('');
@@ -98,7 +91,6 @@ export const UserProvider = ({ children }) => {
         setIsAuthenticated(false);
         setAdminAuthenticated(false);
         
-        // Remove authentication status from local storage
         localStorage.removeItem('userApproved');
         localStorage.removeItem('userAuthenticated');
       } else {

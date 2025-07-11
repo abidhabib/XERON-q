@@ -47,8 +47,7 @@ import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
   const { isRejected, Userid, setAdminAuthenticated, currBalance, approved, adminAuthenticated, isAuthenticated, fetchUserData } = useContext(UserContext);
-  // Initialize service worker
-  usePushNotifications(); // this triggers push registration for every visitor
+  usePushNotifications();
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
