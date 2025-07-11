@@ -1,0 +1,65 @@
+.team-list-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+  }
+  
+  .team-member-card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    width: 380px;
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.2s;
+    position: relative;
+  border: 2px solid #ffc400;
+    &:hover {
+      transform: translateY(-5px);
+    }
+  }
+  
+  .member-info {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  .team-member-card img {
+    border-radius: 50%;
+    margin-left: 10px;
+  }
+  
+  .contact-btn {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    width: 100%;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    border: none;
+gap: 10px;
+    border-radius: 5px;
+  }
+  
+  .bg-highlight {
+    background-color: #343a40 !important;
+  }
+  
+  .header-shadow {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 15px auto;
+    width: fit-content;
+    font-size: 20px;
+  }
+  
+  .header-logo {
+    margin-bottom: 20px;
+  }
+  

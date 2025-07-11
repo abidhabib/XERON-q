@@ -1,0 +1,6 @@
+.red-background {
+  color: red;
+}
+.red-background::after {
+  content: " Required*";
+}

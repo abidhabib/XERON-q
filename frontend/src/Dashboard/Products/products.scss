@@ -1,0 +1,75 @@
+.modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100vw; 
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); 
+
+    .modal-content {
+        position: relative;
+        background-color: #FFF;
+        padding: 20px;
+        border-radius: 10px;
+        width: 500px; // You can adjust this or make it responsive
+    }
+
+    .close {
+        position: absolute;
+        right: 20px;
+        top: 10px;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin-bottom: 20px; 
+    }
+
+    button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+}
+
+button {
+    margin: 5px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+
+   
+}
+
+button[onClick*="handleDelete"] {
+    background-color: red;
+    color: white;
+
+   
+}
+
+button[onClick*="setEditingProduct"],
+button[type="submit"] {
+    background-color: blue;
+    color: white;
+
+    &:hover {
+        background-color: darken(blue, 10%);
+    }
+}
