@@ -13,7 +13,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import cron from 'node-cron';
-import { ethers, formatUnits }  from "ethers";
+import { ethers, formatUnits } from "ethers";
 import axios from 'axios';
 import webpush from 'web-push';
 
@@ -37,15 +37,15 @@ app.use(cookieParser());
 const vapidKeys = {
     publicKey: "BMEoNncfAMacnLB-tFNjGrZKW8XYAT0IJrP2e_D0A7eHqxGq21jozZasgS6artXBTH89tiLBtWvtXQH9XEqWn-w",
     privateKey: "6HOxm9Gsquk14zbVzAi4cDy31q9scTdeBaOVmkXYtP0",
-  };
-  
-  webpush.setVapidDetails(
+};
+
+webpush.setVapidDetails(
     "mailto:your@email.com",
     vapidKeys.publicKey,
     vapidKeys.privateKey
-  );
+);
 
-  
+
 console.log(vapidKeys.publicKey);
 
 app.use(express.json());
@@ -74,11 +74,11 @@ con.connect(function (err) {
 );
 app.post('/save-subscription', (req, res) => {
     const { subscription } = req.body;
-  
+
     if (!subscription?.endpoint || !subscription?.keys) {
-      return res.status(400).json({ error: 'Invalid subscription format' });
+        return res.status(400).json({ error: 'Invalid subscription format' });
     }
-  
+
     // ✅ Declare the SQL properly with escaped `keys`
     const query = `
       INSERT INTO push_subscriptions (endpoint, \`keys\`)
@@ -87,223 +87,223 @@ app.post('/save-subscription', (req, res) => {
         \`keys\` = VALUES(\`keys\`),
         updated_at = CURRENT_TIMESTAMP
     `;
-  
-    con.query(query, [subscription.endpoint, JSON.stringify(subscription.keys)], (err, result) => {
-      if (err) {
-        console.error('Database save error:', err);
-        return res.status(500).json({ error: 'Failed to save subscription', code: 'DB_SAVE_FAILED' });
-      }
-  
-      res.status(201).json({
-        success: true,
-        id: result.insertId,
-        endpoint: subscription.endpoint
-      });
-    });
-  });
-  
-  
-  app.post('/remove-subscription', (req, res) => {
-    const { endpoint } = req.body;
-  
-    if (!endpoint) {
-      return res.status(400).json({ error: 'Missing endpoint' });
-    }
-  
-    con.query(
-      'DELETE FROM push_subscriptions WHERE endpoint = ?',
-      [endpoint],
-      (err, result) => {
-        if (err) {
-          console.error('Database delete error:', err);
-          return res.status(500).json({ error: 'Failed to remove subscription', code: 'DB_DELETE_FAILED' });
-        }
-  
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ error: 'Subscription not found' });
-        }
-  
-        res.json({ success: true, deleted: result.affectedRows });
-      }
-    );
-  });
-  
-  
-  // Broadcast notification endpoint
-  app.post('/broadcast-notification', (req, res) => {
-    const { title, message, url } = req.body;
-  
-    if (typeof title !== 'string' || title.length > 100) {
-      return res.status(400).json({ error: 'Invalid title format' });
-    }
-  
-    if (typeof message !== 'string' || message.length > 300) {
-      return res.status(400).json({ error: 'Invalid message format' });
-    }
-  
-    con.query('SELECT endpoint, `keys` FROM push_subscriptions', async (err, subscriptions) => {
-      if (err) {
-        console.error('DB error:', err);
-        return res.status(500).json({ error: 'Database query failed', code: 'DB_QUERY_FAILED' });
-      }
-  
-      if (subscriptions.length === 0) {
-        return res.json({ success: true, message: 'No active subscribers', sent: 0 });
-      }
-  
-      const payload = JSON.stringify({
-        title,
-        body: message,
-        icon: '/icon-192x192.png',
-        badge: '/badge-72x72.png',
-        data: { url: url || process.env.DEFAULT_NOTIFICATION_URL || '/' },
-        timestamp: Date.now()
-      });
-  
-      const BATCH_SIZE = 100;
-      const batches = Math.ceil(subscriptions.length / BATCH_SIZE);
-      let totalSent = 0;
-      let failedEndpoints = [];
-  
-      for (let i = 0; i < batches; i++) {
-        const start = i * BATCH_SIZE;
-        const end = Math.min(start + BATCH_SIZE, subscriptions.length);
-        const batch = subscriptions.slice(start, end);
-  
-        const results = await Promise.allSettled(
-          batch.map(sub => {
-            const subscription = {
-                endpoint: sub.endpoint,
-                keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys
-              };
-              
-            return webpush.sendNotification(subscription, payload);
-          })
-        );
-  
-        results.forEach((result, index) => {
-          const subIndex = start + index;
-          if (result.status === 'rejected') {
-            const error = result.reason;
-            console.error(`Push failed to ${subscriptions[subIndex].endpoint}:`, error);
-            if (error.statusCode === 410) {
-              failedEndpoints.push(subscriptions[subIndex].endpoint);
-            }
-          } else {
-            totalSent++;
-          }
-        });
-      }
-  
-      if (failedEndpoints.length > 0) {
-        console.log(`Cleaning up ${failedEndpoints.length} invalid subscriptions`);
-  
-        con.query(
-          'DELETE FROM push_subscriptions WHERE endpoint IN (?)',
-          [failedEndpoints],
-          (err) => {
-            if (err) console.error('Failed to clean invalid subscriptions', err);
-          }
-        );
-      }
-  
-      res.json({
-        success: true,
-        totalSubscribers: subscriptions.length,
-        sent: totalSent,
-        failed: subscriptions.length - totalSent,
-        invalidRemoved: failedEndpoints.length
-      });
-    });
-  });
-  
-  app.get('/subscriber-count', (req, res) => {
-    con.query('SELECT COUNT(*) AS count FROM push_subscriptions', (err, results) => {
-      if (err) {
-        console.error('Count query failed:', err);
-        return res.status(500).json({ error: 'Failed to get subscriber count', code: 'COUNT_QUERY_FAILED' });
-      }
-  
-      res.json({ count: results[0].count });
-    });
-  });
-  
 
-  app.get('/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'ok',
-      vapid: !!vapidKeys,
-      db: !!con
+    con.query(query, [subscription.endpoint, JSON.stringify(subscription.keys)], (err, result) => {
+        if (err) {
+            console.error('Database save error:', err);
+            return res.status(500).json({ error: 'Failed to save subscription', code: 'DB_SAVE_FAILED' });
+        }
+
+        res.status(201).json({
+            success: true,
+            id: result.insertId,
+            endpoint: subscription.endpoint
+        });
     });
-  });
+});
+
+
+app.post('/remove-subscription', (req, res) => {
+    const { endpoint } = req.body;
+
+    if (!endpoint) {
+        return res.status(400).json({ error: 'Missing endpoint' });
+    }
+
+    con.query(
+        'DELETE FROM push_subscriptions WHERE endpoint = ?',
+        [endpoint],
+        (err, result) => {
+            if (err) {
+                console.error('Database delete error:', err);
+                return res.status(500).json({ error: 'Failed to remove subscription', code: 'DB_DELETE_FAILED' });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Subscription not found' });
+            }
+
+            res.json({ success: true, deleted: result.affectedRows });
+        }
+    );
+});
+
+
+// Broadcast notification endpoint
+app.post('/broadcast-notification', (req, res) => {
+    const { title, message, url } = req.body;
+
+    if (typeof title !== 'string' || title.length > 100) {
+        return res.status(400).json({ error: 'Invalid title format' });
+    }
+
+    if (typeof message !== 'string' || message.length > 300) {
+        return res.status(400).json({ error: 'Invalid message format' });
+    }
+
+    con.query('SELECT endpoint, `keys` FROM push_subscriptions', async (err, subscriptions) => {
+        if (err) {
+            console.error('DB error:', err);
+            return res.status(500).json({ error: 'Database query failed', code: 'DB_QUERY_FAILED' });
+        }
+
+        if (subscriptions.length === 0) {
+            return res.json({ success: true, message: 'No active subscribers', sent: 0 });
+        }
+
+        const payload = JSON.stringify({
+            title,
+            body: message,
+            icon: '/icon-192x192.png',
+            badge: '/badge-72x72.png',
+            data: { url: url || process.env.DEFAULT_NOTIFICATION_URL || '/' },
+            timestamp: Date.now()
+        });
+
+        const BATCH_SIZE = 100;
+        const batches = Math.ceil(subscriptions.length / BATCH_SIZE);
+        let totalSent = 0;
+        let failedEndpoints = [];
+
+        for (let i = 0; i < batches; i++) {
+            const start = i * BATCH_SIZE;
+            const end = Math.min(start + BATCH_SIZE, subscriptions.length);
+            const batch = subscriptions.slice(start, end);
+
+            const results = await Promise.allSettled(
+                batch.map(sub => {
+                    const subscription = {
+                        endpoint: sub.endpoint,
+                        keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys
+                    };
+
+                    return webpush.sendNotification(subscription, payload);
+                })
+            );
+
+            results.forEach((result, index) => {
+                const subIndex = start + index;
+                if (result.status === 'rejected') {
+                    const error = result.reason;
+                    console.error(`Push failed to ${subscriptions[subIndex].endpoint}:`, error);
+                    if (error.statusCode === 410) {
+                        failedEndpoints.push(subscriptions[subIndex].endpoint);
+                    }
+                } else {
+                    totalSent++;
+                }
+            });
+        }
+
+        if (failedEndpoints.length > 0) {
+            console.log(`Cleaning up ${failedEndpoints.length} invalid subscriptions`);
+
+            con.query(
+                'DELETE FROM push_subscriptions WHERE endpoint IN (?)',
+                [failedEndpoints],
+                (err) => {
+                    if (err) console.error('Failed to clean invalid subscriptions', err);
+                }
+            );
+        }
+
+        res.json({
+            success: true,
+            totalSubscribers: subscriptions.length,
+            sent: totalSent,
+            failed: subscriptions.length - totalSent,
+            invalidRemoved: failedEndpoints.length
+        });
+    });
+});
+
+app.get('/subscriber-count', (req, res) => {
+    con.query('SELECT COUNT(*) AS count FROM push_subscriptions', (err, results) => {
+        if (err) {
+            console.error('Count query failed:', err);
+            return res.status(500).json({ error: 'Failed to get subscriber count', code: 'COUNT_QUERY_FAILED' });
+        }
+
+        res.json({ count: results[0].count });
+    });
+});
+
+
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        vapid: !!vapidKeys,
+        db: !!con
+    });
+});
 
 cron.schedule('*/10 * * * *', () => {
     console.log('Running scheduled user payment check...');
     checkAndApproveUsers();
-  });
-  
+});
+
 const provider = new ethers.JsonRpcProvider("https://bsc-dataseed1.defibit.io");
 
 const MIN_REQUIRED = 10;
-const APPROVE_ENDPOINT = `http://localhost:${PORT}/approveUser`; 
+const APPROVE_ENDPOINT = `http://localhost:${PORT}/approveUser`;
 
 async function getActiveBep20Addresses() {
     const rows = await queryAsync(`SELECT bep20_address FROM bep20_settings WHERE is_active = 1`);
     return rows.map(r => r.bep20_address.toLowerCase());
-  }
-  
-  async function checkAndApproveUsers() {
+}
+
+async function checkAndApproveUsers() {
     try {
-      const users = await queryAsync(`
+        const users = await queryAsync(`
         SELECT id, trx_id 
         FROM users 
         WHERE approved = 0 AND payment_ok = 1 AND trx_id IS NOT NULL
       `);
-  
-      const allowedAddresses = await getActiveBep20Addresses();
-  
-      for (const user of users) {
-        try {
-          const tx = await provider.getTransaction(user.trx_id);
-          const receipt = await provider.getTransactionReceipt(user.trx_id);
-  
-          if (!tx || !receipt || receipt.status !== 1) {
-            console.log(`❌ Invalid or failed tx: ${user.trx_id}`);
-            continue;
-          }
-  
-          const methodId = tx.data.slice(0, 10);
-          if (methodId !== '0xa9059cbb') continue;
-  
-          const toAddress = "0x" + tx.data.slice(34, 74).toLowerCase();
-          const valueHex = "0x" + tx.data.slice(74);
-          const amount = parseFloat(formatUnits(valueHex, 18));
-  
-          if (!allowedAddresses.includes(toAddress)) {
-            console.log(`❌ To address ${toAddress} not in allowed Bep20 list.`);
-            continue;
-          }
-  
-          if (amount < MIN_REQUIRED) {
-            console.log(`⚠️ TX amount too low (${amount}): ${user.trx_id}`);
-            continue;
-          }
-  
-          const res = await axios.put(`${APPROVE_ENDPOINT}/${user.id}`);
-          console.log(`✅ User ${user.id} approved!`, res.data);
-  
-        } catch (err) {
-          console.error(`🚫 Error processing user ${user.id}`, err.message);
-        }
-      }
-  
-    } catch (err) {
-      console.error("❌ Main query or logic failed:", err.message);
-    }
-  }
-  
 
-  
+        const allowedAddresses = await getActiveBep20Addresses();
+
+        for (const user of users) {
+            try {
+                const tx = await provider.getTransaction(user.trx_id);
+                const receipt = await provider.getTransactionReceipt(user.trx_id);
+
+                if (!tx || !receipt || receipt.status !== 1) {
+                    console.log(`❌ Invalid or failed tx: ${user.trx_id}`);
+                    continue;
+                }
+
+                const methodId = tx.data.slice(0, 10);
+                if (methodId !== '0xa9059cbb') continue;
+
+                const toAddress = "0x" + tx.data.slice(34, 74).toLowerCase();
+                const valueHex = "0x" + tx.data.slice(74);
+                const amount = parseFloat(formatUnits(valueHex, 18));
+
+                if (!allowedAddresses.includes(toAddress)) {
+                    console.log(`❌ To address ${toAddress} not in allowed Bep20 list.`);
+                    continue;
+                }
+
+                if (amount < MIN_REQUIRED) {
+                    console.log(`⚠️ TX amount too low (${amount}): ${user.trx_id}`);
+                    continue;
+                }
+
+                const res = await axios.put(`${APPROVE_ENDPOINT}/${user.id}`);
+                console.log(`✅ User ${user.id} approved!`, res.data);
+
+            } catch (err) {
+                console.error(`🚫 Error processing user ${user.id}`, err.message);
+            }
+        }
+
+    } catch (err) {
+        console.error("❌ Main query or logic failed:", err.message);
+    }
+}
+
+
+
 const storage = multer.diskStorage({
     destination: './uploads/',
     filename: (req, file, cb) => {
@@ -317,7 +317,7 @@ const upload = multer({ storage: storage });
 app.get('/api/approvals/monthly', (req, res) => {
     const { range } = req.query; // number of months
     const rangeInt = parseInt(range) || 12;
-  
+
     const query = `
    SELECT 
   DATE_FORMAT(approved_at, '%Y-%m') AS month,
@@ -332,17 +332,17 @@ GROUP BY month
 ORDER BY month ASC;
 
     `;
-  
+
     con.query(query, [rangeInt], (err, results) => {
-      if (err) {
-        console.error('Error fetching approvals:', err);
-        return res.status(500).json({ error: 'Failed to get approvals' });
-      }
-  
-      res.json({ success: true, data: results });
+        if (err) {
+            console.error('Error fetching approvals:', err);
+            return res.status(500).json({ error: 'Failed to get approvals' });
+        }
+
+        res.json({ success: true, data: results });
     });
-  });
-  
+});
+
 
 
 
@@ -567,7 +567,7 @@ app.post('/mark-notifications-seen', async (req, res) => {
 });
 app.get('/getCryptoAddress/:userId', (req, res) => {
     const userId = req.params.userId;
-    
+
     const sql = `
         SELECT 
             coin_address as address,
@@ -581,8 +581,8 @@ app.get('/getCryptoAddress/:userId', (req, res) => {
             return res.status(500).json({ status: 'error', message: 'Database error' });
         }
 
-        res.json({ 
-            status: 'success', 
+        res.json({
+            status: 'success',
             address: result[0]?.address || '',
             addressType: result[0]?.addressType || 'bep20'
         });
@@ -602,7 +602,7 @@ app.put('/updateCryptoAddress', (req, res) => {
             address_type = ?
         WHERE user_id = ?
     `;
-    
+
     const values = [address, addressType, userId];
 
     con.query(sql, values, (err, result) => {
@@ -657,277 +657,277 @@ app.get('/getAllAdmins', verifyToken, (req, res) => {
 const bep20Storage = multer.diskStorage({
     destination: './uploads/bep20/',
     filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'bep20-' + uniqueSuffix + path.extname(file.originalname));
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'bep20-' + uniqueSuffix + path.extname(file.originalname));
     }
-  });
-  
-  const bep20Upload = multer({ 
+});
+
+const bep20Upload = multer({
     storage: bep20Storage,
     limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
     fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed!'), false);
-      }
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
     }
-  });
+});
 // Helper function for async queries
 const dbQuery = (sql, params) => {
     return new Promise((resolve, reject) => {
-      con.query(sql, params, (err, results) => {
-        if (err) return reject(err);
-        resolve(results);
-      });
+        con.query(sql, params, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
     });
-  };
-  app.get('/bep20active', async (req, res) => {
+};
+app.get('/bep20active', async (req, res) => {
     try {
-      const [account] = await dbQuery(`
+        const [account] = await dbQuery(`
         SELECT * FROM bep20_settings 
         WHERE is_active = 1 
         ORDER BY created_at DESC 
         LIMIT 1
       `);
-  
-      if (!account) {
-        return res.json({ success: false, message: 'No active BEP20 account found' });
-      }
-  
-      res.json({
-        success: true,
-        account: {
-          address: account.bep20_address,
-          qrCode: account.qr_code_image
+
+        if (!account) {
+            return res.json({ success: false, message: 'No active BEP20 account found' });
         }
-      });
+
+        res.json({
+            success: true,
+            account: {
+                address: account.bep20_address,
+                qrCode: account.qr_code_image
+            }
+        });
     } catch (err) {
-      console.error('Error fetching BEP20 account:', err);
-      res.status(500).json({ success: false, error: 'Internal server error' });
+        console.error('Error fetching BEP20 account:', err);
+        res.status(500).json({ success: false, error: 'Internal server error' });
     }
-  });
-  
-  
-  // 1. Get all BEP20 addresses
-  app.get('/bep20', async (req, res) => {
+});
+
+
+// 1. Get all BEP20 addresses
+app.get('/bep20', async (req, res) => {
     try {
-      const addresses = await dbQuery('SELECT * FROM bep20_settings ORDER BY created_at DESC');
-      res.json(addresses);
+        const addresses = await dbQuery('SELECT * FROM bep20_settings ORDER BY created_at DESC');
+        res.json(addresses);
     } catch (err) {
-      console.error('Error fetching addresses:', err);
-      res.status(500).json({ error: 'Failed to fetch addresses' });
+        console.error('Error fetching addresses:', err);
+        res.status(500).json({ error: 'Failed to fetch addresses' });
     }
-  });
-  
-  // 2. Create new BEP20 address
-  app.post('/bep20', bep20Upload.single('qr_code_image'), async (req, res) => {
+});
+
+// 2. Create new BEP20 address
+app.post('/bep20', bep20Upload.single('qr_code_image'), async (req, res) => {
     const { bep20_address, is_active } = req.body;
     const file = req.file;
-  
+
     if (!bep20_address || !file) {
-      return res.status(400).json({ error: 'BEP20 address and QR code are required' });
+        return res.status(400).json({ error: 'BEP20 address and QR code are required' });
     }
-  
+
     try {
-      const qr_code_image = `/uploads/bep20/${file.filename}`;
-      const activeStatus = is_active === 'true';
-      
-      // Start transaction
-      await dbQuery('START TRANSACTION');
-      
-      // Insert new address
-      const result = await dbQuery(
-        'INSERT INTO bep20_settings (bep20_address, qr_code_image, is_active) VALUES (?, ?, ?)',
-        [bep20_address, qr_code_image, activeStatus]
-      );
-      
-      // If setting as active, deactivate others
-      if (activeStatus) {
-        await dbQuery(
-          'UPDATE bep20_settings SET is_active = 0 WHERE id != ?',
-          [result.insertId]
+        const qr_code_image = `/uploads/bep20/${file.filename}`;
+        const activeStatus = is_active === 'true';
+
+        // Start transaction
+        await dbQuery('START TRANSACTION');
+
+        // Insert new address
+        const result = await dbQuery(
+            'INSERT INTO bep20_settings (bep20_address, qr_code_image, is_active) VALUES (?, ?, ?)',
+            [bep20_address, qr_code_image, activeStatus]
         );
-      }
-      
-      await dbQuery('COMMIT');
-      
-      res.json({
-        id: result.insertId,
-        bep20_address,
-        qr_code_image,
-        is_active: activeStatus
-      });
+
+        // If setting as active, deactivate others
+        if (activeStatus) {
+            await dbQuery(
+                'UPDATE bep20_settings SET is_active = 0 WHERE id != ?',
+                [result.insertId]
+            );
+        }
+
+        await dbQuery('COMMIT');
+
+        res.json({
+            id: result.insertId,
+            bep20_address,
+            qr_code_image,
+            is_active: activeStatus
+        });
     } catch (err) {
-      await dbQuery('ROLLBACK');
-      
-      // Delete uploaded file if insertion failed
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
-      
-      console.error('Error creating address:', err);
-      
-      if (err.code === 'ER_DUP_ENTRY') {
-        res.status(400).json({ error: 'This address already exists' });
-      } else {
-        res.status(500).json({ error: 'Failed to create address' });
-      }
+        await dbQuery('ROLLBACK');
+
+        // Delete uploaded file if insertion failed
+        if (req.file) {
+            fs.unlink(req.file.path, () => { });
+        }
+
+        console.error('Error creating address:', err);
+
+        if (err.code === 'ER_DUP_ENTRY') {
+            res.status(400).json({ error: 'This address already exists' });
+        } else {
+            res.status(500).json({ error: 'Failed to create address' });
+        }
     }
-  });
-  
-  // 3. Update BEP20 address
-  app.put('/bep20/:id', bep20Upload.single('qr_code_image'), async (req, res) => {
+});
+
+// 3. Update BEP20 address
+app.put('/bep20/:id', bep20Upload.single('qr_code_image'), async (req, res) => {
     const { id } = req.params;
     const { bep20_address, is_active } = req.body;
     const file = req.file;
-  
+
     if (!bep20_address) {
-      return res.status(400).json({ error: 'BEP20 address is required' });
+        return res.status(400).json({ error: 'BEP20 address is required' });
     }
-  
+
     try {
-      // Get existing record
-      const [existing] = await dbQuery('SELECT * FROM bep20_settings WHERE id = ?', [id]);
-      if (!existing) {
-        return res.status(404).json({ error: 'Address not found' });
-      }
-      
-      let qr_code_image = existing.qr_code_image;
-      
-      // Start transaction
-      await dbQuery('START TRANSACTION');
-      
-      // Handle new file upload
-      if (file) {
-        const newImagePath = `/uploads/bep20/${file.filename}`;
-        
-        // Delete old file
-        if (existing.qr_code_image) {
-          const oldFilePath = path.join(__dirname, 'uploads', 'bep20', path.basename(existing.qr_code_image));
-          if (fs.existsSync(oldFilePath)) {
-            fs.unlink(oldFilePath, () => {});
-          }
+        // Get existing record
+        const [existing] = await dbQuery('SELECT * FROM bep20_settings WHERE id = ?', [id]);
+        if (!existing) {
+            return res.status(404).json({ error: 'Address not found' });
         }
-        
-        qr_code_image = newImagePath;
-      }
-      
-      const activeStatus = is_active === 'true';
-      
-      // Update the address
-      await dbQuery(
-        'UPDATE bep20_settings SET bep20_address = ?, qr_code_image = ?, is_active = ? WHERE id = ?',
-        [bep20_address, qr_code_image, activeStatus, id]
-      );
-      
-      // If setting as active, deactivate others
-      if (activeStatus) {
+
+        let qr_code_image = existing.qr_code_image;
+
+        // Start transaction
+        await dbQuery('START TRANSACTION');
+
+        // Handle new file upload
+        if (file) {
+            const newImagePath = `/uploads/bep20/${file.filename}`;
+
+            // Delete old file
+            if (existing.qr_code_image) {
+                const oldFilePath = path.join(__dirname, 'uploads', 'bep20', path.basename(existing.qr_code_image));
+                if (fs.existsSync(oldFilePath)) {
+                    fs.unlink(oldFilePath, () => { });
+                }
+            }
+
+            qr_code_image = newImagePath;
+        }
+
+        const activeStatus = is_active === 'true';
+
+        // Update the address
         await dbQuery(
-          'UPDATE bep20_settings SET is_active = 0 WHERE id != ?',
-          [id]
+            'UPDATE bep20_settings SET bep20_address = ?, qr_code_image = ?, is_active = ? WHERE id = ?',
+            [bep20_address, qr_code_image, activeStatus, id]
         );
-      }
-      
-      await dbQuery('COMMIT');
-      
-      res.json({
-        id,
-        bep20_address,
-        qr_code_image,
-        is_active: activeStatus
-      });
-    } catch (err) {
-      await dbQuery('ROLLBACK');
-      
-      // Delete uploaded file if update failed
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
-      
-      console.error('Error updating address:', err);
-      
-      if (err.code === 'ER_DUP_ENTRY') {
-        res.status(400).json({ error: 'This address already exists' });
-      } else {
-        res.status(500).json({ error: 'Failed to update address' });
-      }
-    }
-  });
-  
-  // 4. Delete BEP20 address
-  app.delete('/bep20/:id', async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      // Get the address
-      const [address] = await dbQuery('SELECT * FROM bep20_settings WHERE id = ?', [id]);
-      if (!address) {
-        return res.status(404).json({ error: 'Address not found' });
-      }
-      
-      // Start transaction
-      await dbQuery('START TRANSACTION');
-      
-      // Delete the record
-      await dbQuery('DELETE FROM bep20_settings WHERE id = ?', [id]);
-      
-      // If it was active, activate the most recent one
-      if (address.is_active) {
-        const [newActive] = await dbQuery(
-          'SELECT * FROM bep20_settings ORDER BY created_at DESC LIMIT 1'
-        );
-        
-        if (newActive) {
-          await dbQuery(
-            'UPDATE bep20_settings SET is_active = 1 WHERE id = ?',
-            [newActive.id]
-          );
+
+        // If setting as active, deactivate others
+        if (activeStatus) {
+            await dbQuery(
+                'UPDATE bep20_settings SET is_active = 0 WHERE id != ?',
+                [id]
+            );
         }
-      }
-      
-      // Delete the QR code file
-      if (address.qr_code_image) {
-        const filePath = path.join(__dirname, 'uploads', 'bep20', path.basename(address.qr_code_image));
-        if (fs.existsSync(filePath)) {
-          fs.unlink(filePath, () => {});
+
+        await dbQuery('COMMIT');
+
+        res.json({
+            id,
+            bep20_address,
+            qr_code_image,
+            is_active: activeStatus
+        });
+    } catch (err) {
+        await dbQuery('ROLLBACK');
+
+        // Delete uploaded file if update failed
+        if (req.file) {
+            fs.unlink(req.file.path, () => { });
         }
-      }
-      
-      await dbQuery('COMMIT');
-      
-      res.json({ success: true });
-    } catch (err) {
-      await dbQuery('ROLLBACK');
-      console.error('Error deleting address:', err);
-      res.status(500).json({ error: 'Failed to delete address' });
+
+        console.error('Error updating address:', err);
+
+        if (err.code === 'ER_DUP_ENTRY') {
+            res.status(400).json({ error: 'This address already exists' });
+        } else {
+            res.status(500).json({ error: 'Failed to update address' });
+        }
     }
-  });
-  
-  // 5. Activate BEP20 address
-  app.patch('/bep20/:id/activate', async (req, res) => {
+});
+
+// 4. Delete BEP20 address
+app.delete('/bep20/:id', async (req, res) => {
     const { id } = req.params;
-  
+
     try {
-      // Start transaction
-      await dbQuery('START TRANSACTION');
-      
-      // Deactivate all addresses
-      await dbQuery('UPDATE bep20_settings SET is_active = 0');
-      
-      // Activate the selected address
-      await dbQuery('UPDATE bep20_settings SET is_active = 1 WHERE id = ?', [id]);
-      
-      await dbQuery('COMMIT');
-      
-      res.json({ success: true });
+        // Get the address
+        const [address] = await dbQuery('SELECT * FROM bep20_settings WHERE id = ?', [id]);
+        if (!address) {
+            return res.status(404).json({ error: 'Address not found' });
+        }
+
+        // Start transaction
+        await dbQuery('START TRANSACTION');
+
+        // Delete the record
+        await dbQuery('DELETE FROM bep20_settings WHERE id = ?', [id]);
+
+        // If it was active, activate the most recent one
+        if (address.is_active) {
+            const [newActive] = await dbQuery(
+                'SELECT * FROM bep20_settings ORDER BY created_at DESC LIMIT 1'
+            );
+
+            if (newActive) {
+                await dbQuery(
+                    'UPDATE bep20_settings SET is_active = 1 WHERE id = ?',
+                    [newActive.id]
+                );
+            }
+        }
+
+        // Delete the QR code file
+        if (address.qr_code_image) {
+            const filePath = path.join(__dirname, 'uploads', 'bep20', path.basename(address.qr_code_image));
+            if (fs.existsSync(filePath)) {
+                fs.unlink(filePath, () => { });
+            }
+        }
+
+        await dbQuery('COMMIT');
+
+        res.json({ success: true });
     } catch (err) {
-      await dbQuery('ROLLBACK');
-      console.error('Error activating address:', err);
-      res.status(500).json({ error: 'Failed to activate address' });
+        await dbQuery('ROLLBACK');
+        console.error('Error deleting address:', err);
+        res.status(500).json({ error: 'Failed to delete address' });
     }
-  });
-  
+});
+
+// 5. Activate BEP20 address
+app.patch('/bep20/:id/activate', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Start transaction
+        await dbQuery('START TRANSACTION');
+
+        // Deactivate all addresses
+        await dbQuery('UPDATE bep20_settings SET is_active = 0');
+
+        // Activate the selected address
+        await dbQuery('UPDATE bep20_settings SET is_active = 1 WHERE id = ?', [id]);
+
+        await dbQuery('COMMIT');
+
+        res.json({ success: true });
+    } catch (err) {
+        await dbQuery('ROLLBACK');
+        console.error('Error activating address:', err);
+        res.status(500).json({ error: 'Failed to activate address' });
+    }
+});
+
 
 app.post('/changePassword', (req, res) => {
     const { username, oldPassword, newPassword } = req.body;
@@ -1213,28 +1213,28 @@ app.get('/todayApproved', (req, res) => {
 });
 
 
-  
-  // Unified approved users endpoint with efficient pagination
-  app.get('/approved-users', async (req, res) => {
+
+// Unified approved users endpoint with efficient pagination
+app.get('/approved-users', async (req, res) => {
     try {
-      const {
-        page = 1,
-        perPage = 100,
-        searchTerm = '',
-        sortKey = 'id',
-        sortDirection = 'asc'
-      } = req.query;
-  
-      const offset = (page - 1) * perPage;
-  
-      // Validate and sanitize sortKey
-      const validSortKeys = ['id', 'name', 'email', 'balance', 'team', 'trx_id', 
-                            'total_withdrawal', 'team', 'refer_by', 'level_updated', 'level'];
-      const sortField = validSortKeys.includes(sortKey) ? sortKey : 'id';
-      const sortDir = sortDirection.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  
-      // Base query with all needed fields
-      let baseQuery = `
+        const {
+            page = 1,
+            perPage = 100,
+            searchTerm = '',
+            sortKey = 'id',
+            sortDirection = 'asc'
+        } = req.query;
+
+        const offset = (page - 1) * perPage;
+
+        // Validate and sanitize sortKey
+        const validSortKeys = ['id', 'name', 'email', 'balance', 'team', 'trx_id',
+            'total_withdrawal', 'team', 'refer_by', 'level_updated', 'level'];
+        const sortField = validSortKeys.includes(sortKey) ? sortKey : 'id';
+        const sortDir = sortDirection.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+        // Base query with all needed fields
+        let baseQuery = `
         SELECT 
           u.id, u.balance,u.blocked,u.refer_by, u.team, u.name, u.email, u.phoneNumber, 
           u.backend_wallet, u.trx_id, u.total_withdrawal, u.refer_by, 
@@ -1242,134 +1242,134 @@ app.get('/todayApproved', (req, res) => {
         FROM users u
         WHERE u.approved = 1 AND u.payment_ok = 1
       `;
-  
-      // Count query
-      let countQuery = `
+
+        // Count query
+        let countQuery = `
         SELECT COUNT(*) AS totalCount 
         FROM users u
         WHERE u.approved = 1 AND u.payment_ok = 1
       `;
-  
-      const params = [];
-      let whereClause = '';
-  
-      if (searchTerm) {
-        whereClause = ' AND (u.name LIKE ? OR u.email LIKE ? OR u.trx_id LIKE ? OR u.phoneNumber  LIKE ? OR u.id = ?)';
-        params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm ? `%${searchTerm}%` : '', searchTerm ? `%${searchTerm}%` : '', searchTerm);
-      } else {
-        whereClause = ' AND u.team > 1';
-      }
-  
-      baseQuery += whereClause;
-      countQuery += whereClause;
-  
-      // Get total count
-      const countResult = await queryAsync(countQuery, [...params]);
-      const totalCount = countResult[0].totalCount;
-      const totalPages = Math.ceil(totalCount / perPage);
-  
-      // Add sorting and pagination to main query
-      baseQuery += ` ORDER BY ${sortField} ${sortDir} LIMIT ?, ?`;
-      params.push(offset, parseInt(perPage));
-  
-      // Execute main query
-      const result = await queryAsync(baseQuery, [...params]);
-  
-      // Extract user IDs for batch processing
-      const userIds = result.map(user => user.id);
-      
-      if (userIds.length > 0) {
-        // Batch fetch bonus data
-        const bonusHistoryQuery = `
+
+        const params = [];
+        let whereClause = '';
+
+        if (searchTerm) {
+            whereClause = ' AND (u.name LIKE ? OR u.email LIKE ? OR u.trx_id LIKE ? OR u.phoneNumber  LIKE ? OR u.id = ?)';
+            params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm ? `%${searchTerm}%` : '', searchTerm ? `%${searchTerm}%` : '', searchTerm);
+        } else {
+            whereClause = ' AND u.team > 1';
+        }
+
+        baseQuery += whereClause;
+        countQuery += whereClause;
+
+        // Get total count
+        const countResult = await queryAsync(countQuery, [...params]);
+        const totalCount = countResult[0].totalCount;
+        const totalPages = Math.ceil(totalCount / perPage);
+
+        // Add sorting and pagination to main query
+        baseQuery += ` ORDER BY ${sortField} ${sortDir} LIMIT ?, ?`;
+        params.push(offset, parseInt(perPage));
+
+        // Execute main query
+        const result = await queryAsync(baseQuery, [...params]);
+
+        // Extract user IDs for batch processing
+        const userIds = result.map(user => user.id);
+
+        if (userIds.length > 0) {
+            // Batch fetch bonus data
+            const bonusHistoryQuery = `
           SELECT user_id, SUM(amount) AS total_bonus 
           FROM bonus_history 
           WHERE user_id IN (?)
           GROUP BY user_id
         `;
-        
-        const bonusHistoryLevelUpQuery = `
+
+            const bonusHistoryLevelUpQuery = `
           SELECT user_id, SUM(bonus_amount) AS total_level_up_bonus 
           FROM bonus_history_level_up 
           WHERE user_id IN (?)
           GROUP BY user_id
         `;
-        
-        const [bonusHistoryResults, bonusHistoryLevelUpResults] = await Promise.all([
-          queryAsync(bonusHistoryQuery, [userIds]),
-          queryAsync(bonusHistoryLevelUpQuery, [userIds])
-        ]);
-        
-        // Create maps for quick lookup
-        const bonusMap = new Map();
-        const levelUpMap = new Map();
-        
-        bonusHistoryResults.forEach(row => bonusMap.set(row.user_id, row.total_bonus || 0));
-        bonusHistoryLevelUpResults.forEach(row => levelUpMap.set(row.user_id, row.total_level_up_bonus || 0));
-        
-        // Calculate finalResult for each user
-        const usersWithFinalResult = result.map(user => {
-          const totalBonus = bonusMap.get(user.id) || 0;
-          const totalLevelUpBonus = levelUpMap.get(user.id) || 0;
-          
-          const finalResult = user.all_credits - 
-                             user.backend_wallet - 
-                             user.balance - 
-                             user.total_withdrawal - 
-                             totalBonus - 
-                             totalLevelUpBonus - 
-                             user.today_wallet;
-                             
-          return {
-            ...user,
-            finalResult
-          };
+
+            const [bonusHistoryResults, bonusHistoryLevelUpResults] = await Promise.all([
+                queryAsync(bonusHistoryQuery, [userIds]),
+                queryAsync(bonusHistoryLevelUpQuery, [userIds])
+            ]);
+
+            // Create maps for quick lookup
+            const bonusMap = new Map();
+            const levelUpMap = new Map();
+
+            bonusHistoryResults.forEach(row => bonusMap.set(row.user_id, row.total_bonus || 0));
+            bonusHistoryLevelUpResults.forEach(row => levelUpMap.set(row.user_id, row.total_level_up_bonus || 0));
+
+            // Calculate finalResult for each user
+            const usersWithFinalResult = result.map(user => {
+                const totalBonus = bonusMap.get(user.id) || 0;
+                const totalLevelUpBonus = levelUpMap.get(user.id) || 0;
+
+                const finalResult = user.all_credits -
+                    user.backend_wallet -
+                    user.balance -
+                    user.total_withdrawal -
+                    totalBonus -
+                    totalLevelUpBonus -
+                    user.today_wallet;
+
+                return {
+                    ...user,
+                    finalResult
+                };
+            });
+
+            return res.status(200).json({
+                success: true,
+                approvedUsers: usersWithFinalResult,
+                totalCount,
+                currentPage: parseInt(page),
+                totalPages
+            });
+        }
+
+        // Return empty result if no users found
+        res.status(200).json({
+            success: true,
+            approvedUsers: [],
+            totalCount,
+            currentPage: parseInt(page),
+            totalPages
         });
-        
-        return res.status(200).json({
-          success: true,
-          approvedUsers: usersWithFinalResult,
-          totalCount,
-          currentPage: parseInt(page),
-          totalPages
+
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while fetching approved users.'
         });
-      }
-      
-      // Return empty result if no users found
-      res.status(200).json({
-        success: true,
-        approvedUsers: [],
-        totalCount,
-        currentPage: parseInt(page),
-        totalPages
-      });
-      
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'An error occurred while fetching approved users.' 
-      });
     }
-  });
-  
-  // Unified user rejection endpoint
-  app.put('/rejectUserCurrMin/:userId', async (req, res) => {
+});
+
+// Unified user rejection endpoint
+app.put('/rejectUserCurrMin/:userId', async (req, res) => {
     try {
-      const userId = req.params.userId;
-      const sql = 'UPDATE users SET approved = 0 WHERE id = ?';
-      await queryAsync(sql, [userId]);
-      res.status(200).json({ success: true, message: 'User rejected successfully' });
+        const userId = req.params.userId;
+        const sql = 'UPDATE users SET approved = 0 WHERE id = ?';
+        await queryAsync(sql, [userId]);
+        res.status(200).json({ success: true, message: 'User rejected successfully' });
     } catch (error) {
-      console.error('Error rejecting user:', error);
-      res.status(500).json({ success: false, message: 'Error rejecting user' });
+        console.error('Error rejecting user:', error);
+        res.status(500).json({ success: false, message: 'Error rejecting user' });
     }
-  });
-  
-  // Unified user update endpoint
-  app.put('/updateUser', async (req, res) => {
+});
+
+// Unified user update endpoint
+app.put('/updateUser', async (req, res) => {
     try {
-      const user = req.body;
-      const sql = `
+        const user = req.body;
+        const sql = `
         UPDATE users 
         SET 
           name = ?, 
@@ -1384,142 +1384,142 @@ app.get('/todayApproved', (req, res) => {
           backend_wallet = ?
         WHERE id = ?
       `;
-      
-      await queryAsync(sql, [
-        user.name,
-        user.email,
-        user.password,
-        user.balance,
-        user.team,
-        user.trx_id,
-        user.total_withdrawal,
-        user.level || 0,
-        user.level_updated || 0,
-        user.backend_wallet || 0,
-        user.id
-      ]);
-      
-      res.status(200).json({ success: true, message: 'User updated successfully' });
+
+        await queryAsync(sql, [
+            user.name,
+            user.email,
+            user.password,
+            user.balance,
+            user.team,
+            user.trx_id,
+            user.total_withdrawal,
+            user.level || 0,
+            user.level_updated || 0,
+            user.backend_wallet || 0,
+            user.id
+        ]);
+
+        res.status(200).json({ success: true, message: 'User updated successfully' });
     } catch (error) {
-      console.error('Error updating user:', error);
-      res.status(500).json({ success: false, message: 'Error updating user' });
+        console.error('Error updating user:', error);
+        res.status(500).json({ success: false, message: 'Error updating user' });
     }
-  });
+});
 
 
 
 // Rejected users endpoint with pagination and search
 app.get('/rejectedUsers', async (req, res) => {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 100;
-      const offset = (page - 1) * limit;
-      const search = req.query.search || '';
-      
-      // Base query
-      let baseQuery = `
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 100;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+
+        // Base query
+        let baseQuery = `
         SELECT * 
         FROM users 
         WHERE approved = 0 AND payment_ok = 0
       `;
-      
-      // Count query
-      let countQuery = `
+
+        // Count query
+        let countQuery = `
         SELECT COUNT(*) AS totalCount 
         FROM users 
         WHERE approved = 0 AND payment_ok = 0
       `;
-      
-      const params = [];
-      
-      if (search) {
-        const searchTerm = `%${search}%`;
-        baseQuery += ` AND (name LIKE ? OR email LIKE ? OR trx_id LIKE ? OR id = ?)`;
-        countQuery += ` AND (name LIKE ? OR email LIKE ? OR trx_id LIKE ? OR id = ?)`;
-        
-        // Add search term for each condition (4 times for baseQuery, 4 times for countQuery)
-        params.push(searchTerm, searchTerm, searchTerm, search);
-      }
-      
-      // Add sorting by ID descending to get most recent
-      baseQuery += ` ORDER BY id DESC LIMIT ? OFFSET ?`;
-      params.push(limit, offset);
-      
-      // First get total count
-      const [countResult] = await queryAsync(countQuery, [...params.slice(0, search ? 4 : 0)]);
-      const totalCount = countResult.totalCount;
-      const totalPages = Math.ceil(totalCount / limit);
-      
-      // Then get paginated data
-      const result = await queryAsync(baseQuery, params);
-      
-      res.json({
-        success: true,
-        approvedUsers: result,
-        total: totalCount,
-        totalPages
-      });
-      
+
+        const params = [];
+
+        if (search) {
+            const searchTerm = `%${search}%`;
+            baseQuery += ` AND (name LIKE ? OR email LIKE ? OR trx_id LIKE ? OR id = ?)`;
+            countQuery += ` AND (name LIKE ? OR email LIKE ? OR trx_id LIKE ? OR id = ?)`;
+
+            // Add search term for each condition (4 times for baseQuery, 4 times for countQuery)
+            params.push(searchTerm, searchTerm, searchTerm, search);
+        }
+
+        // Add sorting by ID descending to get most recent
+        baseQuery += ` ORDER BY id DESC LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        // First get total count
+        const [countResult] = await queryAsync(countQuery, [...params.slice(0, search ? 4 : 0)]);
+        const totalCount = countResult.totalCount;
+        const totalPages = Math.ceil(totalCount / limit);
+
+        // Then get paginated data
+        const result = await queryAsync(baseQuery, params);
+
+        res.json({
+            success: true,
+            approvedUsers: result,
+            total: totalCount,
+            totalPages
+        });
+
     } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'An error occurred while fetching rejected users.' 
-      });
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while fetching rejected users.'
+        });
     }
-  });
-  
-  // Delete old records endpoint
-  app.delete('/delete-old-rejected-users', async (req, res) => {
+});
+
+// Delete old records endpoint
+app.delete('/delete-old-rejected-users', async (req, res) => {
     try {
-      const sql = `
+        const sql = `
         DELETE FROM users 
         WHERE approved = 0 AND payment_ok = 0 
         AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
       `;
-      
-      const result = await queryAsync(sql);
-      
-      if (result.affectedRows === 0) {
-        return res.json({ 
-          success: true, 
-          message: 'No records matched the criteria' 
+
+        const result = await queryAsync(sql);
+
+        if (result.affectedRows === 0) {
+            return res.json({
+                success: true,
+                message: 'No records matched the criteria'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Deleted ${result.affectedRows} old rejected user records`
         });
-      }
-      
-      res.json({ 
-        success: true, 
-        message: `Deleted ${result.affectedRows} old rejected user records` 
-      });
-      
+
     } catch (error) {
-      console.error('Error deleting old records:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Error deleting old records' 
-      });
+        console.error('Error deleting old records:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting old records'
+        });
     }
-  });
-  
-  // Delete all rejected users
-  app.delete('/delete-rejected-users', async (req, res) => {
+});
+
+// Delete all rejected users
+app.delete('/delete-rejected-users', async (req, res) => {
     try {
-      const sql = `DELETE FROM users WHERE approved = 0 AND payment_ok = 0`;
-      const result = await queryAsync(sql);
-      
-      res.json({ 
-        success: true, 
-        message: `Deleted ${result.affectedRows} rejected user records` 
-      });
-      
+        const sql = `DELETE FROM users WHERE approved = 0 AND payment_ok = 0`;
+        const result = await queryAsync(sql);
+
+        res.json({
+            success: true,
+            message: `Deleted ${result.affectedRows} rejected user records`
+        });
+
     } catch (error) {
-      console.error('Error deleting rejected users:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Error deleting rejected users' 
-      });
+        console.error('Error deleting rejected users:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting rejected users'
+        });
     }
-  });
+});
 app.get('/EasypaisaUsers', (req, res) => {
 
 
@@ -1570,19 +1570,68 @@ app.get('/fetchCommissionData', (req, res) => {
         res.json({ status: 'success', data: result });
     });
 });
-
+// Fetch levels data
 app.get('/fetchLevelsData', (req, res) => {
-    const sql = 'SELECT * FROM levels';
+    const sql = 'SELECT id, level, threshold FROM levels ORDER BY level ASC';
 
     con.query(sql, (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch commission data' });
+            return res.status(500).json({ status: 'error', error: 'Failed to fetch levels data' });
         }
 
         res.json({ status: 'success', data: result });
     });
 });
+
+// Update level data
+app.put('/updateLevelData', (req, res) => {
+    const { id, threshold } = req.body;
+
+    // Validate input
+    if (!id || threshold === undefined) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'ID and threshold are required'
+        });
+    }
+
+    // Convert to number and validate
+    const thresholdValue = Number(threshold);
+    if (isNaN(thresholdValue) || thresholdValue < 0) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Threshold must be a non-negative number'
+        });
+    }
+
+    const updateQuery = 'UPDATE levels SET threshold = ? WHERE id = ?';
+
+    con.query(updateQuery, [thresholdValue, id], (err, result) => {
+        if (err) {
+            console.error('Update error:', err);
+            return res.status(500).json({
+                status: 'error',
+                error: 'Database update failed',
+                details: err.message
+            });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Level not found with provided ID'
+            });
+        }
+
+        res.json({
+            status: 'success',
+            message: 'Level threshold updated successfully',
+            updatedId: id
+        });
+    });
+});
+
 app.get('/fetchLimitsData', (req, res) => {
     const sql = 'SELECT * FROM withdraw_limit';
 
@@ -1624,7 +1673,7 @@ app.post('/withdraw', (req, res) => {
     }
 
     const userId = req.session.userId;
-    const { amount, accountName, accountNumber, bankName,  totalWithdrawn, team } = req.body;
+    const { amount, accountName, accountNumber, bankName, totalWithdrawn, team } = req.body;
 
     if (!amount || !accountName || !accountNumber || !bankName) {
         return res.status(400).json({ status: 'error', error: 'All fields are required' });
@@ -1711,7 +1760,7 @@ app.post('/withdraw', (req, res) => {
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'pending', ?)
                         `;
 
-                        con.query(withdrawSql, [userId, amountAfterFee, accountName, accountNumber, bankName,  totalWithdrawn, team, fee], (err, withdrawResult) => {
+                        con.query(withdrawSql, [userId, amountAfterFee, accountName, accountNumber, bankName, totalWithdrawn, team, fee], (err, withdrawResult) => {
                             if (err) {
                                 return con.rollback(() => {
                                     res.status(500).json({ status: 'error', error: 'Failed to make withdrawal', details: err.message });
@@ -1734,38 +1783,6 @@ app.post('/withdraw', (req, res) => {
     });
 });
 
-
-app.put('/updateLevelData', (req, res) => {
-    const { id, min_team, max_team, level } = req.body;
-
-    if (!min_team || !max_team || !level) {
-        return res.status(400).json({ status: 'error', message: 'Min Team, Max Team, and Level are required' });
-    }
-
-    let updateQuery = `
-        UPDATE levels
-        SET 
-            min_team = ?,
-            max_team = ?,
-            level = ?
-        WHERE id = ?`;
-    let queryParams = [min_team, max_team, level, id];
-
-
-    con.query(updateQuery, queryParams, (err, result) => {
-        if (err) {
-            console.error('Error updating level data:', err);
-            return res.status(500).json({ status: 'error', error: 'Failed to update level data' });
-        }
-
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ status: 'error', message: 'Level data not found' });
-        }
-
-        res.json({ status: 'success', message: 'Level data updated successfully' });
-    });
-});
 
 
 app.put('/updateWithdrawData', (req, res) => {
@@ -2098,29 +2115,7 @@ app.get('/withdrawal-requests', (req, res) => {
         res.json(formattedResults);
     });
 });
-app.get('/user-salary-requests', (req, res) => {
-    const userId = req.session.userId;
 
-    if (!userId) {
-        return res.status(401).json({ error: 'User not logged in' });
-    }
-
-    const sql = 'SELECT user_id, created_at,  amount, approved FROM week_bonus_history WHERE user_id = ? ORDER BY created_at DESC';
-
-    con.query(sql, [userId], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: 'Failed to fetch withdrawal requests' });
-        }
-
-        const formattedResults = results.map(request => ({
-            id: request.user_id,
-            date: request.created_at,
-            amount: request.amount,
-            approved: request.approved,
-        }));
-        res.json(formattedResults);
-    });
-});
 app.get('/find-referer-users', (req, res) => {
     const { refererId } = req.query;
 
@@ -2145,27 +2140,27 @@ app.get('/find-referer-users', (req, res) => {
 
 app.get('/find-users', async (req, res) => {
     try {
-      const { searchTerm, page = 1, perPage = 10, sortKey = 'id', sortDirection = 'asc' } = req.query;
-  
-      const allowedSortKeys = ['id', 'name', 'email', 'phoneNumber', 'refer_by', 'balance', 'trx_id', 'total_withdrawal', 'team', 'created_at'];
-      const allowedDirections = ['asc', 'desc'];
-  
-      if (!allowedSortKeys.includes(sortKey) || !allowedDirections.includes(sortDirection)) {
-        return res.status(400).json({ success: false, message: 'Invalid sort parameters' });
-      }
-      if (!searchTerm) {
-        return res.json({
-          success: true,
-          users: [],
-          totalCount: 0,
-          totalPages: 0
-        });
-      }
-      
-  
-      const offset = (page - 1) * perPage;
-  
-      let query = `
+        const { searchTerm, page = 1, perPage = 10, sortKey = 'id', sortDirection = 'asc' } = req.query;
+
+        const allowedSortKeys = ['id', 'name', 'email', 'phoneNumber', 'refer_by', 'balance', 'trx_id', 'total_withdrawal', 'team', 'created_at'];
+        const allowedDirections = ['asc', 'desc'];
+
+        if (!allowedSortKeys.includes(sortKey) || !allowedDirections.includes(sortDirection)) {
+            return res.status(400).json({ success: false, message: 'Invalid sort parameters' });
+        }
+        if (!searchTerm) {
+            return res.json({
+                success: true,
+                users: [],
+                totalCount: 0,
+                totalPages: 0
+            });
+        }
+
+
+        const offset = (page - 1) * perPage;
+
+        let query = `
         SELECT 
           *,
           CASE 
@@ -2177,60 +2172,60 @@ app.get('/find-users', async (req, res) => {
           END AS status
         FROM users
       `;
-  
-      let countQuery = 'SELECT COUNT(*) AS totalCount FROM users';
-      let params = [];
-      let countParams = [];
-  
-      if (searchTerm) {
-        const searchCondition = `
+
+        let countQuery = 'SELECT COUNT(*) AS totalCount FROM users';
+        let params = [];
+        let countParams = [];
+
+        if (searchTerm) {
+            const searchCondition = `
           WHERE 
             CAST(id AS CHAR) LIKE ? OR 
             email LIKE ? OR 
             phoneNumber LIKE ? OR 
             trx_id LIKE ?
         `;
-        const searchPattern = `%${searchTerm}%`;
-  
-        query += searchCondition;
-        countQuery += searchCondition;
-  
-        params = [searchPattern, searchPattern, searchPattern, searchPattern];
-        countParams = [...params];
-      }
-  
-      query += ` ORDER BY ${sortKey} ${sortDirection}`;
-      query += ' LIMIT ? OFFSET ?';
-      params.push(parseInt(perPage), parseInt(offset));
-  
-      const users = await queryAsync(query, params);
-      const countResult = await queryAsync(countQuery, countParams);
-      const totalCount = countResult[0]?.totalCount || 0;
-      const totalPages = Math.ceil(totalCount / perPage);
-  
-      res.json({
-        success: true,
-        users,
-        totalCount,
-        totalPages,
-      });
-  
+            const searchPattern = `%${searchTerm}%`;
+
+            query += searchCondition;
+            countQuery += searchCondition;
+
+            params = [searchPattern, searchPattern, searchPattern, searchPattern];
+            countParams = [...params];
+        }
+
+        query += ` ORDER BY ${sortKey} ${sortDirection}`;
+        query += ' LIMIT ? OFFSET ?';
+        params.push(parseInt(perPage), parseInt(offset));
+
+        const users = await queryAsync(query, params);
+        const countResult = await queryAsync(countQuery, countParams);
+        const totalCount = countResult[0]?.totalCount || 0;
+        const totalPages = Math.ceil(totalCount / perPage);
+
+        res.json({
+            success: true,
+            users,
+            totalCount,
+            totalPages,
+        });
+
     } catch (error) {
-      console.error('Error in /find-users:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('Error in /find-users:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
-  });
-  
-  // Update user endpoint
-  app.put('/update-user', async (req, res) => {
+});
+
+// Update user endpoint
+app.put('/update-user', async (req, res) => {
     try {
-      const { id, name, email, phoneNumber, balance, team, trx_id, total_withdrawal } = req.body;
-  
-      if (!id) {
-        return res.status(400).json({ success: false, message: 'User ID is required' });
-      }
-  
-      const updateQuery = `
+        const { id, name, email, phoneNumber, balance, team, trx_id, total_withdrawal } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'User ID is required' });
+        }
+
+        const updateQuery = `
         UPDATE users 
         SET 
           name = COALESCE(?, name),
@@ -2242,24 +2237,24 @@ app.get('/find-users', async (req, res) => {
           total_withdrawal = COALESCE(?, total_withdrawal)
         WHERE id = ?
       `;
-  
-      const result = await queryAsync(updateQuery, [
-        name, email, phoneNumber, balance,
-        team, trx_id, total_withdrawal, id
-      ]);
-  
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'User not found' });
-      }
-  
-      res.json({ success: true, message: 'User updated successfully' });
-  
+
+        const result = await queryAsync(updateQuery, [
+            name, email, phoneNumber, balance,
+            team, trx_id, total_withdrawal, id
+        ]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.json({ success: true, message: 'User updated successfully' });
+
     } catch (error) {
-      console.error('Error in /update-user:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
+        console.error('Error in /update-user:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
-  });
-  
+});
+
 app.get('/all-withdrawal-requests', (req, res) => {
     const sql = `
         SELECT wr.id, wr.user_id, wr.amount, wr.account_name, wr.bank_name,  
@@ -2439,7 +2434,7 @@ app.put('/updateUserDataEasyPaisa/:id', (req, res) => {
     console.log('User ID:', id);
     console.log('Received data:', { refer_by, trx_id, sender_name, sender_number, email });
 
-    if (!refer_by || !trx_id ) {
+    if (!refer_by || !trx_id) {
         return res.status(400).json({ status: 'error', message: 'All fields are required' });
     }
 
@@ -2451,7 +2446,7 @@ app.put('/updateUserDataEasyPaisa/:id', (req, res) => {
             email = ?
         WHERE id = ?
     `;
-    const queryParams = [refer_by, trx_id,   email, id];
+    const queryParams = [refer_by, trx_id, email, id];
 
     con.query(updateQuery, queryParams, (err, result) => {
         if (err) {
@@ -2544,6 +2539,7 @@ app.put('/approveUser/:userId', async (req, res) => {
     try {
         await queryAsync('START TRANSACTION');
 
+        // Approve user and process payment
         await queryAsync(`
             UPDATE users 
             SET 
@@ -2571,45 +2567,57 @@ app.put('/approveUser/:userId', async (req, res) => {
         const referrerId = referrerResult[0]?.refer_by;
 
         if (referrerId) {
-            // Step 1: Calculate the new team count dynamically
+            // Get current approved team count for referrer
             const approvedCountResult = await queryAsync(`
                 SELECT COUNT(*) AS approved_count
                 FROM users
                 WHERE refer_by = ? AND approved = 1
             `, [referrerId]);
-            const incrementTeamQuery = `
-                UPDATE users
-                SET today_team = today_team + 1
-                WHERE id = ?
-            `;
-            await queryAsync(incrementTeamQuery, [referrerId]);
-
+            
             const approvedCount = approvedCountResult[0]?.approved_count || 0;
 
+            // Update referrer's team count
             await queryAsync(`
                 UPDATE users
-                SET team = ?
+                SET today_team = today_team + 1,
+                    team = ?
                 WHERE id = ?
             `, [approvedCount, referrerId]);
 
             const notificationMessage = 'Awesome! Someone has successfully joined your team.';
             await queryAsync(insertNotificationQuery, [referrerId, notificationMessage]);
 
-            await queryAsync(`
-               UPDATE users AS u1
-JOIN levels AS l ON u1.team >= l.min_team AND u1.team <= l.max_team
-SET 
-    u1.level = l.level,
-    u1.level_updated = 1
-WHERE u1.id = ? AND u1.level <> l.level
-
-            `, [referrerId]);
-
-
+            // NEW: Update referrer's level based on thresholds
+            // Step 1: Get all levels sorted by threshold descending
+            const levelsResult = await queryAsync(`
+                SELECT level, threshold 
+                FROM levels 
+                ORDER BY threshold DESC
+            `);
+            
+            // Step 2: Find the highest level the team qualifies for
+            let newLevel = 0;
+            for (const level of levelsResult) {
+                if (approvedCount >= level.threshold) {
+                    newLevel = level.level;
+                    break;
+                }
+            }
+            
+            // Step 3: Update user level if changed
+            if (newLevel > 0) {
+                await queryAsync(`
+                    UPDATE users
+                    SET level = ?,
+                        level_updated = 1
+                    WHERE id = ?
+                      AND (level <> ? OR level IS NULL)
+                `, [newLevel, referrerId, newLevel]);
+            }
         }
 
         await queryAsync('COMMIT');
-        res.status(200).json({ status: 'success', message: 'User approved and referrer chain updated' });
+        res.status(200).json({ status: 'success', message: 'User approved and referrer level updated' });
     } catch (error) {
         console.error('Transaction error:', error.message);
         await queryAsync('ROLLBACK');
@@ -2627,7 +2635,7 @@ WHERE u1.id = ? AND u1.level <> l.level
 
 app.post('/approve-withdrawal', async (req, res) => {
     const { userId, requestId, amount } = req.body;
-console.log(req.body);
+    console.log(req.body);
 
     if (!userId || !requestId || !amount) {
         return res.status(400).json({ error: 'User ID, request ID, and amount are required' });
@@ -2645,8 +2653,8 @@ console.log(req.body);
             withdrawalAttempts = withdrawalAttempts + 1
         WHERE id = ?`;
 
-  
- 
+
+
 
     const insertNotificationSql = `
         INSERT INTO notifications (user_id, msg, created_at)
@@ -2655,7 +2663,7 @@ console.log(req.body);
     con.beginTransaction(error => {
         if (error) {
             console.log(error);
-            
+
             return res.status(500).json({ error: 'Internal Server Error' });
         }
 
@@ -2681,34 +2689,34 @@ console.log(req.body);
                     });
                 }
 
-               
 
-                
-                        con.query(insertNotificationSql, [userId], (error) => {
-                            if (error) {
-                                console.log(error);
-                                return con.rollback(() => {
-                                    res.status(500).json({ error: 'Failed to insert notification' });
-                                });
-                            }
 
-                            con.commit(error => {
-                                if (error) {
-                                    console.log(error);
-                                    
-                                    return con.rollback(() => {
-                                        res.status(500).json({ error: 'Failed to commit transaction' });
-                                    });
-                                }
 
-                                res.json({ message: 'Withdrawal request approved, balance and total withdrawal updated, user clicks data, referrals deleted, and notification sent successfully!' });
-                            });
+                con.query(insertNotificationSql, [userId], (error) => {
+                    if (error) {
+                        console.log(error);
+                        return con.rollback(() => {
+                            res.status(500).json({ error: 'Failed to insert notification' });
                         });
+                    }
+
+                    con.commit(error => {
+                        if (error) {
+                            console.log(error);
+
+                            return con.rollback(() => {
+                                res.status(500).json({ error: 'Failed to commit transaction' });
+                            });
+                        }
+
+                        res.json({ message: 'Withdrawal request approved, balance and total withdrawal updated, user clicks data, referrals deleted, and notification sent successfully!' });
                     });
                 });
             });
-        
-    
+        });
+    });
+
+
 });
 app.post('/delete-withdrawal', async (req, res) => {
     const { requestId, userId } = req.body;
@@ -2769,8 +2777,8 @@ app.put('/updateHolderNumber', (req, res) => {
 });
 
 app.post('/reject-withdrawal', async (req, res) => {
-    const { requestId, userId, reason='No reason provided' } = req.body;
-console.log(requestId, userId, reason);
+    const { requestId, userId, reason = 'No reason provided' } = req.body;
+    console.log(requestId, userId, reason);
 
     if (!requestId || !userId) {
         return res.status(400).json({ error: 'Request ID and User ID are required' });
@@ -2811,14 +2819,14 @@ console.log(requestId, userId, reason);
 
 app.get('/withdrawalRequestsApproved', (req, res) => {
     const { search = '', limit = 50 } = req.query;
-    
+
     // Base SQL query
     let sql = `
         SELECT * 
         FROM withdrawal_requests 
         WHERE approved = "approved" AND reject = 0
     `;
-    
+
     // Add search conditions if search term exists
     const params = [];
     if (search) {
@@ -2833,35 +2841,35 @@ app.get('/withdrawalRequestsApproved', (req, res) => {
             `%${search}%`
         );
     }
-    
+
     // Add ordering and limiting
     sql += ' ORDER BY approved_time DESC LIMIT ?';
     params.push(parseInt(limit));
-    
+
     con.query(sql, params, (err, results) => {
         if (err) {
             console.error('Database error:', err);
-            return res.status(500).json({ 
-                status: 'error', 
-                error: 'Failed to fetch approved withdrawal requests' 
+            return res.status(500).json({
+                status: 'error',
+                error: 'Failed to fetch approved withdrawal requests'
             });
         }
 
         if (results.length === 0) {
-            return res.status(200).json({ 
-                status: 'success', 
+            return res.status(200).json({
+                status: 'success',
                 message: 'No approved withdrawal requests found',
                 data: []
             });
         }
 
-        res.json({ 
-            status: 'success', 
-            data: results 
+        res.json({
+            status: 'success',
+            data: results
         });
     });
-});  
- 
+});
+
 app.get('/withdrawalRequestsRejected', (req, res) => {
     const sql = 'SELECT * FROM withdrawal_requests WHERE approved = "rejected"';
 
@@ -2879,18 +2887,18 @@ app.get('/withdrawalRequestsRejected', (req, res) => {
 });
 app.delete('/delete-rejected-withdrawals', (req, res) => {
     const sql = 'DELETE FROM withdrawal_requests WHERE reject = 1 AND approved = "rejected" ';
-    
+
     con.query(sql, (err, result) => {
         if (err) {
             console.error('Database error:', err);
-            return res.status(500).json({ 
-                success: false, 
-                message: "Failed to delete rejected withdrawals" 
+            return res.status(500).json({
+                success: false,
+                message: "Failed to delete rejected withdrawals"
             });
         }
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             message: `${result.affectedRows} rejected withdrawals deleted successfully`
         });
     });
@@ -2911,7 +2919,7 @@ app.get('/fetchClickedProducts', (req, res) => {
     if (!req.session.userId) {
         return res.status(401).json({ status: 'error', error: 'User not authenticated' });
     }
-    
+
     const userId = req.session.userId;
 
     const getUnclickedProductsSql = `
@@ -3079,7 +3087,7 @@ app.get('/get-fee', (req, res) => {
                     const rate = rateResult[0].rate;
                     const feeInPkr = feeValue; // Multiply fee by rate
 
-                    res.status(200).json({ success: true, fee: feeInPkr }); 
+                    res.status(200).json({ success: true, fee: feeInPkr });
                 } else {
                     res.status(404).json({ success: false, message: 'No rate found in the usd_rate table.' });
                 }
@@ -3098,145 +3106,145 @@ CREATE TABLE IF NOT EXISTS subadmins (
   task ENUM('ApproveUser', 'ApproveWithdrawal') NOT NULL
 )`;
 con.query(createSubAdminsTable, (err) => {
-  if (err) console.error('Error creating subadmins table:', err);
+    if (err) console.error('Error creating subadmins table:', err);
 });
 
 // 1. Get all sub-admins
-app.get('/subadmins',  (req, res) => {
-  const sql = "SELECT id, username,password, task FROM subadmins";
-  con.query(sql, (err, result) => {
-    if (err) {
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'Failed to fetch sub-admins' 
-      });
-    }
-    res.json({ status: 'success', data: result });
-  });
+app.get('/subadmins', (req, res) => {
+    const sql = "SELECT id, username,password, task FROM subadmins";
+    con.query(sql, (err, result) => {
+        if (err) {
+            return res.status(500).json({
+                status: 'error',
+                message: 'Failed to fetch sub-admins'
+            });
+        }
+        res.json({ status: 'success', data: result });
+    });
 });
 
 // 2. Add new sub-admin
-app.post('/subadmins',  (req, res) => {
-  const { username, password, task } = req.body;
-  
-  if (!username || !password || !task) {
-    return res.status(400).json({ 
-      status: 'error', 
-      message: 'All fields are required' 
-    });
-  }
+app.post('/subadmins', (req, res) => {
+    const { username, password, task } = req.body;
 
-  if (!['ApproveUser', 'ApproveWithdrawal'].includes(task)) {
-    return res.status(400).json({ 
-      status: 'error', 
-      message: 'Invalid task type' 
-    });
-  }
-
-  const sql = "INSERT INTO subadmins (username, password, task) VALUES (?, ?, ?)";
-  con.query(sql, [username, password, task], (err, result) => {
-    if (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ 
-          status: 'error', 
-          message: 'Username already exists' 
+    if (!username || !password || !task) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'All fields are required'
         });
-      }
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'Failed to create sub-admin' 
-      });
     }
-    
-    res.json({ 
-      status: 'success', 
-      message: 'Sub-admin created successfully',
-      id: result.insertId
+
+    if (!['ApproveUser', 'ApproveWithdrawal'].includes(task)) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Invalid task type'
+        });
+    }
+
+    const sql = "INSERT INTO subadmins (username, password, task) VALUES (?, ?, ?)";
+    con.query(sql, [username, password, task], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Username already exists'
+                });
+            }
+            return res.status(500).json({
+                status: 'error',
+                message: 'Failed to create sub-admin'
+            });
+        }
+
+        res.json({
+            status: 'success',
+            message: 'Sub-admin created successfully',
+            id: result.insertId
+        });
     });
-  });
 });
 
 // 3. Update sub-admin
-app.put('/subadmins/:id',  (req, res) => {
-  const { id } = req.params;
-  const { username, password, task } = req.body;
-  
-  if (!username || !task) {
-    return res.status(400).json({ 
-      status: 'error', 
-      message: 'Username and task are required' 
-    });
-  }
+app.put('/subadmins/:id', (req, res) => {
+    const { id } = req.params;
+    const { username, password, task } = req.body;
 
-  if (!['ApproveUser', 'ApproveWithdrawal'].includes(task)) {
-    return res.status(400).json({ 
-      status: 'error', 
-      message: 'Invalid task type' 
-    });
-  }
-
-  let sql, params;
-  if (password) {
-    sql = "UPDATE subadmins SET username = ?, password = ?, task = ? WHERE id = ?";
-    params = [username, password, task, id];
-  } else {
-    sql = "UPDATE subadmins SET username = ?, task = ? WHERE id = ?";
-    params = [username, task, id];
-  }
-
-  con.query(sql, params, (err, result) => {
-    if (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ 
-          status: 'error', 
-          message: 'Username already exists' 
+    if (!username || !task) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Username and task are required'
         });
-      }
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'Failed to update sub-admin' 
-      });
     }
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ 
-        status: 'error', 
-        message: 'Sub-admin not found' 
-      });
+
+    if (!['ApproveUser', 'ApproveWithdrawal'].includes(task)) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Invalid task type'
+        });
     }
-    
-    res.json({ 
-      status: 'success', 
-      message: 'Sub-admin updated successfully' 
+
+    let sql, params;
+    if (password) {
+        sql = "UPDATE subadmins SET username = ?, password = ?, task = ? WHERE id = ?";
+        params = [username, password, task, id];
+    } else {
+        sql = "UPDATE subadmins SET username = ?, task = ? WHERE id = ?";
+        params = [username, task, id];
+    }
+
+    con.query(sql, params, (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Username already exists'
+                });
+            }
+            return res.status(500).json({
+                status: 'error',
+                message: 'Failed to update sub-admin'
+            });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Sub-admin not found'
+            });
+        }
+
+        res.json({
+            status: 'success',
+            message: 'Sub-admin updated successfully'
+        });
     });
-  });
 });
 
 // 4. Delete sub-admin
-app.delete('/subadmins/:id',  (req, res) => {
-  const { id } = req.params;
-  
-  const sql = "DELETE FROM subadmins WHERE id = ?";
-  con.query(sql, [id], (err, result) => {
-    if (err) {
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'Failed to delete sub-admin' 
-      });
-    }
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ 
-        status: 'error', 
-        message: 'Sub-admin not found' 
-      });
-    }
-    
-    res.json({ 
-      status: 'success', 
-      message: 'Sub-admin deleted successfully' 
+app.delete('/subadmins/:id', (req, res) => {
+    const { id } = req.params;
+
+    const sql = "DELETE FROM subadmins WHERE id = ?";
+    con.query(sql, [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({
+                status: 'error',
+                message: 'Failed to delete sub-admin'
+            });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Sub-admin not found'
+            });
+        }
+
+        res.json({
+            status: 'success',
+            message: 'Sub-admin deleted successfully'
+        });
     });
-  });
 });
 
 app.get('/get-percentage', (req, res) => {
@@ -3347,55 +3355,55 @@ app.get('/pending-users', (req, res) => {
 // Add this endpoint to your backend
 app.delete('/deleteUser/:id', (req, res) => {
     const userId = req.params.id;
-    
+
     const sql = 'DELETE FROM users WHERE id = ?';
-    
+
     con.query(sql, [userId], (err, result) => {
-      if (err) {
-        console.error('Error deleting user:', err);
-        return res.status(500).json({ success: false, message: 'Failed to delete user' });
-      }
-      
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'User not found' });
-      }
-      
-      res.json({ success: true, message: 'User deleted successfully' });
+        if (err) {
+            console.error('Error deleting user:', err);
+            return res.status(500).json({ success: false, message: 'Failed to delete user' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.json({ success: true, message: 'User deleted successfully' });
     });
-  });
-  app.put('/blockUser/:id', (req, res) => {
+});
+app.put('/blockUser/:id', (req, res) => {
     const userId = req.params.id;
     const { blocked } = req.body; // Expect 0 or 1
-  
+
     if (blocked !== 0 && blocked !== 1) {
-      return res.status(400).json({ success: false, message: 'Invalid blocked value' });
+        return res.status(400).json({ success: false, message: 'Invalid blocked value' });
     }
-  
+
     const sql = 'UPDATE users SET blocked = ? WHERE id = ?';
-  
+
     con.query(sql, [blocked, userId], (err, result) => {
-      if (err) {
-        console.error('Error updating block status:', err);
-        return res.status(500).json({ success: false, message: 'Failed to update block status' });
-      }
-  
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'User not found' });
-      }
-  
-      const statusMsg = blocked === 1 ? 'blocked' : 'unblocked';
-      res.json({ success: true, message: `User ${statusMsg} successfully`, blocked });
+        if (err) {
+            console.error('Error updating block status:', err);
+            return res.status(500).json({ success: false, message: 'Failed to update block status' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const statusMsg = blocked === 1 ? 'blocked' : 'unblocked';
+        res.json({ success: true, message: `User ${statusMsg} successfully`, blocked });
     });
-  });
-  
-  app.delete('/delete-7-days-old-users', (req, res) => {
+});
+
+app.delete('/delete-7-days-old-users', (req, res) => {
     // Calculate the date 7 days ago
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     // Format to MySQL datetime (YYYY-MM-DD HH:MM:SS)
     const formattedDate = sevenDaysAgo.toISOString().slice(0, 19).replace('T', ' ');
-    
+
     const sql = `
         DELETE FROM users 
         WHERE payment_ok = 0 
@@ -3406,14 +3414,14 @@ app.delete('/deleteUser/:id', (req, res) => {
     con.query(sql, [formattedDate], (err, result) => {
         if (err) {
             console.error('Database error:', err);
-            return res.status(500).json({ 
-                success: false, 
+            return res.status(500).json({
+                success: false,
                 message: "Database operation failed"
             });
         }
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             message: `${result.affectedRows} users deleted successfully`,
             deletedCount: result.affectedRows
         });
@@ -3608,7 +3616,6 @@ app.get('/dashboard-data', (req, res) => {
             users_bonus: results[0].bonus,
             todayIncome: (results[0].totalReceivedToday) - (results[0].totalAmountTodayWithdrawal),
             totalIncome: results[0].totalReceived - results[0].totalWithdrawal,
-            totalSalary: results[0].total_salary,
             will_give: results[0].will_give - Number(results[0].totalWithdrawal),
             incrementAmount: results[0].incrementAmount,
             today_wallet: results[0].today_wallet
@@ -3628,7 +3635,7 @@ app.get('/dashboard-data', (req, res) => {
         WHERE sa.task = 'ApproveWithdrawal'
         GROUP BY sa.username
     `;
-    
+
 
         con.query(subadminSql, (err2, subadminResults) => {
             if (err2) {
@@ -3842,7 +3849,9 @@ app.post('/payment', (req, res) => {
 
     const payment_ok = 1;
     const rejected = 0;
-console.log(req.body);
+    console.log(req.body);
+    console.log();
+
 
     const checkQuery = 'SELECT COUNT(*) AS count FROM users WHERE trx_id = ?';
     con.query(checkQuery, [trx_id], (checkErr, checkResults) => {
@@ -3855,8 +3864,8 @@ console.log(req.body);
         }
 
         const sql = 'UPDATE users SET trx_id = ?, payment_ok = ?, rejected = ? WHERE id = ?';
-        
-        con.query(sql, [trx_id,  payment_ok, rejected, id], (err, result) => {
+
+        con.query(sql, [trx_id, payment_ok, rejected, id], (err, result) => {
             if (err) {
                 console.error('Database update error:', err);
                 return res.status(500).json({ status: 'error', error: 'Failed to update payment data' });
@@ -3870,19 +3879,6 @@ console.log(req.body);
         });
     });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 app.listen(PORT, () => {
     console.log('Listening on port ' + PORT);
