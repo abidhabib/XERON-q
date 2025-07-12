@@ -124,6 +124,11 @@ export const Sidebar = () => {
           icon: <HiOutlineBell className="w-5 h-5" />,
           label: "Send Notification",
         },
+         {
+          path: "/levels",
+          icon: <HiOutlineViewGrid className="w-5 h-5" />,
+          label: "Levels",
+        },
         {
           path: "/SubAdminsManagement",
           icon: <HiOutlineUserGroup className="w-5 h-5" />,

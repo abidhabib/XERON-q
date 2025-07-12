@@ -11,6 +11,7 @@ import {
 } from 'react-icons/hi';
 import { FaSpinner } from 'react-icons/fa';
 import { Modal, Button } from 'react-bootstrap';
+import { RemoveTrailingZeros } from '../../../utils/utils';
 
 
 const WithdrawRequests = () => {
@@ -273,7 +274,7 @@ const WithdrawRequests = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center">
-                            {request.amount}
+                            {RemoveTrailingZeros(Number(request.amount))}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-500  font-mono">

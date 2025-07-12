@@ -9,6 +9,7 @@ import {
   HiOutlineCalendar
 } from 'react-icons/hi';
 import { FaSpinner } from 'react-icons/fa';
+import { RemoveTrailingZeros } from '../../../utils/utils';
 
 const ApprovedWithdraw = () => {
   const [data, setData] = useState([]);
@@ -175,7 +176,7 @@ const ApprovedWithdraw = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center">
-                            {request.amount}
+                            {RemoveTrailingZeros(request.amount)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

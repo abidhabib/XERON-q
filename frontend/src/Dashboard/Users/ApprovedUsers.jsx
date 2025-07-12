@@ -17,6 +17,7 @@ import {
 import Modal from 'react-modal';
 import { FaSpinner } from 'react-icons/fa';
 import useBlockUser from '../Hooks/useBlockUser';
+import { RemoveTrailingZeros } from '../../../utils/utils';
 
 Modal.setAppElement('#root');
 
@@ -271,7 +272,7 @@ const ApprovedUsers = () => {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
                 <option value={200}>200</option>
-                <option value={500}>500</option>
+
               </select>
             </div>
           </div>
@@ -359,6 +360,14 @@ const ApprovedUsers = () => {
                         Team {renderSortIndicator('team')}
                       </div>
                     </th>
+                      <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider cursor-pointer"
+                      onClick={() => requestSort('level')}
+                    >
+                      <div className="flex items-center">
+                        Level {renderSortIndicator('level')}
+                      </div>
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">
                       Actions
                     </th>
@@ -373,10 +382,12 @@ const ApprovedUsers = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.refer_by}</td>
 
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.password}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.balance}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${RemoveTrailingZeros(user.balance)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{user.trx_id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.total_withdrawal}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${RemoveTrailingZeros(user.total_withdrawal)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.team}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.level}</td>
+
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                           <button 
