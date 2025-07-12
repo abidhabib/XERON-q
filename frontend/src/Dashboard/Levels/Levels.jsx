@@ -1,115 +1,209 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Sidebar } from '../SideBarSection/Sidebar';
 import axios from 'axios';
 import { FaEdit, FaSave, FaSpinner, FaTimes } from 'react-icons/fa';
+import { RemoveTrailingZeros } from '../../../utils/utils';
+
 const Levels = () => {
     const [levelsData, setLevelsData] = useState([]);
-    const [error, setError] = useState(null);
-    const [updateData, setUpdateData] = useState({ id: '', threshold: '', level: '' });
+    const [error, setError] = useState('');
+    const [updateData, setUpdateData] = useState({ 
+        id: '', 
+        threshold: '', 
+        level: '' 
+    });
+    const [salaryData, setSalaryData] = useState({ 
+        amount: '', 
+        day: '0' 
+    });
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    // Memoized data fetching
+    const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/fetchLevelsData`);
-            if (response.data.status === 'success' && Array.isArray(response.data.data)) {
-                // Sort by level ascending
+            setError('');
+            
+            const response = await axios.get(
+                `${import.meta.env.VITE_API_BASE_URL}/fetchLevelsData`,
+                { timeout: 10000 } // 10s timeout
+            );
+            
+            if (response.data?.status === 'success' && Array.isArray(response.data.data)) {
                 const sortedData = [...response.data.data].sort((a, b) => a.level - b.level);
                 setLevelsData(sortedData);
             } else {
-                setError('Levels data is not in the expected format');
+                setError('Invalid levels data format');
             }
         } catch (error) {
-            console.error('Error fetching levels data:', error);
-            setError('Failed to fetch data. Please try again later.');
+            console.error('Levels fetch error:', error);
+            setError(error.response?.data?.message || 'Failed to fetch data');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
-    const handleUpdate = (item) => {
-        setUpdateData({ ...item });
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handleUpdate = useCallback((item) => {
+        setUpdateData({
+            id: item.id,
+            threshold: item.threshold,
+            level: item.level
+        });
+        
+        setSalaryData({
+            amount: String(item.salary_amount),
+            day: String(item.salary_day)
+        });
+        
+        setHasChanges(false);
         setShowModal(true);
-    };
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setUpdateData(prevData => ({ ...prevData, [name]: value }));
-    };
-const handleSave = async () => {
-    // Clear previous errors
-    setError(null);
-    
-    // Convert to numbers
-    const currentThreshold = Number(updateData.threshold);
-    
-    // Basic validation
-    if (isNaN(currentThreshold) || currentThreshold <= 0) {
-        setError('Threshold must be a positive number');
-        return;
-    }
-
-    try {
-        setIsSaving(true);
-        const payload = {
-            id: updateData.id,
-            threshold: currentThreshold
-        };
+        setHasChanges(true);
         
-        const response = await axios.put(
-            `${import.meta.env.VITE_API_BASE_URL}/updateLevelData`, 
-            payload
-        );
-        
-        if (response.data.status === 'success') {
-            setShowModal(false);
-            fetchData();  // Refresh data
+        if (['amount', 'day'].includes(name)) {
+            setSalaryData(prev => ({ ...prev, [name]: value }));
         } else {
-            setError(response.data.message || 'Failed to update data');
+            setUpdateData(prev => ({ ...prev, [name]: value }));
         }
-    } catch (error) {
-        console.error('Update error:', error);
-        setError(error.response?.data?.error || 'An error occurred while saving');
-    } finally {
-        setIsSaving(false);
-    }
-};
+    };
+
+    const validateForm = () => {
+        const thresholdValue = Number(updateData.threshold);
+        const salaryAmount = Number(salaryData.amount);
+        const salaryDay = Number(salaryData.day);
+        
+        const errors = [];
+        
+        if (isNaN(thresholdValue) || thresholdValue < 0) {
+            errors.push('Threshold must be a non-negative number');
+        }
+        
+        if (isNaN(salaryAmount) || salaryAmount < 0) {
+            errors.push('Salary amount must be a non-negative number');
+        }
+        
+        if (isNaN(salaryDay) || salaryDay < 0 || salaryDay > 6) {
+            errors.push('Salary day must be between 0 (Sunday) and 6 (Saturday)');
+        }
+        
+        if (errors.length > 0) {
+            setError(errors.join('. '));
+            return false;
+        }
+        
+        return true;
+    };
+
+    const handleSave = async () => {
+        if (!validateForm()) return;
+        
+        try {
+            setIsSaving(true);
+            setError('');
+            
+            const payload = {
+                id: updateData.id,
+                threshold: Number(updateData.threshold),
+                salary_amount: Number(salaryData.amount),
+                salary_day: Number(salaryData.day)
+            };
+
+            const response = await axios.put(
+                `${import.meta.env.VITE_API_BASE_URL}/updateLevelData`, 
+                payload,
+                { timeout: 15000 }
+            );
+
+            if (response.data?.status === 'success') {
+                setShowModal(false);
+                fetchData();
+            } else {
+                setError(response.data?.message || 'Update failed');
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            setError(error.response?.data?.error || 'Request failed');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCloseModal = () => {
+        if (!hasChanges || window.confirm('You have unsaved changes. Close anyway?')) {
+            setShowModal(false);
+        }
+    };
+
+    // Memoized table row component
+    const TableRow = ({ item }) => (
+        <tr className="hover:bg-gray-50 transition-colors">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100">
+                    <span className="text-sm font-medium text-indigo-800">{item.level}</span>
+                </span>
+            </td>
+            <td className="px-6 py-4 text-sm text-gray-500">{item.threshold} members</td>
+            <td className="px-6 py-4 text-sm text-gray-500">
+                {RemoveTrailingZeros(item.salary_amount)} <span className="text-xs text-blue-500">USDT</span>
+            </td>
+            <td className="px-6 py-4 text-sm text-gray-500">
+                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][item.salary_day]}
+            </td>
+            <td className="px-6 py-4 text-sm text-right">
+                <button 
+                    onClick={() => handleUpdate(item)}
+                    className="text-indigo-600 hover:text-indigo-900 flex items-center justify-end w-full"
+                    aria-label={`Edit level ${item.level}`}
+                >
+                    <FaEdit className="mr-1" /> Edit
+                </button>
+            </td>
+        </tr>
+    );
+
     return (
         <div className="flex min-h-screen bg-gray-50">
             <Sidebar />
             
             <div className="flex-1 p-4 md:p-6 ml-0 md:ml-64">
                 <div className="mb-8">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Levels Setting</h1>
+                            <h1 className="text-2xl font-bold text-gray-800">Levels Configuration</h1>
                             <p className="text-sm text-gray-600 mt-1">
-                                Team level is determined by team size reaching threshold values
+                                Team levels based on size thresholds with weekly salary
                             </p>
                         </div>
                         <button 
                             onClick={fetchData}
                             className="flex items-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
+                            disabled={isLoading}
                         >
-                            Refresh Data
+                            {isLoading ? (
+                                <FaSpinner className="animate-spin mr-2" />
+                            ) : (
+                                'Refresh Data'
+                            )}
                         </button>
                     </div>
                 </div>
 
                 {error && (
                     <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                </svg>
-                            </div>
+                        <div className="flex items-start">
+                            <svg className="h-5 w-5 text-red-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
                             <div className="ml-3">
                                 <p className="text-sm text-red-700">{error}</p>
                             </div>
@@ -121,39 +215,35 @@ const handleSave = async () => {
                     <div className="flex justify-center items-center h-64">
                         <FaSpinner className="animate-spin text-4xl text-indigo-600" />
                     </div>
+                ) : levelsData.length === 0 ? (
+                    <div className="bg-white rounded-xl shadow p-8 text-center">
+                        <p className="text-gray-600">No levels data available</p>
+                        <button 
+                            onClick={fetchData}
+                            className="mt-4 text-indigo-600 hover:text-indigo-800"
+                        >
+                            Retry
+                        </button>
+                    </div>
                 ) : (
                     <div className="bg-white rounded-xl shadow overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-indigo-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Level</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Team Size Threshold</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-indigo-700 uppercase tracking-wider">Actions</th>
+                                        {["Level", "Team Threshold", "Salary Amount", "Salary Day", "Actions"].map((header, idx) => (
+                                            <th 
+                                                key={idx}
+                                                className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider"
+                                            >
+                                                {header}
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {levelsData.map(item => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100">
-                                                        <span className="text-sm font-medium text-indigo-800">{item.level}</span>
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {item.threshold} members
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                                                <button 
-                                                    onClick={() => handleUpdate(item)}
-                                                    className="text-indigo-600 hover:text-indigo-900 flex items-center justify-end w-full"
-                                                >
-                                                    <FaEdit className="mr-1" /> Edit
-                                                </button>
-                                            </td>
-                                        </tr>
+                                        <TableRow key={`level-${item.id}`} item={item} />
                                     ))}
                                 </tbody>
                             </table>
@@ -161,62 +251,98 @@ const handleSave = async () => {
                     </div>
                 )}
 
-                {/* Modal */}
+                {/* Edit Modal */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-xl shadow-lg w-full max-w-md">
+                        <div 
+                            className="bg-white rounded-xl shadow-lg w-full max-w-md animate-fade-in"
+                            onClick={e => e.stopPropagation()}
+                        >
                             <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                                <h3 className="text-lg font-medium text-gray-900">Update Level Threshold</h3>
+                                <h3 className="text-lg font-medium text-gray-900">
+                                    Level {updateData.level} Configuration
+                                </h3>
                                 <button 
-                                    onClick={() => setShowModal(false)}
-                                    className="text-gray-400 hover:text-gray-500"
+                                    onClick={handleCloseModal}
+                                    className="text-gray-400 hover:text-gray-500 transition-colors"
+                                    aria-label="Close modal"
                                 >
                                     <FaTimes />
                                 </button>
                             </div>
                             
-                            <div className="px-6 py-4 space-y-4">
+                            <div className="px-6 py-4 space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            name="level"
-                                            value={updateData.level}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                                            disabled
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Team Size Threshold
-                                        <span className="text-xs text-gray-500 ml-1">(minimum team size for this level)</span>
                                     </label>
                                     <input
                                         type="number"
                                         name="threshold"
                                         value={updateData.threshold}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-transparent"
-                                        min="1"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+                                        min="0"
+                                        placeholder="Enter minimum team size"
                                     />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Weekly Salary Amount (USDT)
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500">$</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            name="amount"
+                                            value={salaryData.amount}
+                                            onChange={handleInputChange}
+                                            className="block w-full pl-8 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+                                            placeholder="0.00"
+                                            step="0.01"
+                                            min="0"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Salary Collection Day
+                                    </label>
+                                    <select
+                                        name="day"
+                                        value={salaryData.day}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+                                    >
+                                        <option value="0">Sunday</option>
+                                        <option value="1">Monday</option>
+                                        <option value="2">Tuesday</option>
+                                        <option value="3">Wednesday</option>
+                                        <option value="4">Thursday</option>
+                                        <option value="5">Friday</option>
+                                        <option value="6">Saturday</option>
+                                    </select>
                                 </div>
                             </div>
                             
-                            <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end space-x-3">
+                            <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
                                 <button
                                     type="button"
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    onClick={() => setShowModal(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                    onClick={handleCloseModal}
                                     disabled={isSaving}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
-                                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-75 flex items-center"
+                                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center transition-colors ${
+                                        isSaving ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                                    }`}
                                     onClick={handleSave}
                                     disabled={isSaving}
                                 >
