@@ -1572,7 +1572,7 @@ app.get('/fetchCommissionData', (req, res) => {
 });
 // Fetch levels data
 app.get('/fetchLevelsData', (req, res) => {
-    const sql = 'SELECT id, level, threshold FROM levels ORDER BY level ASC';
+    const sql = 'SELECT id, level, threshold,salary_amount,salary_day FROM levels ORDER BY level ASC';
 
     con.query(sql, (err, result) => {
         if (err) {
@@ -1584,30 +1584,47 @@ app.get('/fetchLevelsData', (req, res) => {
     });
 });
 
-// Update level data
 app.put('/updateLevelData', (req, res) => {
-    const { id, threshold } = req.body;
+    const { id, threshold, salary_amount, salary_day } = req.body;
 
     // Validate input
-    if (!id || threshold === undefined) {
+    if (!id || threshold === undefined || salary_amount === undefined || salary_day === undefined) {
         return res.status(400).json({
             status: 'error',
-            message: 'ID and threshold are required'
+            message: 'All fields are required'
         });
     }
 
-    // Convert to number and validate
+    // Convert and validate
     const thresholdValue = Number(threshold);
-    if (isNaN(thresholdValue) || thresholdValue < 0) {
+    const salaryAmount = Number(salary_amount);
+    const salaryDay = Number(salary_day);
+    
+    if (isNaN(thresholdValue)) {
         return res.status(400).json({
             status: 'error',
-            message: 'Threshold must be a non-negative number'
+            message: 'Threshold must be a valid number'
+        });
+    }   
+    
+    if (isNaN(salaryAmount)) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Salary amount must be a valid number'
+        });
+    }
+    
+    
+    if (salaryDay < 0 || salaryDay > 6) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Salary day must be between 0 (Sunday) and 6 (Saturday)'
         });
     }
 
-    const updateQuery = 'UPDATE levels SET threshold = ? WHERE id = ?';
+    const updateQuery = 'UPDATE levels SET threshold = ?, salary_amount = ?, salary_day = ? WHERE id = ?';
 
-    con.query(updateQuery, [thresholdValue, id], (err, result) => {
+    con.query(updateQuery, [thresholdValue, salaryAmount, salaryDay, id], (err, result) => {
         if (err) {
             console.error('Update error:', err);
             return res.status(500).json({
@@ -1626,12 +1643,12 @@ app.put('/updateLevelData', (req, res) => {
 
         res.json({
             status: 'success',
-            message: 'Level threshold updated successfully',
+            message: 'Level data updated successfully',
             updatedId: id
         });
     });
-});
-
+}); 
+ 
 app.get('/fetchLimitsData', (req, res) => {
     const sql = 'SELECT * FROM withdraw_limit';
 
