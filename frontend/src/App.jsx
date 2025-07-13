@@ -112,7 +112,7 @@ function App() {
           <Route path='/finduser' element={adminAuthenticated ? <FindUser /> : <AdminLogin />} />
           <Route path='/sendNotification' element={adminAuthenticated ? <PushNotificationManager /> : <AdminLogin />} />
 
-          {/* User Routes */}
+          {/* User Routes - Protected by JWT */}
           <Route path='/' element={<Login />} />
           <Route path='/signup' element={<Signup />} />
           <Route path='/Payment' element={<Payment Userid={Userid} isRejected={isRejected} />} />
