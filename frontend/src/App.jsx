@@ -16,7 +16,6 @@ import DailyTasks from './DailyTasks';
 import Wallet from './Wallet';
 import Team from './Team';
 import WithdrawPage from './new/WithdrawPage';
-import LevelsData from './LevelsData';
 import AccountDetailsTabs from './new/AccountDetailsTabs';
 import ReferralProgram from './ReferralProgram';
 
@@ -43,6 +42,7 @@ import SubAdminsManagement from './Dashboard/Subadmin/SubAdmin';
 import FindUser from './Dashboard/FindUser/FindUser';
 import PushNotificationManager from './Dashboard/SendNotification/SendNotification';
 import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
+import SalaryCollection from './new/WeekSalary';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -125,7 +125,8 @@ function App() {
           <Route path="/tasks" element={approved === 1 && isAuthenticated ? <DailyTasks Userid={Userid} currBalance={currBalance} /> : <Login />} />
           <Route path="/wallet" element={approved === 1 && isAuthenticated ? <Wallet /> : <Login />} />
           <Route path='/team' element={approved === 1 && isAuthenticated ? <Team /> : <Login />} />
-          <Route path='/collect' element={approved === 1 && isAuthenticated ? <LevelsData /> : <Login />} />
+                    <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
+
         </Routes>
       </BrowserRouter>
      

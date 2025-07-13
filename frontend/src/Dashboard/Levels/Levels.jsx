@@ -11,76 +11,82 @@ const Levels = () => {
         id: '', 
         threshold: '', 
         level: '' 
+
     });
-    const [salaryData, setSalaryData] = useState({ 
-        amount: '', 
-        day: '0' 
-    });
+ const [salaryData, setSalaryData] = useState({ 
+    amount: '', 
+    day: '0',
+    weekly_recruitment: ''
+});
+
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Memoized data fetching
-    const fetchData = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError('');
-            
-            const response = await axios.get(
-                `${import.meta.env.VITE_API_BASE_URL}/fetchLevelsData`,
-                { timeout: 10000 } // 10s timeout
-            );
-            
-            if (response.data?.status === 'success' && Array.isArray(response.data.data)) {
-                const sortedData = [...response.data.data].sort((a, b) => a.level - b.level);
-                setLevelsData(sortedData);
-            } else {
-                setError('Invalid levels data format');
-            }
-        } catch (error) {
-            console.error('Levels fetch error:', error);
-            setError(error.response?.data?.message || 'Failed to fetch data');
-        } finally {
-            setIsLoading(false);
+const fetchData = useCallback(async () => {
+    try {
+        setIsLoading(true);
+        setError('');
+        
+        const response = await axios.get(
+            `${import.meta.env.VITE_API_BASE_URL}/fetchLevelsData`,
+            { timeout: 10000 }
+        );
+        
+        if (response.data?.status === 'success' && Array.isArray(response.data.data)) {
+            const sortedData = [...response.data.data].sort((a, b) => a.level - b.level);
+            setLevelsData(sortedData);
+        } else {
+            setError('Invalid levels data format');
         }
-    }, []);
+    } catch (error) {
+        console.error('Levels fetch error:', error);
+        setError(error.response?.data?.message || 'Failed to fetch data');
+    } finally {
+        setIsLoading(false);
+    }
+}, []);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    const handleUpdate = useCallback((item) => {
-        setUpdateData({
-            id: item.id,
-            threshold: item.threshold,
-            level: item.level
-        });
-        
-        setSalaryData({
-            amount: String(item.salary_amount),
-            day: String(item.salary_day)
-        });
-        
-        setHasChanges(false);
-        setShowModal(true);
-    }, []);
+const handleUpdate = useCallback((item) => {
+    setUpdateData({
+        id: item.id,
+        threshold: item.threshold,
+        level: item.level
+    });
+    
+    setSalaryData({
+        amount: String(item.salary_amount),
+        day: String(item.salary_day),
+        weekly_recruitment: String(item.weekly_recruitment)
+    });
+    
+    setHasChanges(false);
+    setShowModal(true);
+}, []);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setHasChanges(true);
-        
-        if (['amount', 'day'].includes(name)) {
-            setSalaryData(prev => ({ ...prev, [name]: value }));
-        } else {
-            setUpdateData(prev => ({ ...prev, [name]: value }));
-        }
-    };
+
+ const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setHasChanges(true);
+
+    if (['amount', 'day', 'weekly_recruitment'].includes(name)) {
+        setSalaryData(prev => ({ ...prev, [name]: value }));
+    } else {
+        setUpdateData(prev => ({ ...prev, [name]: value }));
+    }
+};
+
 
     const validateForm = () => {
         const thresholdValue = Number(updateData.threshold);
         const salaryAmount = Number(salaryData.amount);
         const salaryDay = Number(salaryData.day);
+        
         
         const errors = [];
         
@@ -104,39 +110,38 @@ const Levels = () => {
         return true;
     };
 
-    const handleSave = async () => {
-        if (!validateForm()) return;
-        
-        try {
-            setIsSaving(true);
-            setError('');
-            
-            const payload = {
-                id: updateData.id,
-                threshold: Number(updateData.threshold),
-                salary_amount: Number(salaryData.amount),
-                salary_day: Number(salaryData.day)
-            };
+ const handleSave = async () => {
+    if (!validateForm()) return;
+    
+    try {
+        setIsSaving(true);
+        setError('');
+      const payload = {
+    id: updateData.id,
+    threshold: Number(updateData.threshold),
+    salary_amount: Number(salaryData.amount),
+    salary_day: Number(salaryData.day),
+weekly_recruitment: Number(salaryData.weekly_recruitment)
+};
+        const response = await axios.put(
+            `${import.meta.env.VITE_API_BASE_URL}/updateLevelData`, 
+            payload,
+            { timeout: 15000 }
+        );
 
-            const response = await axios.put(
-                `${import.meta.env.VITE_API_BASE_URL}/updateLevelData`, 
-                payload,
-                { timeout: 15000 }
-            );
-
-            if (response.data?.status === 'success') {
-                setShowModal(false);
-                fetchData();
-            } else {
-                setError(response.data?.message || 'Update failed');
-            }
-        } catch (error) {
-            console.error('Update error:', error);
-            setError(error.response?.data?.error || 'Request failed');
-        } finally {
-            setIsSaving(false);
+        if (response.data?.status === 'success') {
+            setShowModal(false);
+            fetchData();
+        } else {
+            setError(response.data?.message || 'Update failed');
         }
-    };
+    } catch (error) {
+        console.error('Update error:', error);
+        setError(error.response?.data?.error || 'Request failed');
+    } finally {
+        setIsSaving(false);
+    }
+};
 
     const handleCloseModal = () => {
         if (!hasChanges || window.confirm('You have unsaved changes. Close anyway?')) {
@@ -145,31 +150,39 @@ const Levels = () => {
     };
 
     // Memoized table row component
-    const TableRow = ({ item }) => (
-        <tr className="hover:bg-gray-50 transition-colors">
-            <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100">
-                    <span className="text-sm font-medium text-indigo-800">{item.level}</span>
-                </span>
-            </td>
-            <td className="px-6 py-4 text-sm text-gray-500">{item.threshold} members</td>
-            <td className="px-6 py-4 text-sm text-gray-500">
-                {RemoveTrailingZeros(item.salary_amount)} <span className="text-xs text-blue-500">USDT</span>
-            </td>
-            <td className="px-6 py-4 text-sm text-gray-500">
-                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][item.salary_day]}
-            </td>
-            <td className="px-6 py-4 text-sm text-right">
-                <button 
-                    onClick={() => handleUpdate(item)}
-                    className="text-indigo-600 hover:text-indigo-900 flex items-center justify-end w-full"
-                    aria-label={`Edit level ${item.level}`}
-                >
-                    <FaEdit className="mr-1" /> Edit
-                </button>
-            </td>
-        </tr>
-    );
+// Update the TableRow component to show weekly recruitment requirement
+const TableRow = ({ item }) => (
+    <tr className="hover:bg-gray-50 transition-colors">
+        <td className="px-6 py-4 whitespace-nowrap">
+            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100">
+                <span className="text-sm font-medium text-indigo-800">{item.level}</span>
+            </span>
+        </td>
+        <td className="px-6 py-4 text-sm text-gray-500">
+            {item.threshold} members
+        </td>
+        <td className="px-6 py-4 text-sm text-gray-500">
+            {RemoveTrailingZeros(item.salary_amount)} <span className="text-xs text-blue-500">USDT</span>
+        </td>
+        <td className="px-6 py-4 text-sm text-gray-500">
+            {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][item.salary_day]}
+        </td>
+        <td className="px-6 py-4 text-sm text-gray-500">
+            {item.weekly_recruitment} new/week
+        </td>
+        <td className="px-6 py-4 text-sm text-right">
+            <button 
+                onClick={() => handleUpdate(item)}
+                className="text-indigo-600 hover:text-indigo-900 flex items-center justify-end w-full"
+                aria-label={`Edit level ${item.level}`}
+            >
+                <FaEdit className="mr-1" /> Edit
+            </button>
+        </td>
+    </tr>
+);
+
+
 
     return (
         <div className="flex min-h-screen bg-gray-50">
@@ -229,18 +242,19 @@ const Levels = () => {
                     <div className="bg-white rounded-xl shadow overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-indigo-50">
-                                    <tr>
-                                        {["Level", "Team Threshold", "Salary Amount", "Salary Day", "Actions"].map((header, idx) => (
-                                            <th 
-                                                key={idx}
-                                                className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider"
-                                            >
-                                                {header}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
+                              <thead className="bg-indigo-50">
+    <tr>
+        {["Level", "Team Threshold", "Salary Amount", "Salary Day", "Weekly Req", "Actions"].map((header, idx) => (
+            <th 
+                key={idx}
+                className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider"
+            >
+                {header}
+            </th>
+        ))}
+    </tr>
+</thead>
+
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {levelsData.map(item => (
                                         <TableRow key={`level-${item.id}`} item={item} />
@@ -327,6 +341,23 @@ const Levels = () => {
                                         <option value="6">Saturday</option>
                                     </select>
                                 </div>
+                                 <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+            Weekly Recruitment Requirement
+        </label>
+        <input
+            type="number"
+            name="weekly_recruitment"
+            value={salaryData.weekly_recruitment || ''}
+            onChange={handleInputChange}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+            min="0"
+            placeholder="Minimum new members required weekly"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+            Number of new members needed weekly to recollect salary at this level
+        </p>
+    </div>
                             </div>
                             
                             <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
