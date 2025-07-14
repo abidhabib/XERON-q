@@ -449,34 +449,32 @@ app.get('/getCryptoAddress/:userId', (req, res) => {
 });
 app.put('/updateCryptoAddress', (req, res) => {
     const { address, addressType, userId } = req.body;
+    console.log(address, addressType, userId);
 
     if (!address || !addressType || !userId) {
         return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
     const sql = `
-        UPDATE users_accounts 
-        SET 
-            coin_address = ?,
-            address_type = ?
-        WHERE user_id = ?
+        INSERT INTO users_accounts (user_id, coin_address, address_type)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE 
+            coin_address = VALUES(coin_address),
+            address_type = VALUES(address_type)
     `;
 
-    const values = [address, addressType, userId];
+    const values = [userId, address, addressType];
 
     con.query(sql, values, (err, result) => {
         if (err) {
-            console.error('Update error:', err);
+            console.error('DB error:', err);
             return res.status(500).json({ success: false, message: 'Database error' });
         }
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        res.json({ success: true, message: 'Address updated successfully' });
+        res.json({ success: true, message: 'Crypto address saved/updated successfully' });
     });
 });
+
 app.get('/getUserData', (req, res) => {
     if (!req.session.userId) {
         return res.json({ Status: 'Error', Error: 'User not logged in' });
@@ -1215,7 +1213,7 @@ app.get('/approved-users', async (req, res) => {
 app.put('/rejectUserCurrMin/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
-        const sql = 'UPDATE users SET approved = 0 WHERE id = ?';
+        const sql = 'UPDATE users SET approved = 0 , rejected = 1  WHERE id = ?';
         await queryAsync(sql, [userId]);
         res.status(200).json({ success: true, message: 'User rejected successfully' });
     } catch (error) {
@@ -1279,7 +1277,7 @@ app.get('/rejectedUsers', async (req, res) => {
         let baseQuery = `
         SELECT * 
         FROM users 
-        WHERE approved = 0 AND payment_ok = 0
+        WHERE approved = 0 AND  rejected = 1
       `;
 
         // Count query
@@ -1391,6 +1389,7 @@ app.get('/EasypaisaUsers', (req, res) => {
             u.email, 
             u.sender_name, 
             u.sender_number, 
+            u.blocked,
             ref.name AS referrer_name 
         FROM 
             users u
@@ -2544,31 +2543,6 @@ app.post('/delete-withdrawal', async (req, res) => {
 
 });
 
-app.put('/updateHolderNumber', (req, res) => {
-    const { coin_address, userId } = req.body;
-
-    // Validate inputs
-    if (!coin_address || !userId) {
-        return res.status(400).json({ success: false, message: 'Holder number and user ID are required.' });
-    }
-
-    const sql = 'UPDATE users_accounts SET coin_address = ? WHERE user_id = ?';
-    const values = [coin_address, userId];
-
-    // Execute the query
-    con.query(sql, values, (err, result) => {
-        if (err) {
-            console.error('Failed to update holder number:', err);
-            return res.status(500).json({ success: false, message: 'Failed to update holder number.' });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'User not found.' });
-        }
-
-        res.json({ success: true, message: 'Holder number updated successfully.' });
-    });
-});
 
 app.post('/reject-withdrawal', async (req, res) => {
     const { requestId, userId, reason = 'No reason provided' } = req.body;
@@ -3567,7 +3541,63 @@ app.post('/update-password', (req, res) => {
     });
 });
 
+// Route for fetching all images
+app.get('/getImages', (req, res) => {
+    const query = 'SELECT * FROM images ORDER BY upload_time DESC';
 
+    con.query(query, (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'An error occurred while fetching images' });
+        }
+
+        res.json(results); // Send the list of images
+    });
+});
+app.delete('/deleteImage/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Fetch the image record from the database
+    const query = 'SELECT * FROM images WHERE id = ?';
+    con.query(query, [id], (error, results) => {
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (results.length > 0) {
+            const imagePath = results[0].file_path;
+
+            // Check if the file exists before deleting
+            fs.exists(imagePath, (exists) => {
+                if (!exists) {
+                    return res.status(404).json({ message: 'Image file not found' });
+                }
+
+                // Delete the image file from the server
+                fs.unlink(imagePath, (err) => {
+                    if (err) {
+                        console.error(err);
+                        return res.status(500).json({ error: 'Error deleting image file' });
+                    }
+
+                    // Delete the image record from the database
+                    const deleteQuery = 'DELETE FROM images WHERE id = ?';
+                    con.query(deleteQuery, [id], (err) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ error: 'Error deleting image record' });
+                        }
+
+                        res.json({ message: 'Image deleted successfully' });
+                    });
+                });
+            });
+        } else {
+            res.status(404).json({ message: 'Image not found' });
+        }
+    });
+});
 
 
 app.get('/approvedUserNames/:referByUserId', async (req, res) => {
@@ -3617,7 +3647,48 @@ app.post('/payment', (req, res) => {
         });
     });
 });
+app.put('/updateUserAccount/:userId', (req, res) => {
+    const user_id = req.params.userId;
+    const { accountNumber, nameOnAccount, bankName } = req.body;
 
+    if (!user_id || !accountNumber || !nameOnAccount || !bankName) {
+        return res.status(400).json({ status: 'error', message: 'User ID, Account Number, Name on Account, and Bank Name are required' });
+    }
+
+    let updateQuery = `
+        UPDATE users_accounts
+        SET 
+            holder_name = ?,
+            holder_number = ?,
+            bankName = ?
+        WHERE user_id = ?`;
+    let updateParams = [nameOnAccount, accountNumber, bankName, user_id];
+
+    con.query(updateQuery, updateParams, (err, updateResult) => {
+        if (err) {
+            console.error('Error updating user account:', err);
+            return res.status(500).json({ status: 'error', error: 'Failed to update user account' });
+        }
+
+        if (updateResult.affectedRows === 0) {
+            let insertQuery = `
+                INSERT INTO users_accounts (user_id, holder_name, holder_number, bankName)
+                VALUES (?, ?, ?, ?)`;
+            let insertParams = [user_id, nameOnAccount, accountNumber, bankName];
+
+            con.query(insertQuery, insertParams, (err, insertResult) => {
+                if (err) {
+                    console.error('Error inserting user account:', err);
+                    return res.status(500).json({ status: 'error', error: 'Failed to insert user account' });
+                }
+
+                res.json({ status: 'success', message: 'User account inserted successfully' });
+            });
+        } else {
+            res.json({ status: 'success', message: 'User account updated successfully' });
+        }
+    });
+});
 app.listen( process.env.PORT, () => {
     console.log('Listening on port ' +  process.env.PORT);
 });

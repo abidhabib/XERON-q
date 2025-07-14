@@ -51,6 +51,7 @@ const RejectedUsers = () => {
   useEffect(() => {
     fetchData();
   }, [currentPage, searchTerm]);
+console.log(data+" "+totalCount+" "+totalPages);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);

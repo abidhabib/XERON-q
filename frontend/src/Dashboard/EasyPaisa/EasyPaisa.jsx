@@ -1,8 +1,8 @@
-import  { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Sidebar } from "../SideBarSection/Sidebar";
-import { 
-  HiOutlineSearch, 
+import {
+  HiOutlineSearch,
   HiOutlineRefresh,
   HiOutlineCheckCircle,
   HiOutlineXCircle,
@@ -21,7 +21,7 @@ import useBlockUser from '../Hooks/useBlockUser';
 
 const CryptoUsers = () => {
   const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);  
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingApproveUsers, setLoadingApproveUsers] = useState([]);
   const [loadingRejectUsers, setLoadingRejectUsers] = useState([]);
@@ -40,7 +40,7 @@ const CryptoUsers = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  
+
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     actionType: null,
@@ -57,21 +57,22 @@ const CryptoUsers = () => {
       user.trx_id?.toString().includes(searchTerm.trimEnd())
     );
   }, [data, searchTerm]);
-  
+
   const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/EasypaisaUsers`, {
-      });
-      if (response.data?.approvedUsers) {
-        setData(response.data.approvedUsers);
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/EasypaisaUsers`);
+    console.log("Fetched users:", response.data.approvedUsers); // Check if blocked is included
+    if (response.data?.approvedUsers) {
+      setData(response.data.approvedUsers);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchData();
@@ -116,13 +117,13 @@ const CryptoUsers = () => {
     setLoadingApproveUsers((prev) => [...prev, userId]);
 
     try {
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/approveUser/${userId}`, { 
-        approved: 1, 
-        approved_at: new Date() 
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/approveUser/${userId}`, {
+        approved: 1,
+        approved_at: new Date()
       });
 
       setData(prev => prev.filter(user => user.id !== userId));
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/updateUserAccounts/${userId}`);
+    
     } catch (error) {
       console.error("Error approving user:", error);
     } finally {
@@ -135,7 +136,7 @@ const CryptoUsers = () => {
     setLoadingRejectUsers((prev) => [...prev, userId]);
 
     try {
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/rejectUser/${userId}`);
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/rejectUserCurrMin/${userId}`);
       setData(prev => prev.filter(user => user.id !== userId));
     } catch (error) {
       console.error("Error rejecting user:", error);
@@ -146,9 +147,9 @@ const CryptoUsers = () => {
 
   const handleDelete = async (userId) => {
     if (loadingDeleteUsers.includes(userId)) return;
-    
+
     if (!window.confirm('Are you sure you want to permanently delete this user?')) return;
-    
+
     setLoadingDeleteUsers((prev) => [...prev, userId]);
 
     try {
@@ -160,7 +161,7 @@ const CryptoUsers = () => {
       setLoadingDeleteUsers((prev) => prev.filter(id => id !== userId));
     }
   };
-  
+
   const showUserDetails = (user) => {
     setSelectedUser(user);
     setEditFormData({
@@ -181,7 +182,7 @@ const CryptoUsers = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (formErrors[name]) {
       setFormErrors(prev => ({
@@ -190,21 +191,33 @@ const CryptoUsers = () => {
       }));
     }
   };
-
+ const handleBlockClick = (userId, blockedStatus, userName) => {
+    openConfirmation(
+      userId, 
+      userName,
+      blockedStatus ? 'unblock' : 'block',
+      async (id) => {
+        await toggleBlock(id, blockedStatus, (id, newStatus) => {
+          setData(prev => prev.map(u => u.id === id ? { ...u, blocked: newStatus } : u));
+        });
+      }
+    );
+  };
   const validateForm = () => {
     const errors = {};
     if (!editFormData.name) errors.name = 'Name is required';
     if (!editFormData.trx_id) errors.trx_id = 'Transaction ID is required';
     if (!editFormData.refer_by) errors.refer_by = 'Referrer is required';
     if (!editFormData.email) errors.email = 'Email is required';
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
+console.log(data);
 
   const handleUpdateUser = async () => {
     if (!validateForm()) return;
-    
+
     setIsUpdating(true);
     try {
       await axios.put(`${import.meta.env.VITE_API_BASE_URL}/updateUserDataEasyPaisa/${selectedUser.id}`, {
@@ -213,14 +226,14 @@ const CryptoUsers = () => {
         refer_by: editFormData.refer_by,
         email: editFormData.email
       });
-      
+
       // Update local data
-      setData(prev => prev.map(user => 
-        user.id === selectedUser.id 
-          ? { ...user, ...editFormData } 
+      setData(prev => prev.map(user =>
+        user.id === selectedUser.id
+          ? { ...user, ...editFormData }
           : user
       ));
-      
+
       setUpdateSuccess(true);
       setTimeout(() => setUpdateSuccess(false), 3000);
       setIsEditing(false);
@@ -245,7 +258,7 @@ const CryptoUsers = () => {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      
+
       {/* Confirmation Modal */}
       <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity ${confirmationModal.isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="bg-white rounded-xl shadow-lg max-w-md w-full transform transition-transform scale-95">
@@ -258,7 +271,7 @@ const CryptoUsers = () => {
                 Confirm {confirmationModal.actionType}
               </h3>
             </div>
-            
+
             <div className="mt-2">
               <p className="text-sm text-gray-500">
                 Are you sure you want to {confirmationModal.actionType} user{' '}
@@ -266,7 +279,7 @@ const CryptoUsers = () => {
                 {confirmationModal.actionType === 'reject' && ' This will permanently remove their approval status.'}
               </p>
             </div>
-            
+
             <div className="mt-5 sm:mt-6 flex justify-end space-x-3">
               <button
                 type="button"
@@ -286,7 +299,7 @@ const CryptoUsers = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="flex-1 p-4 ml-10 md:p-6 ml-0 md:ml-64">
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
@@ -299,14 +312,14 @@ const CryptoUsers = () => {
                 <p className="text-gray-600">Manage cryptocurrency payment verifications</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={fetchData}
               className="flex items-center text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <HiOutlineRefresh className="mr-2" /> Refresh
             </button>
           </div>
-          
+
           <div className="bg-white rounded-xl shadow-sm p-2 mb-6">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -353,7 +366,7 @@ const CryptoUsers = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredData.length > 0 ? filteredData.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                      <td 
+                      <td
                         className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer"
                       >
                         <div className="flex items-center">
@@ -375,11 +388,10 @@ const CryptoUsers = () => {
                           <button
                             onClick={() => handleApprove(user.id)}
                             disabled={loadingApproveUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${
-                              loadingApproveUsers.includes(user.id)
+                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${loadingApproveUsers.includes(user.id)
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-green-100 text-green-700 hover:bg-green-200'
-                            }`}
+                              }`}
                           >
                             {loadingApproveUsers.includes(user.id) ? (
                               <FaSpinner className="animate-spin mr-1" />
@@ -388,30 +400,17 @@ const CryptoUsers = () => {
                             )}
                             Approve
                           </button>
-                          
+
                           <button
                             onClick={() => showUserDetails(user)}
                             className={`flex items-center px-3 py-1 rounded-md transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200`}
                           >
                             Edit
                           </button>
-                          
+
                           {/* Block/Unblock Button */}
-                          <button
-                            onClick={() => openConfirmation(
-                              user.id, 
-                              user.name || `ID: ${user.id}`, 
-                              user.blocked ? 'unblock' : 'block', 
-                              () => toggleBlock(
-                                user.id, 
-                                user.blocked ?? 0, 
-                                (id, newStatus) => {
-                                  setData(prev => prev.map(u => 
-                                    u.id === id ? { ...u, blocked: newStatus } : u
-                                  ));
-                                }
-                              )
-                            )}
+                           <button
+                            onClick={() => handleBlockClick(user.id, user.blocked ?? 0, user.name)}
                             disabled={loadingBlockUser}
                             className={`flex items-center px-3 py-1 rounded-md transition-colors ${
                               user.blocked
@@ -425,22 +424,22 @@ const CryptoUsers = () => {
                               <HiOutlineLockOpen className="mr-1" />
                             )}
                             {user.blocked ? 'Unblock' : 'Block'}
+                            {user.blocked ? 'ed' : ''}
                           </button>
                           
                           {/* Reject Button */}
                           <button
                             onClick={() => openConfirmation(
-                              user.id, 
-                              user.name || `ID: ${user.id}`, 
-                              'reject', 
+                              user.id,
+                              user.name || `ID: ${user.id}`,
+                              'reject',
                               () => handleReject(user.id)
                             )}
                             disabled={loadingRejectUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${
-                              loadingRejectUsers.includes(user.id)
+                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${loadingRejectUsers.includes(user.id)
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200'
-                            }`}
+                              }`}
                           >
                             {loadingRejectUsers.includes(user.id) ? (
                               <FaSpinner className="animate-spin mr-1" />
@@ -449,7 +448,7 @@ const CryptoUsers = () => {
                             )}
                             Reject
                           </button>
-                          
+
                           {/* Delete Button */}
                           <button
                             onClick={(e) => {
@@ -459,11 +458,10 @@ const CryptoUsers = () => {
                               }
                             }}
                             disabled={loadingDeleteUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${
-                              loadingDeleteUsers.includes(user.id)
+                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${loadingDeleteUsers.includes(user.id)
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
+                              }`}
                           >
                             {loadingDeleteUsers.includes(user.id) ? (
                               <FaSpinner className="animate-spin mr-1" />
@@ -501,14 +499,14 @@ const CryptoUsers = () => {
                   <h2 className="text-xl font-bold text-gray-800">
                     {isEditing ? "Edit User Details" : "User Details"}
                   </h2>
-                  <button 
+                  <button
                     onClick={() => setIsDetailModalOpen(false)}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <HiOutlineX className="w-6 h-6" />
                   </button>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
@@ -520,7 +518,7 @@ const CryptoUsers = () => {
                       <div className="font-medium text-yellow-600">Pending Verification</div>
                     </div>
                   </div>
-                  
+
                   {isEditing ? (
                     <div className="space-y-4">
                       <div>
@@ -530,14 +528,13 @@ const CryptoUsers = () => {
                           name="name"
                           value={editFormData.name}
                           onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md ${
-                            formErrors.name ? 'border-red-500' : 'border-gray-300'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          className={`w-full px-3 py-2 border rounded-md ${formErrors.name ? 'border-red-500' : 'border-gray-300'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           placeholder="Enter full name"
                         />
                         {formErrors.name && <p className="mt-1 text-xs text-red-500">{formErrors.name}</p>}
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
                         <input
@@ -545,14 +542,13 @@ const CryptoUsers = () => {
                           name="trx_id"
                           value={editFormData.trx_id}
                           onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md break-all text-sm ${
-                            formErrors.trx_id ? 'border-red-500' : 'border-gray-300'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          className={`w-full px-3 py-2 border rounded-md break-all text-sm ${formErrors.trx_id ? 'border-red-500' : 'border-gray-300'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           placeholder="Enter transaction ID"
                         />
                         {formErrors.trx_id && <p className="mt-1 text-xs text-red-500">{formErrors.trx_id}</p>}
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Referred By</label>
                         <input
@@ -560,14 +556,13 @@ const CryptoUsers = () => {
                           name="refer_by"
                           value={editFormData.refer_by}
                           onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md ${
-                            formErrors.refer_by ? 'border-red-500' : 'border-gray-300'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          className={`w-full px-3 py-2 border rounded-md ${formErrors.refer_by ? 'border-red-500' : 'border-gray-300'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           placeholder="Enter referrer"
                         />
                         {formErrors.refer_by && <p className="mt-1 text-xs text-red-500">{formErrors.refer_by}</p>}
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                         <input
@@ -575,9 +570,8 @@ const CryptoUsers = () => {
                           name="email"
                           value={editFormData.email}
                           onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md ${
-                            formErrors.email ? 'border-red-500' : 'border-gray-300'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          className={`w-full px-3 py-2 border rounded-md ${formErrors.email ? 'border-red-500' : 'border-gray-300'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           placeholder="Enter email"
                         />
                         {formErrors.email && <p className="mt-1 text-xs text-red-500">{formErrors.email}</p>}
@@ -605,7 +599,7 @@ const CryptoUsers = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-between pt-4 gap-2 border-t border-gray-200">
                     <div className="flex space-x-2">
                       {isEditing ? (
@@ -626,7 +620,7 @@ const CryptoUsers = () => {
                             ) : (
                               <HiOutlineSave className="mr-1" />
                             )}
-                            Save 
+                            Save
                           </button>
                         </>
                       ) : (
@@ -638,21 +632,20 @@ const CryptoUsers = () => {
                         </button>
                       )}
                     </div>
-                    
+
                     <div className="flex space-x-2">
                       <button
                         onClick={() => openConfirmation(
-                          selectedUser.id, 
-                          selectedUser.name || `ID: ${selectedUser.id}`, 
-                          'reject', 
+                          selectedUser.id,
+                          selectedUser.name || `ID: ${selectedUser.id}`,
+                          'reject',
                           () => handleReject(selectedUser.id)
                         )}
                         disabled={loadingRejectUsers.includes(selectedUser.id)}
-                        className={`flex items-center px-4 py-1 text-sm rounded-md transition-colors ${
-                          loadingRejectUsers.includes(selectedUser.id)
+                        className={`flex items-center px-4 py-1 text-sm rounded-md transition-colors ${loadingRejectUsers.includes(selectedUser.id)
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
+                          }`}
                       >
                         {loadingRejectUsers.includes(selectedUser.id) ? (
                           <FaSpinner className="animate-spin mr-1" />
@@ -664,11 +657,10 @@ const CryptoUsers = () => {
                       <button
                         onClick={() => handleApprove(selectedUser.id)}
                         disabled={loadingApproveUsers.includes(selectedUser.id)}
-                        className={`flex items-center px-4 py-1 text-sm rounded-md transition-colors ${
-                          loadingApproveUsers.includes(selectedUser.id)
+                        className={`flex items-center px-4 py-1 text-sm rounded-md transition-colors ${loadingApproveUsers.includes(selectedUser.id)
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                          }`}
                       >
                         {loadingApproveUsers.includes(selectedUser.id) ? (
                           <FaSpinner className="animate-spin mr-1" />
@@ -679,7 +671,7 @@ const CryptoUsers = () => {
                       </button>
                     </div>
                   </div>
-                  
+
                   {updateSuccess && (
                     <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md border border-green-100">
                       User details updated successfully!

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { UserContext } from './UserContext/UserContext';
 import { FiUser, FiMail, FiMapPin, FiCheckCircle } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { Nav } from 'react-bootstrap';
 import NavBar from './NavBAr';
 
 const UserProfileUpdate = () => {
