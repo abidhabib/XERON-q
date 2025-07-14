@@ -1,6 +1,6 @@
 import { ethers, formatUnits } from "ethers";
 import axios from "axios";
-import { queryAsync } from "../utils/queryAsync.js"; // You’ll create this helper
+import { queryAsync } from "../utils/queryAsync.js"; 
 
 const provider = new ethers.JsonRpcProvider("https://bsc-dataseed1.defibit.io");
 const MIN_REQUIRED = 10;
