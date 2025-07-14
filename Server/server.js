@@ -3567,63 +3567,7 @@ app.post('/update-password', (req, res) => {
     });
 });
 
-// Route for fetching all images
-app.get('/getImages', (req, res) => {
-    const query = 'SELECT * FROM images ORDER BY upload_time DESC';
 
-    con.query(query, (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.status(500).json({ error: 'An error occurred while fetching images' });
-        }
-
-        res.json(results); // Send the list of images
-    });
-});
-app.delete('/deleteImage/:id', (req, res) => {
-    const { id } = req.params;
-
-    // Fetch the image record from the database
-    const query = 'SELECT * FROM images WHERE id = ?';
-    con.query(query, [id], (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (results.length > 0) {
-            const imagePath = results[0].file_path;
-
-            // Check if the file exists before deleting
-            fs.exists(imagePath, (exists) => {
-                if (!exists) {
-                    return res.status(404).json({ message: 'Image file not found' });
-                }
-
-                // Delete the image file from the server
-                fs.unlink(imagePath, (err) => {
-                    if (err) {
-                        console.error(err);
-                        return res.status(500).json({ error: 'Error deleting image file' });
-                    }
-
-                    // Delete the image record from the database
-                    const deleteQuery = 'DELETE FROM images WHERE id = ?';
-                    con.query(deleteQuery, [id], (err) => {
-                        if (err) {
-                            console.error(err);
-                            return res.status(500).json({ error: 'Error deleting image record' });
-                        }
-
-                        res.json({ message: 'Image deleted successfully' });
-                    });
-                });
-            });
-        } else {
-            res.status(404).json({ message: 'Image not found' });
-        }
-    });
-});
 
 
 app.get('/approvedUserNames/:referByUserId', async (req, res) => {
