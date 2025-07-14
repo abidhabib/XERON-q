@@ -1976,7 +1976,6 @@ app.put('/updateUserDataEasyPaisa/:id', (req, res) => {
     const { id } = req.params;
     const { refer_by, trx_id,  email,name } = req.body;
 
-    console.log('User ID:', id);
 
     if (!refer_by || !trx_id) {
         return res.status(400).json({ status: 'error', message: 'All fields are required' });
