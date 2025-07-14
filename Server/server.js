@@ -398,32 +398,7 @@ app.post('/collect-salary/:userId', async (req, res) => {
 
 
 
-app.post('/mark-notifications-seen', async (req, res) => {
-    const { userId } = req.body;
-    console.log(userId);
 
-    if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const updateSeenStatusSql = `
-            UPDATE notifications
-            SET seen = 1
-            WHERE user_id = ? `
-
-    try {
-        const [result] = await con.promise().query(updateSeenStatusSql, [userId]);
-
-        if (result.affectedRows > 0) {
-            res.status(200).json({ message: 'Notifications marked as seen' });
-        } else {
-            res.status(400).json({ message: 'No unseen notifications found' });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
 app.get('/getCryptoAddress/:userId', (req, res) => {
     const userId = req.params.userId;
 
