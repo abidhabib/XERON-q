@@ -1553,7 +1553,6 @@ app.get('/getUserAccount/:userId', (req, res) => {
             return res.status(404).json({ status: 'error', message: 'User account not found' });
         }
         res.json({ status: 'success', userAccount: result[0] });
-        console.log(result[0]);
 
     })
 });
