@@ -2226,9 +2226,6 @@ app.post('/approve-withdrawal', async (req, res) => {
             withdrawalAttempts = withdrawalAttempts + 1
         WHERE id = ?`;
 
-
-
-
     const insertNotificationSql = `
         INSERT INTO notifications (user_id, msg, created_at)
         VALUES (?, 'Your withdrawal has been approved', CURRENT_TIMESTAMP)`;
@@ -2261,8 +2258,6 @@ app.post('/approve-withdrawal', async (req, res) => {
                         res.status(500).json({ error: 'Internal Server Error' });
                     });
                 }
-
-
 
 
                 con.query(insertNotificationSql, [userId], (error) => {
