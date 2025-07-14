@@ -1619,7 +1619,6 @@ app.post('/withdraw', (req, res) => {
                 }
 
                 const minimumLimit = limitResults[0].allow_limit;
-                console.log('Minimum withdrawal limit:', minimumLimit);
 
                 const getExchangeFeeSql = `
                     SELECT fee FROM exchange_fee WHERE id = 1
