@@ -449,7 +449,6 @@ app.get('/getCryptoAddress/:userId', (req, res) => {
 });
 app.put('/updateCryptoAddress', (req, res) => {
     const { address, addressType, userId } = req.body;
-    console.log(address, addressType, userId);
 
     if (!address || !addressType || !userId) {
         return res.status(400).json({ success: false, message: 'All fields are required' });
