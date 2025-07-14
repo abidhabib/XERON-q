@@ -2206,7 +2206,6 @@ app.put('/approveUser/:userId', async (req, res) => {
     }
 });
 
-
 app.post('/approve-withdrawal', async (req, res) => {
     const { userId, requestId, amount } = req.body;
     console.log(req.body);
