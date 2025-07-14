@@ -1638,7 +1638,6 @@ app.post('/withdraw', (req, res) => {
                     const fee = (amount * feePercentage) / 100;
                     const amountAfterFee = amount - fee;
 
-                    console.log('Amount after fee:', amountAfterFee);
 
                     if (amountAfterFee < minimumLimit) {
                         return res.status(400).json({ status: 'error', error: `Minimum withdrawal amount is ${minimumLimit}$` });
