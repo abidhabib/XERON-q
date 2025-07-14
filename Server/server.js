@@ -14,7 +14,9 @@ import webpush from 'web-push';
 import moment from 'moment';
 import con from './config/db.js';
 import './cron/index.js';
-
+import notificationRoutes from './routes/notifications.js';
+import setupWebPush from './utils/setupWebPush.js';
+setupWebPush();
 
 dotenv.config();
 const app = express();
@@ -37,19 +39,8 @@ app.use('/storage', express.static(join(__dirname, 'uploads')));
 
 app.use(cookieParser());
 
-const vapidKeys = {
-    publicKey: process.env.VAPID_PUBLIC_KEY,
-    privateKey: process.env.VAPID_PRIVATE_KEY,
-};
-
-webpush.setVapidDetails(
-    "mailto:your@email.com",
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-);
 
 
-console.log(vapidKeys.publicKey);
 
 app.use(express.json());
 app.use(session({
@@ -70,164 +61,11 @@ con.connect(function (err) {
     }
 }
 );
-app.post('/save-subscription', (req, res) => {
-    const { subscription } = req.body;
-
-    if (!subscription?.endpoint || !subscription?.keys) {
-        return res.status(400).json({ error: 'Invalid subscription format' });
-    }
-
-    // ✅ Declare the SQL properly with escaped `keys`
-    const query = `
-      INSERT INTO push_subscriptions (endpoint, \`keys\`)
-      VALUES (?, ?)
-      ON DUPLICATE KEY UPDATE
-        \`keys\` = VALUES(\`keys\`),
-        updated_at = CURRENT_TIMESTAMP
-    `;
-
-    con.query(query, [subscription.endpoint, JSON.stringify(subscription.keys)], (err, result) => {
-        if (err) {
-            console.error('Database save error:', err);
-            return res.status(500).json({ error: 'Failed to save subscription', code: 'DB_SAVE_FAILED' });
-        }
-
-        res.status(201).json({
-            success: true,
-            id: result.insertId,
-            endpoint: subscription.endpoint
-        });
-    });
-});
-
-
-app.post('/remove-subscription', (req, res) => {
-    const { endpoint } = req.body;
-
-    if (!endpoint) {
-        return res.status(400).json({ error: 'Missing endpoint' });
-    }
-
-    con.query(
-        'DELETE FROM push_subscriptions WHERE endpoint = ?',
-        [endpoint],
-        (err, result) => {
-            if (err) {
-                console.error('Database delete error:', err);
-                return res.status(500).json({ error: 'Failed to remove subscription', code: 'DB_DELETE_FAILED' });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ error: 'Subscription not found' });
-            }
-
-            res.json({ success: true, deleted: result.affectedRows });
-        }
-    );
-});
-
-
-// Broadcast notification endpoint
-app.post('/broadcast-notification', (req, res) => {
-    const { title, message, url } = req.body;
-
-    if (typeof title !== 'string' || title.length > 100) {
-        return res.status(400).json({ error: 'Invalid title format' });
-    }
-
-    if (typeof message !== 'string' || message.length > 300) {
-        return res.status(400).json({ error: 'Invalid message format' });
-    }
-
-    con.query('SELECT endpoint, `keys` FROM push_subscriptions', async (err, subscriptions) => {
-        if (err) {
-            console.error('DB error:', err);
-            return res.status(500).json({ error: 'Database query failed', code: 'DB_QUERY_FAILED' });
-        }
-
-        if (subscriptions.length === 0) {
-            return res.json({ success: true, message: 'No active subscribers', sent: 0 });
-        }
-
-        const payload = JSON.stringify({
-            title,
-            body: message,
-            icon: '/icon-192x192.png',
-            badge: '/badge-72x72.png',
-            data: { url: url || process.env.DEFAULT_NOTIFICATION_URL || '/' },
-            timestamp: Date.now()
-        });
-
-        const BATCH_SIZE = 100;
-        const batches = Math.ceil(subscriptions.length / BATCH_SIZE);
-        let totalSent = 0;
-        let failedEndpoints = [];
-
-        for (let i = 0; i < batches; i++) {
-            const start = i * BATCH_SIZE;
-            const end = Math.min(start + BATCH_SIZE, subscriptions.length);
-            const batch = subscriptions.slice(start, end);
-
-            const results = await Promise.allSettled(
-                batch.map(sub => {
-                    const subscription = {
-                        endpoint: sub.endpoint,
-                        keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys
-                    };
-
-                    return webpush.sendNotification(subscription, payload);
-                })
-            );
-
-            results.forEach((result, index) => {
-                const subIndex = start + index;
-                if (result.status === 'rejected') {
-                    const error = result.reason;
-                    console.error(`Push failed to ${subscriptions[subIndex].endpoint}:`, error);
-                    if (error.statusCode === 410) {
-                        failedEndpoints.push(subscriptions[subIndex].endpoint);
-                    }
-                } else {
-                    totalSent++;
-                }
-            });
-        }
-
-        if (failedEndpoints.length > 0) {
-            console.log(`Cleaning up ${failedEndpoints.length} invalid subscriptions`);
-
-            con.query(
-                'DELETE FROM push_subscriptions WHERE endpoint IN (?)',
-                [failedEndpoints],
-                (err) => {
-                    if (err) console.error('Failed to clean invalid subscriptions', err);
-                }
-            );
-        }
-
-        res.json({
-            success: true,
-            totalSubscribers: subscriptions.length,
-            sent: totalSent,
-            failed: subscriptions.length - totalSent,
-            invalidRemoved: failedEndpoints.length
-        });
-    });
-});
-
-app.get('/subscriber-count', (req, res) => {
-    con.query('SELECT COUNT(*) AS count FROM push_subscriptions', (err, results) => {
-        if (err) {
-            console.error('Count query failed:', err);
-            return res.status(500).json({ error: 'Failed to get subscriber count', code: 'COUNT_QUERY_FAILED' });
-        }
-
-        res.json({ count: results[0].count });
-    });
-});
 
 
 
+
+app.use('/', notificationRoutes); // handles /save-subscription etc.
 
 
 
