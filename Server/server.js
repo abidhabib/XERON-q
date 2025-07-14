@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path'
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import webpush from 'web-push';
 import moment from 'moment';
 import con from './config/db.js';
 import './cron/index.js';
@@ -35,13 +34,7 @@ app.use(cors({
 
 }));
 app.use('/storage', express.static(join(__dirname, 'uploads')));
-
-
 app.use(cookieParser());
-
-
-
-
 app.use(express.json());
 app.use(session({
     secret: 'secret',
@@ -50,8 +43,6 @@ app.use(session({
     cookie: { secure: false, maxAge: 699900000 }
 
 }));
-const PORT = process.env.PORT ;
-
 
 con.connect(function (err) {
     if (err) {
@@ -3683,6 +3674,6 @@ app.post('/payment', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log('Listening on port ' + PORT);
+app.listen( process.env.PORT, () => {
+    console.log('Listening on port ' +  process.env.PORT);
 });
