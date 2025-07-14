@@ -1758,222 +1758,9 @@ app.put('/updateCommissionData', (req, res) => {
 
 
 
-app.put('/updateUserAccount/:userId', (req, res) => {
-    const user_id = req.params.userId;
-    const { accountNumber, nameOnAccount, bankName } = req.body;
-
-    if (!user_id || !accountNumber || !nameOnAccount || !bankName) {
-        return res.status(400).json({ status: 'error', message: 'User ID, Account Number, Name on Account, and Bank Name are required' });
-    }
-
-    let updateQuery = `
-        UPDATE users_accounts
-        SET 
-            holder_name = ?,
-            holder_number = ?,
-            bankName = ?
-        WHERE user_id = ?`;
-    let updateParams = [nameOnAccount, accountNumber, bankName, user_id];
-
-    con.query(updateQuery, updateParams, (err, updateResult) => {
-        if (err) {
-            console.error('Error updating user account:', err);
-            return res.status(500).json({ status: 'error', error: 'Failed to update user account' });
-        }
-
-        if (updateResult.affectedRows === 0) {
-            let insertQuery = `
-                INSERT INTO users_accounts (user_id, holder_name, holder_number, bankName)
-                VALUES (?, ?, ?, ?)`;
-            let insertParams = [user_id, nameOnAccount, accountNumber, bankName];
-
-            con.query(insertQuery, insertParams, (err, insertResult) => {
-                if (err) {
-                    console.error('Error inserting user account:', err);
-                    return res.status(500).json({ status: 'error', error: 'Failed to insert user account' });
-                }
-
-                res.json({ status: 'success', message: 'User account inserted successfully' });
-            });
-        } else {
-            res.json({ status: 'success', message: 'User account updated successfully' });
-        }
-    });
-});
 
 
 
-app.get('/fetchClickedButtons', (req, res) => {
-    const userId = req.session.userId;
-
-    if (!userId) {
-        return res.status(400).json({ status: 'error', message: 'userId is required' });
-    }
-
-    const sql = `
-      SELECT buttonId
-      FROM user_button_clicks
-      WHERE userId = ?
-    `;
-
-    con.query(sql, [userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching clicked buttons:', err);
-            return res.status(500).json({ status: 'error', message: 'Failed to fetch clicked buttons', error: err });
-        }
-
-        const clickedButtons = {};
-        results.forEach(row => {
-            clickedButtons[row.buttonId] = true;
-        });
-
-        res.json({ status: 'success', clickedButtons });
-    });
-});
-
-
-app.post('/trackButton', (req, res) => {
-    const { userId, buttonId } = req.body;
-
-    if (!userId || !buttonId) {
-        return res.status(400).json({ status: 'error', message: 'userId and buttonId are required' });
-    }
-
-    // Bonus values mapping
-    const bonusValues = { 3: 1.00, 5: 1.00, 8: 2.00, 10: 1.00, 15: 2.00 };
-    const bonusValue = bonusValues[buttonId];
-
-    if (!bonusValue) {
-        return res.status(400).json({ status: 'error', message: 'Invalid buttonId' });
-    }
-
-    // Check if the user already collected today's bonus
-    const checkSql = `
-        SELECT id FROM user_button_clicks 
-        WHERE userId = ? AND buttonId = ? AND DATE(clickTime) = CURDATE()
-    `;
-
-    con.query(checkSql, [userId, buttonId], (err, results) => {
-        if (err) {
-            console.error('Error checking previous clicks:', err);
-            return res.status(500).json({ status: 'error', message: 'Database error', error: err });
-        }
-
-        if (results.length > 0) {
-            return res.status(400).json({ status: 'error', message: 'You have already collected this bonus today.' });
-        }
-
-        // Start transaction to ensure atomicity
-        con.beginTransaction((err) => {
-            if (err) {
-                console.error('Transaction error:', err);
-                return res.status(500).json({ status: 'error', message: 'Database transaction failed', error: err });
-            }
-
-            // Update user balance
-            const updateBalanceSql = `UPDATE users SET balance = balance + ?, all_credits = all_credits + ? WHERE id = ?`;
-            con.query(updateBalanceSql, [bonusValue, bonusValue, userId], (err, result) => {
-                if (err) {
-                    console.error('Error updating balance:', err);
-                    return con.rollback(() => res.status(500).json({ status: 'error', message: 'Failed to update balance', error: err }));
-                }
-
-                // Insert button click
-                const insertButtonClickSql = `INSERT INTO user_button_clicks (userId, buttonId, clickTime) VALUES (?, ?, NOW())`;
-                con.query(insertButtonClickSql, [userId, buttonId], (err, result) => {
-                    if (err) {
-                        console.error('Error tracking button click:', err);
-                        return con.rollback(() => res.status(500).json({ status: 'error', message: 'Failed to track button click', error: err }));
-                    }
-
-                    // Insert into bonus history
-                    const insertHistorySql = `INSERT INTO bonus_history (user_id, amount, created_at) VALUES (?, ?, NOW())`;
-                    con.query(insertHistorySql, [userId, bonusValue], (err, result) => {
-                        if (err) {
-                            console.error('Error inserting into history:', err);
-                            return con.rollback(() => res.status(500).json({ status: 'error', message: 'Failed to insert into history', error: err }));
-                        }
-
-                        // Commit transaction
-                        con.commit((err) => {
-                            if (err) {
-                                console.error('Transaction commit error:', err);
-                                return con.rollback(() => res.status(500).json({ status: 'error', message: 'Transaction commit failed', error: err }));
-                            }
-
-                            res.json({ status: 'success', message: 'Bonus collected successfully' });
-                        });
-                    });
-                });
-            });
-        });
-    });
-});
-
-
-app.get('/calculateUserCredits/:userId', async (req, res) => {
-    const userId = req.params.userId;
-
-    if (!userId) {
-        return res.status(400).json({ status: 'error', message: 'User ID is required' });
-    }
-
-    try {
-        // Step 1: Get all_credits, backend_wallet, balance, total_withdrawal from the users table
-        const getUserCreditsSql = `
-            SELECT all_credits, backend_wallet, balance, total_withdrawal ,today_wallet
-            FROM users
-            WHERE id = ?
-        `;
-        const userResults = await queryAsync(getUserCreditsSql, [userId]);
-
-        if (!userResults || userResults.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
-        }
-
-        const { all_credits, backend_wallet, balance, today_wallet, total_withdrawal } = userResults[0];
-
-        // Step 2: Get the sum of the amounts from the bonus_history table
-        const getBonusHistorySql = `
-            SELECT SUM(amount) AS total_bonus
-            FROM bonus_history
-            WHERE user_id = ?
-        `;
-        const bonusHistoryResults = await queryAsync(getBonusHistorySql, [userId]);
-        const totalBonus = bonusHistoryResults[0]?.total_bonus || 0;
-
-        // Step 3: Get the sum of the amounts from the bonus_history_level_up table
-        const getBonusHistoryLevelUpSql = `
-            SELECT SUM(bonus_amount) AS total_level_up_bonus
-            FROM bonus_history_level_up
-            WHERE user_id = ?
-        `;
-        const bonusHistoryLevelUpResults = await queryAsync(getBonusHistoryLevelUpSql, [userId]);
-        const totalLevelUpBonus = bonusHistoryLevelUpResults[0]?.total_level_up_bonus || 0;
-
-        // Step 4: Calculate the final result
-        const finalResult = all_credits - backend_wallet - balance - total_withdrawal - totalBonus - totalLevelUpBonus - today_wallet;
-
-        // Step 5: Send the response
-        res.json({
-            status: 'success',
-            message: 'User credits and deductions calculated successfully',
-            data: {
-                all_credits,
-                backend_wallet,
-                balance,
-                total_withdrawal,
-                totalBonus,
-                today_wallet,
-                totalLevelUpBonus,
-                finalResult
-            }
-        });
-    } catch (error) {
-        console.error('Error calculating user credits:', error.message);
-        res.status(500).json({ status: 'error', error: 'Failed to calculate user credits and deductions' });
-    }
-});
 
 
 
@@ -2187,10 +1974,9 @@ app.get('/all-withdrawal-requests', (req, res) => {
 
 app.put('/updateUserDataEasyPaisa/:id', (req, res) => {
     const { id } = req.params;
-    const { refer_by, trx_id, sender_name, sender_number, email } = req.body;
+    const { refer_by, trx_id,  email,name } = req.body;
 
     console.log('User ID:', id);
-    console.log('Received data:', { refer_by, trx_id, sender_name, sender_number, email });
 
     if (!refer_by || !trx_id) {
         return res.status(400).json({ status: 'error', message: 'All fields are required' });
@@ -2201,10 +1987,12 @@ app.put('/updateUserDataEasyPaisa/:id', (req, res) => {
         SET 
             refer_by = ?, 
             trx_id = ?, 
-            email = ?
+            email = ?,
+            name = ?
+
         WHERE id = ?
     `;
-    const queryParams = [refer_by, trx_id, email, id];
+    const queryParams = [refer_by, trx_id, email,name, id];
 
     con.query(updateQuery, queryParams, (err, result) => {
         if (err) {
@@ -3211,125 +2999,8 @@ app.post('/upload', upload.single('image'), (req, res) => {
     });
 });
 
-app.post('/update-accounts', (req, res) => {
-    const accounts = req.body.accounts; // Array of updated accounts
-    console.log(req.body);
 
-    // Input Validation
-    if (!accounts || accounts.length === 0) {
-        return res.status(400).json({ success: false, message: 'Invalid account data.' });
-    }
 
-    // Start a transaction
-    con.beginTransaction((err) => {
-        if (err) {
-            console.error('Failed to start transaction:', err);
-            return res.status(500).json({ success: false, message: 'Failed to start transaction.' });
-        }
-
-        // Loop through the accounts and update them individually
-        const updatePromises = accounts.map((account) => {
-            // Input validation for each account
-            if (!account.account_name || !account.account_number || !account.status) {
-                return Promise.reject(new Error('Invalid account data.'));
-            }
-
-            // SQL to get the current account details (before update)
-            const getSql = 'SELECT * FROM accounts WHERE account_id = ?';
-            const getValues = [account.account_id];
-
-            return new Promise((resolve, reject) => {
-                con.query(getSql, getValues, (err, result) => {
-                    if (err) {
-                        reject(new Error(`Failed to fetch account details for account_id: ${account.account_id}`));
-                    } else if (result.length === 0) {
-                        reject(new Error(`Account with account_id: ${account.account_id} not found.`));
-                    } else {
-                        const currentAccount = result[0];
-
-                        // Only insert history if the data has changed (e.g., account_name, account_number, or status)
-                        if (
-                            account.account_name !== currentAccount.account_name ||
-                            account.account_number !== currentAccount.account_number ||
-                            account.status !== currentAccount.status
-                        ) {
-                            // SQL to insert the account update into the history table
-                            const historySql = `
-                                INSERT INTO accounts_history (account_id, account_name, account_number, status, action)
-                                VALUES (?, ?, ?, ?, 'updated')
-                            `;
-                            const historyValues = [
-                                account.account_id,
-                                currentAccount.account_name,
-                                currentAccount.account_number,
-                                currentAccount.status
-                            ];
-
-                            // Insert history for the account
-                            con.query(historySql, historyValues, (err) => {
-                                if (err) {
-                                    reject(new Error(`Failed to insert history for account_id: ${account.account_id}`));
-                                } else {
-                                    // SQL to update the account
-                                    const updateSql = `
-                                        UPDATE accounts
-                                        SET account_name = ?, account_number = ?, status = ?
-                                        WHERE account_id = ?
-                                    `;
-                                    const updateValues = [account.account_name, account.account_number, account.status.toLowerCase(), account.account_id];
-
-                                    // Update the account
-                                    con.query(updateSql, updateValues, (err) => {
-                                        if (err) {
-                                            reject(new Error(`Failed to update account with account_id: ${account.account_id}`));
-                                        } else {
-                                            resolve();
-                                        }
-                                    });
-                                }
-                            });
-                        } else {
-                            resolve(); // Skip if no changes
-                        }
-                    }
-                });
-            });
-        });
-
-        // After updating all accounts, resolve the promises and commit the transaction
-        Promise.all(updatePromises)
-            .then(() => {
-                // Commit the transaction if all updates succeed
-                con.commit((commitErr) => {
-                    if (commitErr) {
-                        console.error('Failed to commit transaction:', commitErr);
-                        return res.status(500).json({ success: false, message: 'Failed to commit transaction.' });
-                    }
-                    res.json({ success: true, message: 'Accounts updated successfully.' });
-                });
-            })
-            .catch((error) => {
-                // Rollback the transaction in case of error
-                console.error('Error updating accounts:', error);
-                con.rollback(() => {
-                    res.status(500).json({ success: false, message: error.message });
-                });
-            });
-    });
-});
-
-app.get('/get-account-history', (req, res) => {
-    const sql = 'SELECT * FROM accounts_history ORDER BY updated_at DESC LIMIT 10';
-
-    con.query(sql, (err, results) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching account history.' });
-        }
-
-        res.status(200).json({ success: true, history: results });
-    });
-});
 
 
 app.get('/dashboard-data', (req, res) => {
@@ -3420,75 +3091,9 @@ app.get('/dashboard-data', (req, res) => {
 
 
 
-app.get('/get-total-withdrawal', (req, res) => {
-    const sql = 'SELECT SUM(amount) AS totalWithdrawal FROM withdrawal_requests';
-
-    con.query(sql, (err, result) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching the total withdrawal.' });
-        }
-
-        if (result.length === 0) {
-            return res.status(404).json({ success: false, message: 'No withdrawal requests found.' });
-        }
-
-        res.status(200).json({ success: true, totalWithdrawal: result[0].totalWithdrawal });
-    });
-});
 
 
-app.get('/unapproved-unpaid-users-count', (req, res) => {
-    const sql = 'SELECT COUNT(*) AS count FROM users WHERE payment_ok = 0 AND approved = 0';
 
-    con.query(sql, (err, result) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching the users count.' });
-        }
-
-        if (result.length === 0) {
-            return res.status(404).json({ success: false, message: 'No users found.' });
-        }
-
-        res.status(200).json({ success: true, count: result[0].count });
-    });
-});
-
-app.get('/notifications', (req, res) => {
-    const userId = req.session.userId;
-
-    if (!userId) {
-        return res.status(401).json({ status: 'error', error: 'User not logged in' });
-    }
-
-    const sql = 'SELECT id , msg, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC'; // Adjust your SQL query accordingly
-
-    con.query(sql, [userId], (err, results) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch notifications' });
-        }
-
-        const formattedResults = results.map(notification => ({
-            id: notification.id,
-            message: notification.msg,
-            createdAt: notification.created_at
-        }));
-
-        res.json(formattedResults);
-    });
-});
-
-app.get('/notifications/unseen-count', (req, res) => {
-    const userId = req.session.userId;
-
-    const unseenCountSql = `SELECT COUNT(*) AS unseenCount FROM notifications WHERE user_id = ? AND seen = 0`;
-
-    con.query(unseenCountSql, [userId], (error, results) => {
-        if (error) {
-            return res.status(500).json({ error: 'Failed to retrieve unseen notifications count' });
-        }
-        res.json({ unseenCount: results[0].unseenCount });
-    });
-});
 
 
 const fetchApprovedUserNames = (referByUserId) => {
@@ -3541,63 +3146,6 @@ app.post('/update-password', (req, res) => {
     });
 });
 
-// Route for fetching all images
-app.get('/getImages', (req, res) => {
-    const query = 'SELECT * FROM images ORDER BY upload_time DESC';
-
-    con.query(query, (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.status(500).json({ error: 'An error occurred while fetching images' });
-        }
-
-        res.json(results); // Send the list of images
-    });
-});
-app.delete('/deleteImage/:id', (req, res) => {
-    const { id } = req.params;
-
-    // Fetch the image record from the database
-    const query = 'SELECT * FROM images WHERE id = ?';
-    con.query(query, [id], (error, results) => {
-        if (error) {
-            console.error(error);
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (results.length > 0) {
-            const imagePath = results[0].file_path;
-
-            // Check if the file exists before deleting
-            fs.exists(imagePath, (exists) => {
-                if (!exists) {
-                    return res.status(404).json({ message: 'Image file not found' });
-                }
-
-                // Delete the image file from the server
-                fs.unlink(imagePath, (err) => {
-                    if (err) {
-                        console.error(err);
-                        return res.status(500).json({ error: 'Error deleting image file' });
-                    }
-
-                    // Delete the image record from the database
-                    const deleteQuery = 'DELETE FROM images WHERE id = ?';
-                    con.query(deleteQuery, [id], (err) => {
-                        if (err) {
-                            console.error(err);
-                            return res.status(500).json({ error: 'Error deleting image record' });
-                        }
-
-                        res.json({ message: 'Image deleted successfully' });
-                    });
-                });
-            });
-        } else {
-            res.status(404).json({ message: 'Image not found' });
-        }
-    });
-});
 
 
 app.get('/approvedUserNames/:referByUserId', async (req, res) => {
@@ -3647,48 +3195,7 @@ app.post('/payment', (req, res) => {
         });
     });
 });
-app.put('/updateUserAccount/:userId', (req, res) => {
-    const user_id = req.params.userId;
-    const { accountNumber, nameOnAccount, bankName } = req.body;
 
-    if (!user_id || !accountNumber || !nameOnAccount || !bankName) {
-        return res.status(400).json({ status: 'error', message: 'User ID, Account Number, Name on Account, and Bank Name are required' });
-    }
-
-    let updateQuery = `
-        UPDATE users_accounts
-        SET 
-            holder_name = ?,
-            holder_number = ?,
-            bankName = ?
-        WHERE user_id = ?`;
-    let updateParams = [nameOnAccount, accountNumber, bankName, user_id];
-
-    con.query(updateQuery, updateParams, (err, updateResult) => {
-        if (err) {
-            console.error('Error updating user account:', err);
-            return res.status(500).json({ status: 'error', error: 'Failed to update user account' });
-        }
-
-        if (updateResult.affectedRows === 0) {
-            let insertQuery = `
-                INSERT INTO users_accounts (user_id, holder_name, holder_number, bankName)
-                VALUES (?, ?, ?, ?)`;
-            let insertParams = [user_id, nameOnAccount, accountNumber, bankName];
-
-            con.query(insertQuery, insertParams, (err, insertResult) => {
-                if (err) {
-                    console.error('Error inserting user account:', err);
-                    return res.status(500).json({ status: 'error', error: 'Failed to insert user account' });
-                }
-
-                res.json({ status: 'success', message: 'User account inserted successfully' });
-            });
-        } else {
-            res.json({ status: 'success', message: 'User account updated successfully' });
-        }
-    });
-});
 app.listen( process.env.PORT, () => {
     console.log('Listening on port ' +  process.env.PORT);
 });

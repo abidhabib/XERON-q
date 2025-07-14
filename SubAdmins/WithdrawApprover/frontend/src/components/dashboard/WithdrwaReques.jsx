@@ -32,6 +32,11 @@ const WithdrawRequests = () => {
     }
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600 bg-gray-100">
@@ -53,10 +58,6 @@ const WithdrawRequests = () => {
     (request.user_id?.toString() || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (request.user_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
