@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import mysql from 'mysql2';
-import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
@@ -9,14 +8,14 @@ import multer from 'multer';
 import path, { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path'
-import dotenv from 'dotenv';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import cron from 'node-cron';
-import { ethers, formatUnits } from "ethers";
-import axios from 'axios';
 import webpush from 'web-push';
 import moment from 'moment';
+import con from './config/db.js';
+import './cron/index.js';
+
+
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -39,8 +38,8 @@ app.use('/storage', express.static(join(__dirname, 'uploads')));
 app.use(cookieParser());
 
 const vapidKeys = {
-    publicKey: "BMEoNncfAMacnLB-tFNjGrZKW8XYAT0IJrP2e_D0A7eHqxGq21jozZasgS6artXBTH89tiLBtWvtXQH9XEqWn-w",
-    privateKey: "6HOxm9Gsquk14zbVzAi4cDy31q9scTdeBaOVmkXYtP0",
+    publicKey: process.env.VAPID_PUBLIC_KEY,
+    privateKey: process.env.VAPID_PRIVATE_KEY,
 };
 
 webpush.setVapidDetails(
@@ -60,13 +59,8 @@ app.use(session({
     cookie: { secure: false, maxAge: 699900000 }
 
 }));
-const PORT = 8082;
-const con = mysql.createConnection({
-    host: '127.0.0.1',
-    user: 'root',
-    password: 'Pakistan@2k17',
-    database: 'uv',
-});
+const PORT = process.env.PORT ;
+
 
 con.connect(function (err) {
     if (err) {
@@ -233,78 +227,7 @@ app.get('/subscriber-count', (req, res) => {
 });
 
 
-app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'ok',
-        vapid: !!vapidKeys,
-        db: !!con
-    });
-});
 
-cron.schedule('*/10 * * * *', () => {
-    console.log('Running scheduled user payment check...');
-    checkAndApproveUsers();
-});
-
-const provider = new ethers.JsonRpcProvider("https://bsc-dataseed1.defibit.io");
-
-const MIN_REQUIRED = 10;
-const APPROVE_ENDPOINT = `http://localhost:${PORT}/approveUser`;
-
-async function getActiveBep20Addresses() {
-    const rows = await queryAsync(`SELECT bep20_address FROM bep20_settings WHERE is_active = 1`);
-    return rows.map(r => r.bep20_address.toLowerCase());
-}
-
-async function checkAndApproveUsers() {
-    try {
-        const users = await queryAsync(`
-        SELECT id, trx_id 
-        FROM users 
-        WHERE approved = 0 AND payment_ok = 1 AND trx_id IS NOT NULL
-      `);
-
-        const allowedAddresses = await getActiveBep20Addresses();
-
-        for (const user of users) {
-            try {
-                const tx = await provider.getTransaction(user.trx_id);
-                const receipt = await provider.getTransactionReceipt(user.trx_id);
-
-                if (!tx || !receipt || receipt.status !== 1) {
-                    console.log(`❌ Invalid or failed tx: ${user.trx_id}`);
-                    continue;
-                }
-
-                const methodId = tx.data.slice(0, 10);
-                if (methodId !== '0xa9059cbb') continue;
-
-                const toAddress = "0x" + tx.data.slice(34, 74).toLowerCase();
-                const valueHex = "0x" + tx.data.slice(74);
-                const amount = parseFloat(formatUnits(valueHex, 18));
-
-                if (!allowedAddresses.includes(toAddress)) {
-                    console.log(`❌ To address ${toAddress} not in allowed Bep20 list.`);
-                    continue;
-                }
-
-                if (amount < MIN_REQUIRED) {
-                    console.log(`⚠️ TX amount too low (${amount}): ${user.trx_id}`);
-                    continue;
-                }
-
-                const res = await axios.put(`${APPROVE_ENDPOINT}/${user.id}`);
-                console.log(`✅ User ${user.id} approved!`, res.data);
-
-            } catch (err) {
-                console.error(`🚫 Error processing user ${user.id}`, err.message);
-            }
-        }
-
-    } catch (err) {
-        console.error("❌ Main query or logic failed:", err.message);
-    }
-}
 
 
 
@@ -351,72 +274,6 @@ ORDER BY month ASC;
 
 
 
-
-cron.schedule('44 03 * * *', () => {
-    console.log('Starting cron job at midnight...');
-
-    // Begin transaction
-    con.beginTransaction(err => {
-        if (err) {
-            console.error('Error starting transaction:', err);
-            return;
-        }
-
-        // Combined query to increment week_team and reset today_team in one query
-        const updateWeekAndResetTodayTeamQuery = `
-            UPDATE users 
-            SET today_team = 0 
-            WHERE approved = 1 AND today_team > 0
-            AND DATE(last_updated) <= CURDATE();
-        `;
-        console.log('Starting update reset of today_team...');
-        con.query(updateWeekAndResetTodayTeamQuery, (err, result) => {
-            if (err) {
-                return con.rollback(() => {
-                    console.error('Error resetting today_team:', err);
-                });
-            }
-            console.log('Updated reset today_team for affected users:', result.affectedRows);
-
-            // Delete all records from user_button_clicks
-            const deleteQuery2 = 'DELETE FROM user_button_clicks';
-            console.log('Starting deletion of user_button_clicks...');
-            con.query(deleteQuery2, (err2, result2) => {
-                if (err2) {
-                    return con.rollback(() => {
-                        console.error('Error deleting all records from user_button_clicks:', err2);
-                    });
-                }
-                console.log('Deleted all records from user_button_clicks:', result2.affectedRows);
-
-                // Delete records from user_product_clicks older than 1 day
-                const deleteOldProductClicksQuery = `
-                DELETE FROM user_product_clicks
-                WHERE 1;
-                `;
-                console.log('Starting deletion of old user_product_clicks...');
-                con.query(deleteOldProductClicksQuery, (err4, result4) => {
-                    if (err4) {
-                        return con.rollback(() => {
-                            console.error('Error deleting old user_product_clicks:', err4);
-                        });
-                    }
-                    console.log('Deleted old records from user_product_clicks:', result4.affectedRows);
-
-                    // Commit the transaction if all queries are successful
-                    con.commit(errCommit => {
-                        if (errCommit) {
-                            return con.rollback(() => {
-                                console.error('Error committing transaction:', errCommit);
-                            });
-                        }
-                        console.log('All database operations completed successfully.');
-                    });
-                });
-            });
-        });
-    });
-});
 
 
 
