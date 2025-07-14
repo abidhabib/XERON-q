@@ -2208,7 +2208,6 @@ app.put('/approveUser/:userId', async (req, res) => {
 
 app.post('/approve-withdrawal', async (req, res) => {
     const { userId, requestId, amount } = req.body;
-    console.log(req.body);
 
     if (!userId || !requestId || !amount) {
         return res.status(400).json({ error: 'User ID, request ID, and amount are required' });
