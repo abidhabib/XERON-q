@@ -13,6 +13,7 @@ import jwt from 'jsonwebtoken';
 import moment from 'moment';
 import con from './config/db.js';
 import './cron/index.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
 setupWebPush();
@@ -55,7 +56,7 @@ con.connect(function (err) {
 
 
 
-
+app.use('/', dashboardRoutes); // Mount your route
 app.use('/', notificationRoutes); // handles /save-subscription etc.
 
 
@@ -2954,99 +2955,6 @@ app.post('/upload', upload.single('image'), (req, res) => {
         res.json({ message: 'File uploaded and data saved successfully' });
     });
 });
-
-
-
-
-
-app.get('/dashboard-data', (req, res) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const sql = `
-        SELECT 
-            (SELECT COUNT(*) FROM users WHERE approved = 1 AND id NOT BETWEEN 9328 AND 9338 ) as approvedUsersCount,
-            (SELECT COUNT(*) FROM users WHERE approved = 1 AND approved_at >= ? AND approved_at < ?) as approvedUsersCountToday,
-            (SELECT SUM(amount) FROM withdrawal_requests where approved='approved'  and  user_id NOT BETWEEN 9329 AND 9338) as totalWithdrawal ,
-            (SELECT SUM(amount) FROM withdrawal_requests WHERE DATE(approved_time) = CURDATE()  and user_id  NOT BETWEEN 9329 AND 9338 ) as totalAmountToday,
-            (SELECT COUNT(*) FROM users WHERE payment_ok = 0 AND approved = 0) as unapprovedUnpaidUsersCount,
-            (SELECT SUM(amount) as total_amount FROM withdrawal_requests WHERE DATE(approved_time) = CURDATE() and user_id  NOT BETWEEN 9329 AND 9338)  as totalAmountTodayWithdrawal,
-            (SELECT SUM(jf.joining_fee * (SELECT COUNT(*) FROM users WHERE approved = 1 AND id NOT BETWEEN 9328 AND 9338)) FROM joining_fee jf) as totalReceived,
-            (SELECT SUM(jf.joining_fee * (SELECT COUNT(*) FROM users WHERE approved = 1 AND approved_at >= ? AND approved_at < ?)) FROM joining_fee jf) as totalReceivedToday,
-            (SELECT SUM(backend_wallet) from users WHERE approved=1 AND  id NOT BETWEEN 9329 AND 9338) as backend_wallet,
-            (SELECT sum(balance) from users WHERE approved=1 and id NOT BETWEEN 9329 AND 9338 ) as balance,
-            (SELECT sum(bonus_amount) from bonus_history_level_up  where user_id NOT Between 9329 AND 9338  ) as bonus,
-            (SELECT SUM(today_wallet) FROM users where id!=9338 ) as today_wallet,
-            (
-                SELECT
-                    ((SELECT joining_fee FROM joining_fee WHERE id = 1) / 100) * 
-                    (
-                        (SELECT SUM(direct_bonus + indirect_bonus) FROM commission) +
-                        (SELECT initial_percent from initial_fee)
-                    ) * (SELECT count(*) from users WHERE approved=1) 
-                    + (SELECT SUM(bonus_amount) FROM bonus_history_level_up Where user_id NOT Between 9329 AND 9338) 
-            ) as will_give
-    `;
-
-    // First query execution (main dashboard data)
-    con.query(sql, [today, tomorrow, today, tomorrow], (err, results) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching dashboard data.' });
-        }
-
-        const dashboardData = {
-            approvedUsersCount: results[0].approvedUsersCount,
-            approvedUsersCountToday: results[0].approvedUsersCountToday,
-            totalWithdrawal: results[0].totalWithdrawal,
-            totalAmountToday: results[0].totalAmountToday,
-            unapprovedUnpaidUsersCount: results[0].unapprovedUnpaidUsersCount,
-            totalAmountTodayWithdrawal: results[0].totalAmountTodayWithdrawal,
-            totalReceived: results[0].totalReceived,
-            totalReceivedToday: results[0].totalReceivedToday,
-            backend_wallet: results[0].backend_wallet,
-            users_balance: results[0].balance,
-            users_bonus: results[0].bonus,
-            todayIncome: (results[0].totalReceivedToday) - (results[0].totalAmountTodayWithdrawal),
-            totalIncome: results[0].totalReceived - results[0].totalWithdrawal,
-            will_give: results[0].will_give - Number(results[0].totalWithdrawal),
-            incrementAmount: results[0].incrementAmount,
-            today_wallet: results[0].today_wallet
-        };
-
-        const subadminSql = `
-        SELECT 
-            sa.username AS subadmin,
-            COUNT(wr.id) AS totalApprovedCount,
-            SUM(wr.amount) AS totalApprovedAmount,
-            SUM(CASE WHEN DATE(wr.approved_time) = CURDATE() THEN 1 ELSE 0 END) AS todayApprovedCount,
-            SUM(CASE WHEN DATE(wr.approved_time) = CURDATE() THEN wr.amount ELSE 0 END) AS todayApprovedAmount
-        FROM subadmins sa
-        LEFT JOIN withdrawal_requests wr 
-            ON wr.approved_by COLLATE utf8mb4_general_ci = sa.username COLLATE utf8mb4_general_ci
-            AND wr.approved = 'approved'
-        WHERE sa.task = 'ApproveWithdrawal'
-        GROUP BY sa.username
-    `;
-
-
-        con.query(subadminSql, (err2, subadminResults) => {
-            if (err2) {
-                console.log(err2);
-                return res.status(500).json({ success: false, message: 'An error occurred while fetching subadmin approval data.' });
-            }
-
-            dashboardData.subadminApprovals = subadminResults || [];
-
-            return res.status(200).json({ success: true, dashboardData });
-        });
-    });
-});
-
-
-
 
 
 
