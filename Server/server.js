@@ -19,6 +19,7 @@ import userRoutes from './routes/userRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
+import  MonthData  from './routes/MonthlyMatrixRoute.js';
 setupWebPush();
 
 dotenv.config();
@@ -62,6 +63,8 @@ con.connect(function (err) {
 app.use('/', dashboardRoutes); // Mount your route
 app.use('/', notificationRoutes); // handles /save-subscription etc.
 app.use('/', userRoutes);
+app.use('/', MonthData);
+
 
 
 
@@ -75,34 +78,7 @@ const upload = multer({ storage: storage });
 
 
 
-app.get('/api/approvals/monthly', (req, res) => {
-    const { range } = req.query; // number of months
-    const rangeInt = parseInt(range) || 12;
 
-    const query = `
-   SELECT 
-  DATE_FORMAT(approved_at, '%Y-%m') AS month,
-  COUNT(*) AS approvals
-FROM users
-WHERE 
-  approved_at IS NOT NULL
-  AND approved = 1
-  AND payment_ok = 1
-  AND approved_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
-GROUP BY month
-ORDER BY month ASC;
-
-    `;
-
-    con.query(query, [rangeInt], (err, results) => {
-        if (err) {
-            console.error('Error fetching approvals:', err);
-            return res.status(500).json({ error: 'Failed to get approvals' });
-        }
-
-        res.json({ success: true, data: results });
-    });
-});
 
 
 
