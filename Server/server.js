@@ -20,6 +20,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
 import  MonthData  from './routes/MonthlyMatrixRoute.js';
+import getUserIdFromSession from './utils/getSessionMiddleware.js';
 setupWebPush();
 
 dotenv.config();
@@ -58,13 +59,13 @@ con.connect(function (err) {
 }
 );
 
+ 
 
-
-app.use('/', dashboardRoutes); // Mount your route
-app.use('/', notificationRoutes); // handles /save-subscription etc.
+app.use('/', dashboardRoutes);
+app.use('/', notificationRoutes); 
 app.use('/', userRoutes);
+app.get('/getUserIdFromSession', getUserIdFromSession);
 app.use('/', MonthData);
-
 
 
 
@@ -86,20 +87,6 @@ const upload = multer({ storage: storage });
 
 
 
-
-
-
-const getUserIdFromSession = (req, res, next) => {
-    if (req.session && req.session.userId) {
-        res.json({ userId: req.session.userId });
-    } else {
-        res.status(401).json({ error: 'User not authenticated' });
-    }
-};
-
-
-
-app.get('/getUserIdFromSession', getUserIdFromSession);
 
 
 
