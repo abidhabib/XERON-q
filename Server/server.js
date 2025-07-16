@@ -21,6 +21,7 @@ import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
 import  MonthData  from './routes/MonthlyMatrixRoute.js';
 import UserLogin from './routes/UserLogin.js';
+import registerUser from './routes/UserRegisterRoute.js';
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
 setupWebPush();
 
@@ -68,7 +69,7 @@ app.use('/', notificationRoutes);
 app.use('/', userRoutes);
 app.get('/getUserIdFromSession', getUserIdFromSession);
 app.use('/', MonthData);
-
+app.use('/',registerUser);
 
 
 const storage = multer.diskStorage({
@@ -101,60 +102,6 @@ app.get('/', (req, res) => {
 
 
 
-
-app.post('/register', (req, res) => {
-    try {
-        const { ref } = req.query;
-        const user = { ...req.body };
-        delete user.confirmPassword;
-
-        const checkEmailSql = "SELECT * FROM users WHERE email = ?";
-        con.query(checkEmailSql, [user.email], (err, existingUsers) => {
-            if (err) {
-                return res.json({ status: 'error', error: 'An error occurred while checking the email' });
-            }
-
-            if (existingUsers.length > 0) {
-                return res.json({ status: 'error', error: 'Email already registered' });
-            }
-
-            const registerUser = () => {
-                user.refer_by = ref;
-
-                const sql = "INSERT INTO users SET ?";
-                con.query(sql, user, (err, result) => {
-                    if (err) {
-                        console.log(err);
-                        return res.json({ status: 'error', error: 'Kindly try again With Referred ID' });
-                    }
-
-                    req.session.userId = result.insertId;
-
-                    return res.json({ status: 'success', message: 'User registered successfully', userId: result.insertId });
-                });
-            };
-
-            if (ref) {
-                const checkReferralSql = "SELECT * FROM users WHERE id = ?";
-                con.query(checkReferralSql, [ref], (err, referralUsers) => {
-                    if (err) {
-                        return res.json({ status: 'error', error: 'Failed to check referral ID' });
-                    }
-
-                    if (referralUsers.length === 0) {
-                        return res.json({ status: 'error', error: 'Invalid referral ID' });
-                    }
-
-                    registerUser();
-                });
-            } else {
-                registerUser();
-            }
-        });
-    } catch (error) {
-        return res.json({ status: 'error', error: 'An unexpected error occurred' });
-    }
-});
 
 
 
