@@ -1,4 +1,3 @@
-// controllers/dashboardController.js
 import con from '../config/db.js';
 
 export const getDashboardData = (req, res) => {

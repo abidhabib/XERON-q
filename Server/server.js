@@ -20,6 +20,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
 import  MonthData  from './routes/MonthlyMatrixRoute.js';
+import UserLogin from './routes/UserLogin.js';
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
 setupWebPush();
 
@@ -62,6 +63,7 @@ con.connect(function (err) {
  
 
 app.use('/', dashboardRoutes);
+app.use('/', UserLogin);
 app.use('/', notificationRoutes); 
 app.use('/', userRoutes);
 app.get('/getUserIdFromSession', getUserIdFromSession);
@@ -91,34 +93,14 @@ const upload = multer({ storage: storage });
 
 
 app.get('/', (req, res) => {
-    res.send(`
-      Welcome to the server!`);
+    res.send(`Loading...`);
 
 });
 
 
 
 
-app.post('/login', (req, res) => {
-    const sql = "SELECT id,email,approved,payment_ok FROM users WHERE email = ? AND password = ?";
-    con.query(sql, [req.body.email, req.body.password], (err, result) => {
-        if (err) return res.json({ Status: "Error", Error: err });
 
-        if (result.length > 0) {
-            req.session.userId = result[0].id;
-            req.session.email = result[0].email;
-            return res.json({
-                Status: "Success",
-                Email: req.session.email,
-                PaymentOk: result[0].payment_ok,
-                id: result[0].id,
-                approved: result[0].approved
-            });
-        } else {
-            return res.json({ Status: "Error", Error: "Invalid Email/Password" });
-        }
-    });
-});
 
 app.post('/register', (req, res) => {
     try {
