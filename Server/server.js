@@ -22,6 +22,7 @@ import setupWebPush from './utils/setupWebPush.js';
 import  MonthData  from './routes/MonthlyMatrixRoute.js';
 import UserLogin from './routes/UserLogin.js';
 import registerUser from './routes/UserRegisterRoute.js';
+import getUserWallet from './routes/GetUserWalletRoute.js';
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
 setupWebPush();
 
@@ -70,6 +71,7 @@ app.use('/', userRoutes);
 app.get('/getUserIdFromSession', getUserIdFromSession);
 app.use('/', MonthData);
 app.use('/',registerUser);
+app.use('/',getUserWallet);
 
 
 const storage = multer.diskStorage({
@@ -296,29 +298,9 @@ app.post('/collect-salary/:userId', async (req, res) => {
 
 
 
-app.get('/getCryptoAddress/:userId', (req, res) => {
-    const userId = req.params.userId;
 
-    const sql = `
-        SELECT 
-            coin_address as address,
-            address_type as addressType
-        FROM users_accounts 
-        WHERE user_id = ?
-    `;
 
-    con.query(sql, [userId], (err, result) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', message: 'Database error' });
-        }
 
-        res.json({
-            status: 'success',
-            address: result[0]?.address || '',
-            addressType: result[0]?.addressType || 'bep20'
-        });
-    });
-});
 app.put('/updateCryptoAddress', (req, res) => {
     const { address, addressType, userId } = req.body;
 
