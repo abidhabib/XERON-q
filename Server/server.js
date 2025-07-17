@@ -23,6 +23,8 @@ import  MonthData  from './routes/MonthlyMatrixRoute.js';
 import UserLogin from './routes/UserLogin.js';
 import registerUser from './routes/UserRegisterRoute.js';
 import getUserWallet from './routes/GetUserWalletRoute.js';
+import getUserData from './routes/UserContextDataRoute.js';
+
 import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
@@ -75,6 +77,7 @@ app.use('/', MonthData);
 app.use('/',registerUser);
 app.use('/',getUserWallet);
 app.use('/',getUserSalaryStatus);
+app.use('/',getUserData);
 
 
 const storage = multer.diskStorage({
@@ -251,24 +254,6 @@ app.put('/updateCryptoAddress', (req, res) => {
     });
 });
 
-app.get('/getUserData', (req, res) => {
-    if (!req.session.userId) {
-        return res.json({ Status: 'Error', Error: 'User not logged in' });
-    }
-
-    const sql = "SELECT * FROM users WHERE id = ?";
-    con.query(sql, [req.session.userId], (err, result) => {
-        if (err) {
-            return res.json({ Status: 'Error', Error: 'Failed to fetch user data' });
-        }
-
-        if (result.length > 0) {
-            return res.json({ Status: 'Success', Data: result[0] });
-        } else {
-            return res.json({ Status: 'Error', Error: 'User not found' });
-        }
-    });
-});
 
 app.get('/getAllAdmins', verifyToken, (req, res) => {
     const sql = "SELECT * FROM admins";
