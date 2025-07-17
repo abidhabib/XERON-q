@@ -25,7 +25,7 @@ import registerUser from './routes/UserRegisterRoute.js';
 import getUserWallet from './routes/GetUserWalletRoute.js';
 import getUserData from './routes/UserContextDataRoute.js';
 import getBep20Account from './routes/AdminWalletAddress.js';
-
+import getBep20Addresses from './routes/AllAdminWallet.js';
 
 import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 
@@ -81,6 +81,9 @@ app.use('/',getUserWallet);
 app.use('/',getUserSalaryStatus);
 app.use('/',getUserData);
 app.use('/',getBep20Account);
+app.use('/',getBep20Addresses);
+
+
 
 
 const storage = multer.diskStorage({
@@ -306,18 +309,7 @@ const dbQuery = (sql, params) => {
 
 
 
-// 1. Get all BEP20 addresses
-app.get('/bep20', async (req, res) => {
-    try {
-        const addresses = await dbQuery('SELECT * FROM bep20_settings ORDER BY created_at DESC');
-                console.log('BEP20 API result:', addresses); // <- Add this
 
-        res.json(addresses);
-    } catch (err) {
-        console.error('Error fetching addresses:', err);
-        res.status(500).json({ error: 'Failed to fetch addresses' });
-    }
-});
 
 // 2. Create new BEP20 address
 app.post('/bep20', bep20Upload.single('qr_code_image'), async (req, res) => {
