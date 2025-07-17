@@ -24,6 +24,8 @@ import UserLogin from './routes/UserLogin.js';
 import registerUser from './routes/UserRegisterRoute.js';
 import getUserWallet from './routes/GetUserWalletRoute.js';
 import getUserData from './routes/UserContextDataRoute.js';
+import getBep20Account from './routes/AdminWalletAddress.js';
+
 
 import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 
@@ -78,6 +80,7 @@ app.use('/',registerUser);
 app.use('/',getUserWallet);
 app.use('/',getUserSalaryStatus);
 app.use('/',getUserData);
+app.use('/',getBep20Account);
 
 
 const storage = multer.diskStorage({
@@ -300,37 +303,15 @@ const dbQuery = (sql, params) => {
         });
     });
 };
-app.get('/bep20active', async (req, res) => {
-    try {
-        const [account] = await dbQuery(`
-        SELECT * FROM bep20_settings 
-        WHERE is_active = 1 
-        ORDER BY created_at DESC 
-        LIMIT 1
-      `);
 
-        if (!account) {
-            return res.json({ success: false, message: 'No active BEP20 account found' });
-        }
-
-        res.json({
-            success: true,
-            account: {
-                address: account.bep20_address,
-                qrCode: account.qr_code_image
-            }
-        });
-    } catch (err) {
-        console.error('Error fetching BEP20 account:', err);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
 
 
 // 1. Get all BEP20 addresses
 app.get('/bep20', async (req, res) => {
     try {
         const addresses = await dbQuery('SELECT * FROM bep20_settings ORDER BY created_at DESC');
+                console.log('BEP20 API result:', addresses); // <- Add this
+
         res.json(addresses);
     } catch (err) {
         console.error('Error fetching addresses:', err);
