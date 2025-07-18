@@ -29,9 +29,11 @@ import getBep20Addresses from './routes/AllAdminWallet.js';
 import getAllAdmins from './routes/getAllAdmin.js';
 
 
+
 import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
+import getPendingForApproveUsers from './routes/PendingForApproveUser.js';
 setupWebPush();
 
 dotenv.config();
@@ -85,6 +87,7 @@ app.use('/',getUserData);
 app.use('/',getBep20Account);
 app.use('/',getBep20Addresses);
 app.use('/',getAllAdmins)
+app.use('/',getPendingForApproveUsers)
 
 
 
@@ -1099,43 +1102,6 @@ app.delete('/delete-rejected-users', async (req, res) => {
             message: 'Error deleting rejected users'
         });
     }
-});
-app.get('/EasypaisaUsers', (req, res) => {
-
-
-    const sql = `
-        SELECT 
-            u.id, 
-            u.trx_id, 
-            u.refer_by, 
-            u.name, 
-            u.email, 
-            u.sender_name, 
-            u.sender_number, 
-            u.blocked,
-            ref.name AS referrer_name 
-        FROM 
-            users u
-        LEFT JOIN 
-            users ref 
-        ON 
-            u.refer_by = ref.id
-        WHERE 
-            u.approved = 0 
-            AND u.payment_ok = 1 
-            `;
-
-    con.query(sql, (err, result) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch approved users' });
-        }
-
-        if (result.length > 0) {
-            return res.json({ status: 'success', approvedUsers: result });
-        } else {
-            return res.status(404).json({ status: 'error', error: 'No approved users found' });
-        }
-    });
 });
 
 
