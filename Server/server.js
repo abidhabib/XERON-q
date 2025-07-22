@@ -27,6 +27,7 @@ import getUserData from './routes/UserContextDataRoute.js';
 import getBep20Account from './routes/AdminWalletAddress.js';
 import getBep20Addresses from './routes/AllAdminWallet.js';
 import getAllAdmins from './routes/getAllAdmin.js';
+import getToadyApprovedUsers from './routes/GetToadyApprovedUsers.js';
 
 
 
@@ -88,6 +89,7 @@ app.use('/',getBep20Account);
 app.use('/',getBep20Addresses);
 app.use('/',getAllAdmins)
 app.use('/',getPendingForApproveUsers)
+app.use('/',getToadyApprovedUsers)
 
 
 
@@ -776,24 +778,6 @@ function verifyToken(req, res, next) {
     });
 }
 
-
-app.get('/todayApproved', (req, res) => {
-
-
-    const sql = `SELECT * FROM users WHERE approved = 1 AND approved_at >= CURDATE() AND payment_ok = 1`;
-
-    con.query(sql, (err, result) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch approved users' });
-        }
-
-        if (result.length > 0) {
-            return res.json({ status: 'success', approvedUsers: result });
-        } else {
-            return res.status(404).json({ status: 'error', error: 'No approved users found' });
-        }
-    });
-});
 
 
 

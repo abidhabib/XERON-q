@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   HiOutlinePlus, 
@@ -11,7 +11,7 @@ import {
   HiOutlineClipboardCopy,
 
 } from 'react-icons/hi';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Sidebar } from '../SideBarSection/Sidebar';
 

@@ -55,7 +55,6 @@ const WithdrawPage = () => {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [withdrawLimits, setWithdrawLimits] = useState([]);
-  const [minLimit, setMinLimit] = useState('');
   const [accountDetails, setAccountDetails] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
