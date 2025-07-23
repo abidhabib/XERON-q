@@ -38,6 +38,7 @@ import getPendingForApproveUsers from './routes/PendingForApproveUser.js';
 import  getUserTaskStatus  from './routes/getUserTaskStatus.js';
 import  getUserWithdrawalRequests  from './routes/GetUserWithdraw.js';
 import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
+import FindReferrer from './routes/FindReferrer.js';
 setupWebPush();
 
 dotenv.config();
@@ -96,6 +97,7 @@ app.use('/',getToadyApprovedUsers)
 app.use('/',getUserTaskStatus)
 app.use('/',getUserWithdrawalRequests);
 app.use('/',getAllApprovedUsers)
+app.use('/',FindReferrer)
 
 
 
