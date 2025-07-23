@@ -35,6 +35,7 @@ import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
 import getPendingForApproveUsers from './routes/PendingForApproveUser.js';
+import  getUserTaskStatus  from './routes/getUserTaskStatus.js';
 setupWebPush();
 
 dotenv.config();
@@ -90,6 +91,7 @@ app.use('/',getBep20Addresses);
 app.use('/',getAllAdmins)
 app.use('/',getPendingForApproveUsers)
 app.use('/',getToadyApprovedUsers)
+app.use('/',getUserTaskStatus)
 
 
 
@@ -100,6 +102,7 @@ const storage = multer.diskStorage({
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
+
 const upload = multer({ storage: storage });
 
 
@@ -612,23 +615,6 @@ app.post('/updateBalance', (req, res) => {
 
 
 
-app.get('/getUserTaskStatus/:userId', (req, res) => {
-    const userId = req.params.userId;
-    const sql = 'SELECT * FROM user_product_clicks WHERE user_id = ?';
-
-    con.query(sql, [userId], (err, results) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch user task status' });
-        }
-
-        const taskStatus = results.reduce((acc, curr) => {
-            acc[curr.product_id] = curr.last_clicked;
-            return acc;
-        }, {});
-
-        res.json({ status: 'success', taskStatus });
-    });
-});
 app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
     if (!req.session.userId) {
         return res.status(401).json({ status: 'error', error: 'User not logged in' });
