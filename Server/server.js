@@ -28,9 +28,6 @@ import getBep20Account from './routes/AdminWalletAddress.js';
 import getBep20Addresses from './routes/AllAdminWallet.js';
 import getAllAdmins from './routes/getAllAdmin.js';
 import getToadyApprovedUsers from './routes/GetToadyApprovedUsers.js';
-
-
-
 import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
 import getPendingForApproveUsers from './routes/PendingForApproveUser.js';
@@ -38,6 +35,7 @@ import  getUserTaskStatus  from './routes/getUserTaskStatus.js';
 import  getUserWithdrawalRequests  from './routes/GetUserWithdraw.js';
 import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
 import FindReferrer from './routes/FindReferrer.js';
+
 setupWebPush();
 
 dotenv.config();
