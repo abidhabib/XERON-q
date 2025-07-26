@@ -113,7 +113,10 @@ console.log(withdrawalRequests);
     
     if (startDate && endDate) {
       filtered = filtered.filter(request => {
-        const requestDate = new Date(request.date);
+        const rawDate = request.date ?? request.request_date; // use date if available, else request_date1
+    const requestDate = new Date(rawDate);
+
+
         return isWithinInterval(requestDate, { start: startDate, end: endDate });
       });
     }

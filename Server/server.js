@@ -13,9 +13,7 @@ import jwt from 'jsonwebtoken';
 import moment from 'moment';
 import con from './config/db.js';
 import './cron/index.js';
-
 import userRoutes from './routes/userRoutes.js';
-
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
@@ -1083,16 +1081,15 @@ app.get('/getUserAccount/:userId', (req, res) => {
 });
 
 
-
 app.post('/withdraw', (req, res) => {
     if (!req.session.userId) {
         return res.status(401).json({ status: 'error', error: 'User not logged in' });
     }
 
     const userId = req.session.userId;
-    const { amount, accountName, accountNumber, bankName, totalWithdrawn, team } = req.body;
+    const { amount, accountNumber, bankName, totalWithdrawn, team } = req.body;
 
-    if (!amount || !accountName || !accountNumber || !bankName) {
+    if (!amount || !accountNumber || !bankName) {
         return res.status(400).json({ status: 'error', error: 'All fields are required' });
     }
 
@@ -1102,41 +1099,28 @@ app.post('/withdraw', (req, res) => {
     `;
 
     con.query(checkRequestSql, [userId], (err, results) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', error: 'Failed to check for existing requests', details: err.message });
-        }
+        if (err) return res.status(500).json({ status: 'error', error: 'Failed to check for existing requests', details: err.message });
 
         if (results.length > 0) {
             return res.status(400).json({ status: 'error', error: 'You already have a pending withdrawal request' });
         }
 
-        const getUserAttemptsSql = `
-            SELECT withdrawalAttempts FROM users WHERE id = ?
-        `;
+        const getUserAttemptsSql = `SELECT withdrawalAttempts FROM users WHERE id = ?`;
 
         con.query(getUserAttemptsSql, [userId], (err, userResults) => {
-            if (err) {
-                return res.status(500).json({ status: 'error', error: 'Failed to fetch user withdrawal attempts', details: err.message });
-            }
+            if (err) return res.status(500).json({ status: 'error', error: 'Failed to fetch user attempts', details: err.message });
 
             if (userResults.length === 0) {
-                return res.status(500).json({ status: 'error', error: 'User not found' });
+                return res.status(404).json({ status: 'error', error: 'User not found' });
             }
 
-            let userAttempts = userResults[0].withdrawalAttempts;
-
+            const userAttempts = userResults[0].withdrawalAttempts;
             const effectiveAttempts = userAttempts > 3 ? 3 : userAttempts;
 
-            const checkLimitsSql = `
-                SELECT allow_limit 
-                FROM withdraw_limit 
-                WHERE withdrawalAttempts = ?
-            `;
+            const checkLimitsSql = `SELECT allow_limit FROM withdraw_limit WHERE withdrawalAttempts = ?`;
 
             con.query(checkLimitsSql, [effectiveAttempts], (err, limitResults) => {
-                if (err) {
-                    return res.status(500).json({ status: 'error', error: 'Failed to check withdrawal limits', details: err.message });
-                }
+                if (err) return res.status(500).json({ status: 'error', error: 'Failed to check withdrawal limits', details: err.message });
 
                 if (limitResults.length === 0) {
                     return res.status(500).json({ status: 'error', error: 'Withdrawal limit not found' });
@@ -1144,14 +1128,10 @@ app.post('/withdraw', (req, res) => {
 
                 const minimumLimit = limitResults[0].allow_limit;
 
-                const getExchangeFeeSql = `
-                    SELECT fee FROM exchange_fee WHERE id = 1
-                `;
+                const getExchangeFeeSql = `SELECT fee FROM exchange_fee WHERE id = 1`;
 
                 con.query(getExchangeFeeSql, (err, feeResults) => {
-                    if (err) {
-                        return res.status(500).json({ status: 'error', error: 'Failed to fetch exchange fee', details: err.message });
-                    }
+                    if (err) return res.status(500).json({ status: 'error', error: 'Failed to fetch exchange fee', details: err.message });
 
                     if (feeResults.length === 0) {
                         return res.status(500).json({ status: 'error', error: 'Exchange fee not found' });
@@ -1161,24 +1141,25 @@ app.post('/withdraw', (req, res) => {
                     const fee = (amount * feePercentage) / 100;
                     const amountAfterFee = amount - fee;
 
-
                     if (amountAfterFee < minimumLimit) {
                         return res.status(400).json({ status: 'error', error: `Minimum withdrawal amount is ${minimumLimit}$` });
                     }
+
                     con.beginTransaction(err => {
-                        if (err) {
-                            return res.status(500).json({ status: 'error', error: 'Failed to start transaction' });
-                        }
+                        if (err) return res.status(500).json({ status: 'error', error: 'Failed to start transaction' });
 
                         const withdrawSql = `
-                            INSERT INTO withdrawal_requests (user_id, amount, account_name, account_number, bank_name,  total_withdrawn, team, request_date, approved, fee)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'pending', ?)
+                            INSERT INTO withdrawal_requests 
+                            (user_id, amount, account_number, bank_name, total_withdrawn, team, request_date, approved, fee)
+                            VALUES (?, ?, ?, ?, ?, ?, NOW(), 'pending', ?)
                         `;
 
-                        con.query(withdrawSql, [userId, amountAfterFee, accountName, accountNumber, bankName, totalWithdrawn, team, fee], (err, withdrawResult) => {
+                        con.query(withdrawSql, [userId, amountAfterFee, accountNumber, bankName, totalWithdrawn, team, fee], (err) => {
                             if (err) {
                                 return con.rollback(() => {
                                     res.status(500).json({ status: 'error', error: 'Failed to make withdrawal', details: err.message });
+                                    console.log(err);
+                                    
                                 });
                             }
 
@@ -1188,6 +1169,7 @@ app.post('/withdraw', (req, res) => {
                                         res.status(500).json({ status: 'error', error: 'Failed to commit transaction', details: err.message });
                                     });
                                 }
+
                                 res.json({ status: 'success', message: 'Withdrawal request submitted successfully' });
                             });
                         });
@@ -1197,6 +1179,7 @@ app.post('/withdraw', (req, res) => {
         });
     });
 });
+
 
 
 
@@ -1427,7 +1410,7 @@ app.put('/update-user', async (req, res) => {
 
 app.get('/all-withdrawal-requests', (req, res) => {
     const sql = `
-        SELECT wr.id, wr.user_id, wr.amount, wr.account_name, wr.bank_name,  
+        SELECT wr.id, wr.user_id, wr.amount, wr.bank_name,  
          wr.account_number, wr.approved, wr.team, wr.total_withdrawn, u.name AS user_name ,u.balance
         FROM withdrawal_requests wr
         JOIN users u ON wr.user_id = u.id
@@ -1443,7 +1426,6 @@ app.get('/all-withdrawal-requests', (req, res) => {
             id: item.id,
             user_id: item.user_id,
             amount: item.amount,
-            account_name: item.account_name,
             bank_name: item.bank_name,
             account_number: item.account_number,
             approved: item.approved === 1,
@@ -1531,10 +1513,11 @@ app.post('/approve-withdrawal', async (req, res) => {
             total_withdrawal = total_withdrawal + ?,
             withdrawalAttempts = withdrawalAttempts + 1
         WHERE id = ?`;
+const msg = `${amount}$ withdrawal approved`;
 
     const insertNotificationSql = `
         INSERT INTO notifications (user_id, msg, created_at)
-        VALUES (?, 'Your withdrawal has been approved', CURRENT_TIMESTAMP)`;
+        VALUES (?, ?, CURRENT_TIMESTAMP)`;
 
     con.beginTransaction(error => {
         if (error) {
@@ -1566,7 +1549,7 @@ app.post('/approve-withdrawal', async (req, res) => {
                 }
 
 
-                con.query(insertNotificationSql, [userId], (error) => {
+                con.query(insertNotificationSql, [userId, msg], (error) => {
                     if (error) {
                         console.log(error);
                         return con.rollback(() => {
@@ -1681,7 +1664,7 @@ app.get('/withdrawalRequestsApproved', (req, res) => {
     if (search) {
         sql += ` AND (
             id = ? OR 
-            account_name LIKE ? OR 
+         
             account_number LIKE ?
         )`;
         params.push(

@@ -2,7 +2,6 @@ import axios from "axios";
 import {  useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiCopy, FiArrowLeft, FiCheckCircle } from "react-icons/fi";
-import { User } from "lucide-react";
 import { UserContext } from "./UserContext/UserContext";
 
 const Payment = () => {
@@ -78,7 +77,7 @@ console.log(usdFee);
       );
   
       if (response.data.status === 'success') {
-        navigate('/waiting');
+        window.location.replace('/waiting');
       } else {
         setAddressError(response.data.error || "Payment verification failed");
       }

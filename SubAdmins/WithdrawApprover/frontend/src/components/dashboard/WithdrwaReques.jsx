@@ -50,7 +50,7 @@ const WithdrawRequests = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    window.location.href = ('/login');
   };
   const filteredData = data.filter(request =>
     (request.id?.toString() || '').toLowerCase().includes(searchTerm.toLowerCase()) ||

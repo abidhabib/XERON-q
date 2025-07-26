@@ -102,7 +102,7 @@ function App() {
           <Route path='/pending' element={adminAuthenticated ? <PendingUsers /> : <AdminLogin />} />
           <Route path='/accountsetting' element={adminAuthenticated ? <AccountSetting /> : <AdminLogin />} />
           <Route path='/rejectwithdrwa' element={adminAuthenticated ? <RejectWithdraw /> : <AdminLogin />} />
-          <Route path='/levels' element={adminAuthenticated ? <Level /> : <AdminLogin />} />
+          <Route path='/w_salary' element={adminAuthenticated ? <Level /> : <AdminLogin />} />
           <Route path='/commission' element={adminAuthenticated ? <Commission /> : <AdminLogin />} />
           <Route path='/withdrawalLimits' element={adminAuthenticated ? <WithdrawLimits /> : <AdminLogin />} />
           <Route path='/bonussettingforusers' element={adminAuthenticated ? <Bonus /> : <AdminLogin />} />

@@ -210,12 +210,7 @@ const RejectWithdraw = () => {
                             {request.amount}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div>
-                            <div className="font-medium">{request.account_name}</div>
-                            <div className="text-gray-400 font-mono">{request.account_number}</div>
-                          </div>
-                        </td>
+                    
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {request.bank_name}
                         </td>
