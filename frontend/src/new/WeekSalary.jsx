@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FaWallet, FaCalendarAlt, FaUserPlus, FaCheckCircle } from 'react-icons/fa';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
+import NavBar from '../NavBAr';
 
 const SalaryCollection = () => {
   const [salaryData, setSalaryData] = useState(null);
@@ -84,8 +85,13 @@ console.log(Userid);
   );
 
   return (
-    <div className="max-w-md mx-auto p-2">
+    <div className=" mx-auto ">
+
+      <NavBar/>
       {/* Status Card */}
+      <div className="p-3">
+
+    
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 mb-6 border border-blue-100 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <div>
@@ -242,6 +248,7 @@ console.log(Userid);
           </li>
         </ul>
       </div>
+        </div>
     </div>
   );
 };

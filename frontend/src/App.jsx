@@ -43,6 +43,7 @@ import FindUser from './Dashboard/FindUser/FindUser';
 import PushNotificationManager from './Dashboard/SendNotification/SendNotification';
 import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
 import SalaryCollection from './new/WeekSalary';
+import Notifications from './new/Notifications';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -126,6 +127,7 @@ function App() {
           <Route path="/wallet" element={approved === 1 && isAuthenticated ? <Wallet /> : <Login />} />
           <Route path='/team' element={approved === 1 && isAuthenticated ? <Team /> : <Login />} />
                     <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
+          <Route path='/alerts' element={approved === 1 && isAuthenticated ? <Notifications /> : <Login />} />
 
         </Routes>
       </BrowserRouter>

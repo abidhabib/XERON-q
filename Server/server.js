@@ -1630,21 +1630,38 @@ app.post('/reject-withdrawal', async (req, res) => {
         WHERE id = ? AND user_id = ?;
     `;
 
+    const insertNotificationSql = `
+        INSERT INTO notifications (user_id, msg, is_read, created_at) 
+        VALUES (?, ?, 0, NOW());
+    `;
+
     try {
         con.query(updateWithdrawalRequestsSql, [reason, requestId, userId], (err, result) => {
             if (err) {
-                console.error('Error executing query', err);
+                console.error('Error executing update', err);
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
             if (result.affectedRows > 0) {
-                return res.json({ message: 'Withdrawal request rejected successfully!' });
+                const notificationMsg = `❌ Your withdrawal request has been rejected.\nReason: ${reason}`;
+
+                con.query(insertNotificationSql, [userId, notificationMsg], (notifErr, notifResult) => {
+                    if (notifErr) {
+                        console.error('Notification insert error:', notifErr);
+                        // continue with success response even if notification fails
+                        return res.json({
+                            message: 'Withdrawal request rejected, but failed to notify the user.'
+                        });
+                    }
+
+                    return res.json({ message: 'Withdrawal request rejected and user notified.' });
+                });
             } else {
                 return res.status(404).json({ error: 'No matching withdrawal request found' });
             }
         });
     } catch (error) {
-        console.error(error);
+        console.error('Try/catch error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
@@ -2354,7 +2371,79 @@ app.post('/payment', (req, res) => {
         });
     });
 });
+app.get('/notifications/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
 
+    const [notifications] = await con.promise().query(`
+      SELECT id, msg, is_read, created_at
+      FROM notifications
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, [userId, parseInt(limit), parseInt(offset)]);
+
+    const [countResult] = await con.promise().query(`
+      SELECT COUNT(*) as total
+      FROM notifications
+      WHERE user_id = ?
+    `, [userId]);
+
+    res.json({ 
+      status: 'success', 
+      data: notifications,
+      pagination: {
+        total: countResult[0].total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(countResult[0].total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Notification fetch error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch notifications' });
+  }
+});
+
+// Mark notification as read
+app.patch('/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await con.promise().query(`UPDATE notifications SET is_read = 1 WHERE id = ?`, [id]);
+    res.json({ status: 'success' });
+  } catch (error) {
+    console.error('Mark as read error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to update notification' });
+  }
+});
+
+// Mark all notifications as read for a user
+app.patch('/notifications/:userId/read-all', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await con.promise().query(`UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0`, [userId]);
+    res.json({ status: 'success' });
+  } catch (error) {
+    console.error('Mark all as read error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to update notifications' });
+  }
+});
+
+// Get unread notification count
+app.get('/notifications/:userId/unread-count', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const [result] = await con.promise().query(`
+      SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0
+    `, [userId]);
+    res.json({ status: 'success', count: result[0].count });
+  } catch (error) {
+    console.error('Unread count error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to get unread count' });
+  }
+});
 app.listen( process.env.PORT, () => {
     console.log('Listening on port ' +  process.env.PORT);
 });
