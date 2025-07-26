@@ -9,8 +9,6 @@ export const getPendingForApproveUsers = (req, res) => {
             u.refer_by, 
             u.name, 
             u.email, 
-            u.sender_name, 
-            u.sender_number, 
             u.blocked,
             ref.name AS referrer_name 
         FROM 

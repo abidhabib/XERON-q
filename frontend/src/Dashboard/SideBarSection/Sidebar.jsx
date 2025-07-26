@@ -125,9 +125,9 @@ export const Sidebar = () => {
           label: "Send Notification",
         },
          {
-          path: "/levels",
+          path: "/w_salary",
           icon: <HiOutlineViewGrid className="w-5 h-5" />,
-          label: "Levels",
+          label: "Week Salary",
         },
         {
           path: "/SubAdminsManagement",

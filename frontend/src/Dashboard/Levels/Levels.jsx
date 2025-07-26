@@ -168,7 +168,7 @@ const TableRow = ({ item }) => (
             {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][item.salary_day]}
         </td>
         <td className="px-6 py-4 text-sm text-gray-500">
-            {item.weekly_recruitment} new/week
+ <span className='text-blue-500 font-semibold'> {item.weekly_recruitment}</span> new in/week
         </td>
         <td className="px-6 py-4 text-sm text-right">
             <button 
@@ -192,10 +192,8 @@ const TableRow = ({ item }) => (
                 <div className="mb-8">
                     <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Levels Configuration</h1>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Team levels based on size thresholds with weekly salary
-                            </p>
+                            <h1 className="text-2xl font-bold text-gray-800">Stage Seeting</h1>
+                          
                         </div>
                         <button 
                             onClick={fetchData}
@@ -244,7 +242,7 @@ const TableRow = ({ item }) => (
                             <table className="min-w-full divide-y divide-gray-200">
                               <thead className="bg-indigo-50">
     <tr>
-        {["Level", "Team Threshold", "Salary Amount", "Salary Day", "Weekly Req", "Actions"].map((header, idx) => (
+        {["Stage", "Team Need", "Salary Amount", "Salary Day", "Weekly Join ?", "Actions"].map((header, idx) => (
             <th 
                 key={idx}
                 className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider"

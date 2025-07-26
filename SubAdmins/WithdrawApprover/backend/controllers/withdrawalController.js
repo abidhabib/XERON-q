@@ -3,7 +3,7 @@ const { pool } = require('../config/db');
 exports.getAllWithdrawalRequests = async (req, res) => {
   try {
     const sql = `
-      SELECT wr.id, wr.user_id, wr.amount, wr.account_name, wr.bank_name,  
+      SELECT wr.id, wr.user_id, wr.amount,  wr.bank_name,  
         wr.account_number, wr.approved, wr.team, wr.total_withdrawn, u.name AS user_name, u.balance
       FROM withdrawal_requests wr
       JOIN users u ON wr.user_id = u.id
@@ -16,7 +16,6 @@ exports.getAllWithdrawalRequests = async (req, res) => {
       id: item.id,
       user_id: item.user_id,
       amount: item.amount,
-      account_name: item.account_name,
       bank_name: item.bank_name,
       account_number: item.account_number,
       approved: item.approved === 1,

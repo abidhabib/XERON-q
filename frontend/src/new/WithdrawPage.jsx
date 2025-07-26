@@ -50,7 +50,7 @@ const SuccessModal = ({ onClose }) => (
 
 
 const WithdrawPage = () => {
-  const { Userid, userData, fetchUserData, teamLen, level, currBalance } = useContext(UserContext);
+  const { Userid, userData, fetchUserData, team, level, currBalance } = useContext(UserContext);
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -146,12 +146,13 @@ const WithdrawPage = () => {
     try {
       const payload = {
         amount: numericAmount,
-        accountName: accountDetails.holder_name,
         accountNumber: accountDetails.coin_address,
         bankName: accountDetails.address_type,
         totalWithdrawn: userData.total_withdrawal,
-        team: teamLen
+        team: team
       };
+      console.log(payload);
+      
 
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/withdraw`,
@@ -173,7 +174,7 @@ const WithdrawPage = () => {
 
   const handleSuccessConfirm = () => {
     setShowSuccessModal(false);
-    navigate('/withdrwas');
+    navigate('/wallet');
   };
 
   const handleSubmissionError = (error) => {
@@ -182,7 +183,7 @@ const WithdrawPage = () => {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
         showToast('Session expired. Please login again.');
-        navigate('/login');
+        navigate('/');
         return;
       }
       message = error.response?.data?.error || message;

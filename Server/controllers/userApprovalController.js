@@ -5,6 +5,7 @@ import moment from 'moment';
 const insertNotificationQuery = `
   INSERT INTO notifications (user_id, msg, created_at) VALUES (?, ?, NOW())
 `;
+
 export const approveUser = async (req, res) => {
     const userId = req.params.userId;
 
@@ -14,6 +15,13 @@ export const approveUser = async (req, res) => {
 
     try {
         await queryAsync('START TRANSACTION');
+
+        // Get user details before approval for notification
+        const [userDetails] = await queryAsync(`
+            SELECT name, email 
+            FROM users 
+            WHERE id = ?
+        `, [userId]);
 
         await queryAsync(`
             UPDATE users 
@@ -42,12 +50,19 @@ export const approveUser = async (req, res) => {
         const referrerId = referrerResult[0]?.refer_by;
 
         if (referrerId) {
+            // Get referrer details for notification
+            const [referrerDetails] = await queryAsync(`
+                SELECT name, level
+                FROM users
+                WHERE id = ?
+            `, [referrerId]);
+
             const approvedCountResult = await queryAsync(`
                 SELECT COUNT(*) AS approved_count
                 FROM users
                 WHERE refer_by = ? AND approved = 1
             `, [referrerId]);
-            
+
             const approvedCount = approvedCountResult[0]?.approved_count || 0;
 
             await queryAsync(`
@@ -76,7 +91,7 @@ export const approveUser = async (req, res) => {
                 FROM levels 
                 ORDER BY threshold DESC
             `);
-            
+
             let newLevel = 0;
             for (const level of levelsResult) {
                 if (approvedCount >= level.threshold) {
@@ -84,7 +99,7 @@ export const approveUser = async (req, res) => {
                     break;
                 }
             }
-            
+
             if (newLevel > 0) {
                 await queryAsync(`
                     UPDATE users
@@ -96,7 +111,7 @@ export const approveUser = async (req, res) => {
                 `, [newLevel, currentLevelData?.level || 0, referrerId, newLevel]);
 
                 if (newLevel > currentLevelData?.level) {
-                    const upgradeMessage = `Congratulations! You've been promoted to Level ${newLevel}`;
+                    const upgradeMessage = `Congratulations ${referrerDetails.name}! You've been promoted to Level ${newLevel} for having ${approvedCount} approved referrals.`;
                     await queryAsync(insertNotificationQuery, [referrerId, upgradeMessage]);
                 }
             }
@@ -110,28 +125,33 @@ export const approveUser = async (req, res) => {
 
                 if (recruitData && currentLevelData.weekly_recruitment > 0 &&
                     recruitData.new_members >= currentLevelData.weekly_recruitment) {
-                    const recruitMessage = `You've met this week's recruitment goal (${currentLevelData.weekly_recruitment} new members)!`;
+                    const recruitMessage = `Great job ${referrerDetails.name}! You've met this week's recruitment goal of ${currentLevelData.weekly_recruitment} new members with ${recruitData.new_members} signups.`;
                     await queryAsync(insertNotificationQuery, [referrerId, recruitMessage]);
                 }
             }
 
-            const notificationMessage = 'Awesome! Someone has successfully joined your team.';
+            // Detailed notification message with referrer and new user info
+            const notificationMessage = `🎉 New referral approved! 
+            User: ${userDetails.name} (${userDetails.email}) 
+            has joined under your referral (Level ${referrerDetails.level}). 
+            Your total team count is now ${approvedCount}.`;
+
             await queryAsync(insertNotificationQuery, [referrerId, notificationMessage]);
         }
 
         await queryAsync('COMMIT');
-        res.status(200).json({ 
-            status: 'success', 
+        res.status(200).json({
+            status: 'success',
             message: 'User approved and referrer updated',
             referrer_updated: !!referrerId
         });
     } catch (error) {
         console.error('Transaction error:', error.message);
         await queryAsync('ROLLBACK');
-        res.status(500).json({ 
-            status: 'error', 
+        res.status(500).json({
+            status: 'error',
             error: 'Transaction failed',
             details: error.message
         });
     }
-};
+}; 

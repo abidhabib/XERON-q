@@ -1,0 +1,27 @@
+/* 3D Card Effects */
+.notification-card {
+  transform-style: preserve-3d;
+  transition: all 0.3s ease;
+}
+
+.notification-card:hover {
+  transform: translateY(-5px) rotateX(5deg);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.05);
+}
+
+/* Floating Animation */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.floating-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Gradient Background */
+.notification-bg {
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  box-shadow: 5px 5px 15px #d9d9d9, -5px -5px 15px #ffffff;
+}

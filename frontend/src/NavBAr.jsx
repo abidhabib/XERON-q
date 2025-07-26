@@ -165,9 +165,9 @@ const NavBar = () => {
             <span>Work</span>
           </li>
           
-          <li className="nav-item" onClick={() => navigate("/collect")}>
+          <li className="nav-item" onClick={() => navigate("/week-salary")}>
             <div className="icon"><FiBriefcase /></div>
-            <span>Level+</span>
+            <span>Salary</span>
           </li>
           
           <li className="nav-item" onClick={() => navigate("/wallet-page")}>
