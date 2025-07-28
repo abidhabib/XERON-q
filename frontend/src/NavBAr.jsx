@@ -118,6 +118,7 @@ const NavBar = () => {
 
   const handleLogout = () => {
     logout();
+    navigate('/');
     showToast('Logged out successfully', 'success');
   };
 
