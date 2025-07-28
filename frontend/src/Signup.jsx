@@ -7,7 +7,6 @@ import { FiUser, FiMail, FiPhone, FiLock, FiMapPin } from 'react-icons/fi';
 const Signup = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setnewId } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [referrer, setReferrer] = useState("");
   const [phoneError, setPhoneError] = useState('');
