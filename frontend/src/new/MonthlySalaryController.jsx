@@ -12,6 +12,7 @@ import {
   FaSpinner,
   FaTimes // Import Times icon for close button
 } from 'react-icons/fa';
+import NavBar from '../NavBAr';
 
 const MonthlySalaryDashboard = () => {
   const [salaryData, setSalaryData] = useState(null);
@@ -168,8 +169,9 @@ const MonthlySalaryDashboard = () => {
   // --- End UI Helpers ---
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p -4 sm:p -6">
       {/* Popup/Toast for Collection Result */}
+      <NavBar/>
       <AnimatePresence>
         {collectionResult.isOpen && (
           <motion.div
@@ -201,9 +203,9 @@ const MonthlySalaryDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6"
+          className="-mt-2  overflow-hidden mb-6"
         >
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+          <div className="bg-[#19202a] p-12 text-white ">
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center">
               <FaCoins className="mr-3" />
               Monthly Salary Dashboard
@@ -233,10 +235,10 @@ const MonthlySalaryDashboard = () => {
           ) : salaryData ? (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3">
                 <motion.div
                   whileHover={{ y: -5 }}
-                  className="bg-indigo-50 rounded-xl p-4 border border-indigo-100"
+                  className="bg-indigo-50 rounded-xl p-3 border border-indigo-100"
                 >
                   <div className="flex items-center">
                     <div className="p-3 bg-indigo-100 rounded-lg">
@@ -273,20 +275,20 @@ const MonthlySalaryDashboard = () => {
                       <FaUsers className="text-blue-600 text-xl" />
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm text-gray-500">Your Level</p>
-                      <p className="text-xl font-bold text-gray-800">Level {salaryData.currentLevel}</p>
+                      <p className="text-sm text-gray-500">Current Stage</p>
+                      <p className="text-xl font-bold text-gray-800">Stage {salaryData.currentLevel}</p>
                     </div>
                   </div>
                 </motion.div>
               </div>
 
               {/* Progress Section */}
-              <div className="px-6 pb-6">
+              <div className="px-3 pb-3">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Progress</h2>
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">
-                      Recruits: {salaryData.recruitsThisMonth} / {salaryData.requiredJoins}
+                      Recruits {salaryData.recruitsThisMonth} / {salaryData.requiredJoins}
                     </span>
                     <span className="text-sm font-medium text-gray-700">
                       {getProgressPercentage().toFixed(1)}%
@@ -300,14 +302,14 @@ const MonthlySalaryDashboard = () => {
                       transition={{ duration: 1, ease: "easeOut" }}
                     ></motion.div>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-center text-sm text-gray-600">
+                  <div className="mt-4 flex flex-wrap justify-between items-center text-sm text-gray-600">
                     <span className="mr-4 flex items-center">
-                      <span className="font-medium">Salary:</span>
+                      <span className="font-medium">Salary</span>
                       <span className="ml-1">${salaryData.levelSalary.toFixed(2)}</span>
                     </span>
                     <span className="mr-4 flex items-center">
-                      <span className="font-medium">Salary Day:</span>
-                      <span className="ml-1">
+                      <span className="font-medium">Salary Day</span>
+                      <span className="ml-1 text-blue-500">
                         {salaryData.designatedSalaryDay ? (
                           <>
                             {salaryData.designatedSalaryDay}
@@ -319,8 +321,8 @@ const MonthlySalaryDashboard = () => {
                       </span>
                     </span>
                     <span className="flex items-center">
-                      <span className="font-medium">Today:</span>
-                      <span className="ml-1">
+                      <span className="font-medium">Today</span>
+                      <span className="ml-1 text-blue-500">
                         {salaryData.todayDate}
                         <sup>{getOrdinalSuffix(salaryData.todayDate)}</sup>
                       </span>
@@ -331,7 +333,7 @@ const MonthlySalaryDashboard = () => {
 
               {/* Collect Salary Section */}
               <div className="px-6 pb-6">
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
                   <h3 className="text-lg font-medium text-gray-800 mb-3">Salary Collection</h3>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -427,7 +429,7 @@ const MonthlySalaryDashboard = () => {
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         </tr>
                       </thead>
