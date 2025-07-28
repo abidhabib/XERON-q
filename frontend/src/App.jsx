@@ -123,7 +123,7 @@ function App() {
           <Route path='/waiting' element={isAuthenticated ? <Waiting /> : <Login />} />
           <Route path='/cashout' element={approved === 1 && isAuthenticated ? <WithdrawPage /> : <Login />} />
           <Route path='/ReferralProgram' element={approved === 1 && isAuthenticated ? <ReferralProgram /> : <Login />} />
-          <Route path='/Bank-And-Crypto' element={approved === 1 && isAuthenticated ? <AccountDetailsTabs /> : <Login />} />
+          <Route path='/UserWalletSettings' element={approved === 1 && isAuthenticated ? <AccountDetailsTabs /> : <Login />} />
           <Route path="/wallet-page" element={approved === 1 && isAuthenticated ? <About /> : <Login />} />
           <Route path="/setting" element={approved === 1 && isAuthenticated ? <UserProfileUpdate /> : <Login />} />
           <Route path="/tasks" element={approved === 1 && isAuthenticated ? <DailyTasks Userid={Userid} currBalance={currBalance} /> : <Login />} />

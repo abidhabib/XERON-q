@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import { checkAndApproveUsers } from './approveUsers.js';
 import { resetDailyStats } from './resetDailyStats.js';
 
-cron.schedule('*/1 * * * *', () => {
+cron.schedule('*/10 * * * *', () => {
     console.log('🔄 Running scheduled user payment check...');
     checkAndApproveUsers();
 });

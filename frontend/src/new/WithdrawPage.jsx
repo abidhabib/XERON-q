@@ -89,6 +89,7 @@ const WithdrawPage = () => {
         }
       } catch (error) {
         showToast('Please update your wallet details in Settings!');
+        navigate('/userwalletsettings')
       }
     };
 
@@ -103,7 +104,7 @@ const WithdrawPage = () => {
 
       if (!isValid) {
         showToast('Please complete your crypto wallet details');
-        navigate('/Bank-And-Crypto');
+        navigate('/UserWalletSettings');
       }
     };
 
