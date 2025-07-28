@@ -774,8 +774,9 @@ function verifyToken(req, res, next) {
 
 // Unified user rejection endpoint
 app.put('/rejectUserCurrMin/:userId', async (req, res) => {
+            const userId = req.params.userId;
+
     try {
-        const userId = req.params.userId;
         const sql = 'UPDATE users SET approved = 0 , rejected = 1  WHERE id = ?';
         await queryAsync(sql, [userId]);
         res.status(200).json({ success: true, message: 'User rejected successfully' });

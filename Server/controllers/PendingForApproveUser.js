@@ -10,6 +10,7 @@ export const getPendingForApproveUsers = (req, res) => {
             u.name, 
             u.email, 
             u.blocked,
+            u.rejected,
             ref.name AS referrer_name 
         FROM 
             users u
@@ -19,7 +20,8 @@ export const getPendingForApproveUsers = (req, res) => {
             u.refer_by = ref.id
         WHERE 
             u.approved = 0 
-            AND u.payment_ok = 1 
+            AND u.payment_ok = 1
+            AND u.rejected = 0
             `;
 
     con.query(sql, (err, result) => {
@@ -30,7 +32,7 @@ export const getPendingForApproveUsers = (req, res) => {
         if (result.length > 0) {
             return res.json({ status: 'success', approvedUsers: result });
         } else {
-            return res.status(404).json({ status: 'error', error: 'No approved users found' });
+            return res.status(404).json({ status: 'error', error: 'No  users for approve' });
         }
     });
 };

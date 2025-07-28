@@ -14,12 +14,16 @@ async function getActiveBep20Addresses() {
 
 export async function checkAndApproveUsers() { 
 
-    try {
-        const users = await queryAsync(`
-        SELECT id, trx_id 
-        FROM users 
-        WHERE approved = 0 AND payment_ok = 1 AND trx_id IS NOT NULL
-      `);
+  try {
+  const users = await queryAsync(`
+    SELECT id, trx_id 
+    FROM users 
+    WHERE approved = 0 
+      AND payment_ok = 1 
+      AND rejected = 0 
+      AND trx_id IS NOT NULL
+  `);
+
 
         const allowedAddresses = await getActiveBep20Addresses();
 
@@ -75,8 +79,10 @@ export async function checkAndApproveUsers() {
     console.log(`User ${user.id} auto-matched.`);
 } catch (err) {
     console.error(`Error with TX for user ${user.id}:`, err.message);
-    // Optionally, decide whether to reject on unexpected errors during validation
-    // await axios.put(`${REJECT_ENDPOINT}/${user.id}`); // Uncomment if desired
+     await axios.put(`${REJECT_ENDPOINT}/${user.id}`);
+     console.log(`User ${user.id} rejected due to error with transaction.`);
+     
+
 }
         }
     } catch (err) {
