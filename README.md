@@ -1,8 +1,5 @@
 
 
-I apologize for the incomplete README file. I'll continue reading the `server.js` file and add more details to the README file.
-
-
 **Project Overview**
 =====================
 
