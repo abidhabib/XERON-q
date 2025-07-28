@@ -45,6 +45,7 @@ import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
 import SalaryCollection from './new/WeekSalary';
 import Notifications from './new/Notifications';
 import MonthlyLevelsManager from './Dashboard/MonthlyLevelsManager./MonthlyLevelsManager';
+import MonthlySalaryDashboard from './new/MonthlySalaryController';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -130,6 +131,7 @@ function App() {
           <Route path='/team' element={approved === 1 && isAuthenticated ? <Team /> : <Login />} />
                     <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
           <Route path='/alerts' element={approved === 1 && isAuthenticated ? <Notifications /> : <Login />} />
+          <Route path='/SalaryofMonth' element={approved === 1 && isAuthenticated ? <MonthlySalaryDashboard /> : <Login />} />
 
         </Routes>
       </BrowserRouter>
