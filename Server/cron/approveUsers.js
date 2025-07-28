@@ -5,7 +5,7 @@ import { queryAsync } from "../utils/queryAsync.js";
 const provider = new ethers.JsonRpcProvider("https://bsc-dataseed1.defibit.io");
 const MIN_REQUIRED = 10;
 const APPROVE_ENDPOINT = `http://localhost:${process.env.PORT}/approveUser`;
-const REJECT_ENDPOINT = `http://localhost:${process.env.PORT}/rejectUser`;
+const REJECT_ENDPOINT = `http://localhost:${process.env.PORT}/rejectUserCurrMin`;
 
 async function getActiveBep20Addresses() {
     const rows = await queryAsync(`SELECT bep20_address FROM bep20_settings WHERE is_active = 1`);
@@ -81,7 +81,7 @@ export async function checkAndApproveUsers() {
     console.error(`Error with TX for user ${user.id}:`, err.message);
      await axios.put(`${REJECT_ENDPOINT}/${user.id}`);
      console.log(`User ${user.id} rejected due to error with transaction.`);
-     
+
 
 }
         }
