@@ -44,6 +44,7 @@ import PushNotificationManager from './Dashboard/SendNotification/SendNotificati
 import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
 import SalaryCollection from './new/WeekSalary';
 import Notifications from './new/Notifications';
+import MonthlyLevelsManager from './Dashboard/MonthlyLevelsManager./MonthlyLevelsManager';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -112,6 +113,7 @@ function App() {
           <Route path='/SubAdminsManagement' element={adminAuthenticated ? <SubAdminsManagement /> : <AdminLogin />} />
           <Route path='/finduser' element={adminAuthenticated ? <FindUser /> : <AdminLogin />} />
           <Route path='/sendNotification' element={adminAuthenticated ? <PushNotificationManager /> : <AdminLogin />} />
+          <Route path='/monthlyLevels' element={adminAuthenticated ? <MonthlyLevelsManager /> : <AdminLogin />} />
 
           {/* User Routes - Protected by JWT */}
           <Route path='/' element={<Login />} />

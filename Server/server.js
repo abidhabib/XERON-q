@@ -33,6 +33,7 @@ import  getUserTaskStatus  from './routes/getUserTaskStatus.js';
 import  getUserWithdrawalRequests  from './routes/GetUserWithdraw.js';
 import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
 import FindReferrer from './routes/FindReferrer.js';
+import monthlyLevelsRoutes from './routes/monthlyLevels.js'; // Adjust path as needed
 
 setupWebPush();
 
@@ -93,6 +94,8 @@ app.use('/',getUserTaskStatus)
 app.use('/',getUserWithdrawalRequests);
 app.use('/',getAllApprovedUsers)
 app.use('/',FindReferrer)
+app.use('/api/monthly-levels', monthlyLevelsRoutes); // Prefix all routes in monthlyLevels.js with /api/monthly-levels
+
 
 
 

@@ -129,6 +129,12 @@ export const Sidebar = () => {
           icon: <HiOutlineViewGrid className="w-5 h-5" />,
           label: "Week Salary",
         },
+   {
+          path: "/monthlyLevels",
+          icon: <HiOutlineViewGrid className="w-5 h-5" />,
+          label: "Monthly Salary",
+        },
+
         {
           path: "/SubAdminsManagement",
           icon: <HiOutlineUserGroup className="w-5 h-5" />,
