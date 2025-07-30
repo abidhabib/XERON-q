@@ -35,19 +35,19 @@ import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
 import FindReferrer from './routes/FindReferrer.js';
 import monthlyLevelsRoutes from './routes/monthlyLevels.js'; // Adjust path as needed
 import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as needed
-/*
+
 
 import https from 'https';
 import fs from 'fs';
 
-*/
+
 setupWebPush();
 
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-/*
+
 
 
 
@@ -57,14 +57,14 @@ const options = {
 };
 
 
-*/
+
 function getDayName(dayIndex) {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[dayIndex];
 }
 app.use(bodyParser.json());
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     credentials: true
 
@@ -2516,7 +2516,7 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
   }
 });
 
-/*
+
 
 https.createServer(options, app).listen(PORT, () => {
   console.log('HTTPS Server running on port '+PORT);
@@ -2524,10 +2524,10 @@ https.createServer(options, app).listen(PORT, () => {
 
 
 
-*/
-app.listen( process.env.PORT, () => {
-    console.log('Listening on port ' +  process.env.PORT);
-});
+
+// app.listen( process.env.PORT, () => {
+//     console.log('Listening on port ' +  process.env.PORT);
+// });
 
 
 
