@@ -45,7 +45,7 @@ import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
 import SalaryCollection from './new/WeekSalary';
 import Notifications from './new/Notifications';
 import MonthlyLevelsManager from './Dashboard/MonthlyLevelsManager./MonthlyLevelsManager';
-import MonthlySalaryDashboard from './new/MonthlySalaryController';
+import MonthlySalaryDashboard from './new/MonthlySalary';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  

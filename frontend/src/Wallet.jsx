@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import  {  useEffect, useContext } from 'react';
 
 import './DailyTask.css';
 
 import { UserContext } from './UserContext/UserContext';
 import NavBAr from './NavBAr';
-import toast, { Toaster } from 'react-hot-toast';
+import  { Toaster } from 'react-hot-toast';
 import   {WithdrwaHistory}  from './MyWithdrwal'
 import Modal from 'react-modal';
 Modal.setAppElement('#root');
