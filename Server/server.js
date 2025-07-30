@@ -38,7 +38,6 @@ import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as n
 
 
 import https from 'https';
-import fs from 'fs';
 
 
 setupWebPush();
