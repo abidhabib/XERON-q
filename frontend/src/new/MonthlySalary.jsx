@@ -331,7 +331,7 @@ const MonthlySalaryDashboard = () => {
             }
           }}
         >
-          Your Stage <span className="font-bold text-indigo-200"> {salaryData?.currentLevel}</span> and your salary day is <span className="font-bold text-indigo-200"> {salaryData?.designatedSalaryDay}</span>
+          Your Stage <span className="font-bold text-indigo-200"> {salaryData?.currentLevel}</span> and your salary date is <span className="font-bold text-indigo-200"> {salaryData?.designatedSalaryDay}</span>
         </motion.span>
       </motion.div>
 

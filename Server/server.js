@@ -136,12 +136,69 @@ app.get('/', (req, res) => {
 
 
 
+// Assuming you have these set up
+// const express = require('express');
+// const db = require('./path/to/your/database/connection'); // Your MySQL connection pool
+// const authenticateUser = require('./path/to/your/auth/middleware'); // Your auth middleware
 
+app.get('/api/salary-history', async (req, res) => {
+  // --- 1. Get User ID from Session (Assuming authentication middleware sets req.userId) ---
+  const userId = req.session.userId; // This should be set by your authenticateUser middleware
 
-app.post('/collect-salary/:userId', async (req, res) => {
-    const userId = req.params.userId;
+  if (!userId) {
+      console.error('User ID not found in session for salary history request.');
+      return res.status(401).json({ status: 'error', message: 'Unauthorized: User ID missing.' });
+  }
+
+  try {
+    // --- 2. Query the Database ---
+    // Using promise-based queries (adjust if you use callbacks)
+    const [rows] = await con.promise().query(
+      'SELECT id, user_id, level, amount, payment_week, created_at FROM salary_payments WHERE user_id = ? ORDER BY created_at DESC',
+      [userId]
+    );
+console.log(rows);
+
+    // --- 3. Format the Data (Optional, but good practice) ---
+    const formattedHistory = rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      level: row.level,
+      amount: row.amount, // Keep as string to preserve decimal places if needed, or parseFloat(row.amount).toFixed(2)
+      paymentWeek: row.payment_week,
+      // Format the date for easier frontend consumption if needed
+      paymentDate: row.created_at.toISOString().split('T')[0], // YYYY-MM-DD
+      paymentDateTime: row.created_at.toISOString(), // Full ISO string
+      // You could add more formatting here, like extracting date/time parts
+      date: row.created_at.toLocaleDateString('en-US'), // Example: 7/30/2025
+      time: row.created_at.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) // Example: 7:44 PM
+    }));
+
+    // --- 4. Send Success Response ---
+    res.json({
+      status: 'success',
+      message: 'Salary history fetched successfully.',
+      history: formattedHistory
+      // Optionally include count: formattedHistory.length
+    });
+
+  } catch (error) {
+    // --- 5. Handle Errors ---
+    console.error('Error fetching salary history for user ID:', userId, error);
+    res.status(500).json({
+      status: 'error',
+      message: 'An error occurred while fetching salary history. Please try again later.'
+      // Avoid sending raw error messages to frontend in production
+    });
+  }
+});
+
+app.post('/collect-salary', async (req, res) => {
+    const userId = req.session.userId;
+    
     const currentWeek = parseInt(moment().format('YYYYWW'));
     const today = moment().day();
+    console.log(userId+"ddddd"+today);
 
     try {
         await con.promise().query('START TRANSACTION');

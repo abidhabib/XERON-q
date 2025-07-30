@@ -288,6 +288,7 @@ export const collectMonthlySalary = async (req, res) => {
  */
 export const getUserMonthlySalaryHistory = async (req, res) => {
     const userId = req.session.userId;
+console.log(userId);
 
     if (!userId) {
         return res.status(401).json({ status: 'error', message: 'Authentication required.' });
