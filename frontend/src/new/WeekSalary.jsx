@@ -168,26 +168,26 @@ const currDayName = new Date().toLocaleString('en-US', { weekday: 'long' });
                 <FaCoins className="mr-3 text-yellow-300" />
                 Weekly  Salary Dashboard
               </h1>
-              <p className="text-indigo-100 mt-1">
+              <p className="text-indigo-100 text-sm mt-2">
                 Track your progress and collect your weekly salary
               </p>
             </div>
            <div className="flex justify-between w-full">
-             <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 flex items-center">
+             <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-xl p-3 flex items-center">
               <FaCalendarAlt className="mr-2 text-indigo-200" />
               <div>
                 <p className="text-sm font-medium text-indigo-200">Current Day</p>
-                <p className="text-lg font-bold">
+                <p className="text-sm font-bold">
                   { currDayName|| 'Loading...'}
                 </p>
               </div>
             </div>
-             <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 flex items-center">
+             <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-xl p-3 flex items-center">
               <FaVrCardboard className="mr-2 text-indigo-200" />
               <div>
                 <p className="text-sm font-medium text-indigo-200">Current Balance</p>
-                <p className="text-lg font-bold">
-                 $ {salaryData?.wallet || 'Loading...'}
+                <p className="text-sm font-bold">
+                 $ {RemoveTrailingZeros(salaryData?.wallet) || 'Loading...'}
                 </p>
               </div>
             </div>
@@ -242,7 +242,7 @@ const currDayName = new Date().toLocaleString('en-US', { weekday: 'long' });
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-blue-600 font-medium">Recruits This Week</p>
-                  <p className="text-xl font-bold text-gray-800">
+                  <p className="text-gray-800">
                     {salaryData.newMembersThisWeek}/{salaryData.sameLevelRequirement}
                   </p>
                 </div>
@@ -260,7 +260,7 @@ const currDayName = new Date().toLocaleString('en-US', { weekday: 'long' });
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-teal-600 font-medium">Next Salary Day</p>
-                  <p className="text-xl font-bold text-gray-800">
+                  <p className="text-gray-800">
                     {salaryData.dayName}
                   </p>
                 </div>

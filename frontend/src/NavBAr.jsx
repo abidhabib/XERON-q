@@ -168,12 +168,12 @@ const NavBar = () => {
           
           <li className="nav-item" onClick={() => navigate("/week-salary")}>
             <div className="icon"><FiBriefcase /></div>
-            <span>Week Salary</span>
+            <span>W<span className='text-green-300'>/</span>Salary</span>
           </li>
           
           <li className="nav-item" onClick={() => navigate("/salaryofMonth")}>
             <div className="icon"><FiBriefcase /></div>
-            <span>Month Salary</span>
+            <span>M<span className='text-green-300'>/</span>Salary</span>
           </li>
           
           <li className="nav-item" onClick={() => navigate("/setting")}>
