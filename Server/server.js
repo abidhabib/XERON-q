@@ -2518,7 +2518,7 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
 
 
 https.createServer(options, app).listen(process.env.PORT, () => {
-  console.log('HTTPS Server running on port '+PORT);
+  console.log('HTTPS Server running on port '+process.env.PORT);
 });
 
 
