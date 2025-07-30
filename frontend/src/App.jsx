@@ -59,6 +59,8 @@ function App() {
       });
     }
   }, []);
+console.log(usePushNotifications());
+console.log(import.meta.env.VITE_VAPID_PUBLIC_KEY)
 
   
   useEffect(() => {

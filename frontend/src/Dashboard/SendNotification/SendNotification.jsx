@@ -41,6 +41,7 @@ const PushNotificationManager = () => {
     };
     init();
   }, []);
+console.log(status);
 
   const handleManualSubscribe = async () => {
     setStatus('registering');
