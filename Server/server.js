@@ -35,14 +35,29 @@ import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
 import FindReferrer from './routes/FindReferrer.js';
 import monthlyLevelsRoutes from './routes/monthlyLevels.js'; // Adjust path as needed
 import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as needed
+/*
 
+import https from 'https';
+import fs from 'fs';
+
+*/
 setupWebPush();
 
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+/*
 
+
+
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/fullchain.pem')
+};
+
+
+*/
 function getDayName(dayIndex) {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[dayIndex];
@@ -136,13 +151,7 @@ app.get('/', (req, res) => {
 
 
 
-// Assuming you have these set up
-// const express = require('express');
-// const db = require('./path/to/your/database/connection'); // Your MySQL connection pool
-// const authenticateUser = require('./path/to/your/auth/middleware'); // Your auth middleware
-
 app.get('/api/salary-history', async (req, res) => {
-  // --- 1. Get User ID from Session (Assuming authentication middleware sets req.userId) ---
   const userId = req.session.userId; // This should be set by your authenticateUser middleware
 
   if (!userId) {
@@ -151,8 +160,7 @@ app.get('/api/salary-history', async (req, res) => {
   }
 
   try {
-    // --- 2. Query the Database ---
-    // Using promise-based queries (adjust if you use callbacks)
+
     const [rows] = await con.promise().query(
       'SELECT id, user_id, level, amount, payment_week, created_at FROM salary_payments WHERE user_id = ? ORDER BY created_at DESC',
       [userId]
@@ -2507,6 +2515,19 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Failed to get unread count' });
   }
 });
+
+/*
+
+https.createServer(options, app).listen(PORT, () => {
+  console.log('HTTPS Server running on port '+PORT);
+});
+
+
+
+*/
 app.listen( process.env.PORT, () => {
     console.log('Listening on port ' +  process.env.PORT);
 });
+
+
+
