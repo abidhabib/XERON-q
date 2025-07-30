@@ -169,7 +169,7 @@ const MonthlySalaryDashboard = () => {
   // --- End UI Helpers ---
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p -4 sm:p -6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Popup/Toast for Collection Result */}
       <NavBar/>
       <AnimatePresence>
@@ -198,7 +198,7 @@ const MonthlySalaryDashboard = () => {
         )}
       </AnimatePresence>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -211,7 +211,7 @@ const MonthlySalaryDashboard = () => {
               Monthly Salary Dashboard
             </h1>
             <p className="text-indigo-100 mt-1">
-              Track your progress and collect your monthly rewards.
+              Track Your monthly progress and collect your salary.
             </p>
           </div>
 

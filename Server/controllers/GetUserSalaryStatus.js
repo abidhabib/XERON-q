@@ -5,7 +5,9 @@ function getDayName(dayIndex) {
     return days[dayIndex];
 }
 export const getUserSalaryStatus = async (req, res) => {
-    const userId = req.params.userId;
+    const userId = req.session.userId;
+    console.log('User ID:', userId);
+    
     const currentWeek = parseInt(moment().format('YYYYWW'));
     const today = moment().day(); // 0-6 (Sun-Sat)
 

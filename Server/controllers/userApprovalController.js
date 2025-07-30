@@ -97,7 +97,6 @@ export const approveUser = async (req, res) => {
                 ORDER BY required_joins DESC -- Order descending to find the highest applicable level first
             `);
 
-            // 3. Determine the highest monthly level the referrer qualifies for based on TOTAL approved count
             let newMonthlyLevel = 0;
             for (const level of monthlyLevelsResult) {
                 if (approvedCount >= level.required_joins) {

@@ -13,12 +13,15 @@ const SalaryCollection = () => {
   const [success, setSuccess] = useState('');
   const [collecting, setCollecting] = useState(false);
 const {Userid} = useContext(UserContext);
-console.log(Userid);
+console.log(salaryData);
 
   const fetchSalaryStatus = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/salary-status/${Userid}`);
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/salary-status`, {
+        withCredentials: true
+
+      });
       console.log(response.data);
       
       setSalaryData(response.data.data);

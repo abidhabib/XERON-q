@@ -5,6 +5,6 @@ const router = express.Router();
 
 
 
-router.get('/salary-status/:userId', getUserSalaryStatus);
+router.get('/salary-status', getUserSalaryStatus);
 
 export default router;
