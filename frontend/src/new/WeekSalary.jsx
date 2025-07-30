@@ -99,9 +99,9 @@ console.log(salaryData);
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-              <FaWallet className="mr-2 text-indigo-600" /> Current Level
+              <FaWallet className="mr-2 text-indigo-600" /> Current Stage
             </h2>
-            <p className="text-3xl font-bold text-indigo-600">Level {salaryData.currentLevel}</p>
+            <p className="text-3xl font-bold text-indigo-600">Stage {salaryData.currentLevel}</p>
           </div>
           <div className="bg-indigo-100 p-3 rounded-lg">
             <span className="text-2xl font-bold text-indigo-700">${RemoveTrailingZeros(salaryData.salaryAmount)}</span>
@@ -235,19 +235,16 @@ console.log(salaryData);
         <ul className="text-xs text-gray-600 space-y-2">
           <li className="flex items-start">
             <span className="text-green-500 mr-2 mt-0.5">✓</span>
-            <span>Salary is paid on your level's specific day each week</span>
+            <span>Salary is paid on your stage's specific day each week</span>
+          </li>
+        
+          <li className="flex items-start">
+            <span className="text-green-500 mr-2 mt-0.5">✓</span>
+            <span>Same stage Need {salaryData.sameLevelRequirement} new recruits each week</span>
           </li>
           <li className="flex items-start">
             <span className="text-green-500 mr-2 mt-0.5">✓</span>
-            <span>First-time at a level: Salary paid automatically on salary day</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-green-500 mr-2 mt-0.5">✓</span>
-            <span>Same level: Need {salaryData.sameLevelRequirement} new recruits each week</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-green-500 mr-2 mt-0.5">✓</span>
-            <span>Salary is added to your backend wallet immediately</span>
+            <span>Salary is added to your  wallet immediately</span>
           </li>
         </ul>
       </div>

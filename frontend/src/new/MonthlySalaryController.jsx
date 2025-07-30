@@ -1,195 +1,234 @@
 // src/components/User/MonthlySalaryDashboard.jsx
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios'; // Ensure axios is configured with withCredentials if needed globally
-import { motion, AnimatePresence } from 'framer-motion'; // Import AnimatePresence for modal animations
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCoins,
   FaCalendarAlt,
   FaUsers,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaHistory, // Import History icon
+  FaHistory,
   FaSpinner,
-  FaTimes // Import Times icon for close button
+  FaTimes,
+  FaCrown,
+  FaTrophy,
+  FaMedal,
+  FaWallet,
+  FaDollyFlatbed,
+  FaVrCardboard
 } from 'react-icons/fa';
-import NavBar from '../NavBAr';
 
 const MonthlySalaryDashboard = () => {
   const [salaryData, setSalaryData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isCollecting, setIsCollecting] = useState(false);
-  const [collectionResult, setCollectionResult] = useState({ isOpen: false, type: '', message: '' });
-
-  // --- History State ---
+  const [collectionResult, setCollectionResult] = useState({ 
+    isOpen: false, 
+    type: '', 
+    message: '' 
+  });
+  
   const [history, setHistory] = useState([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  // --- End History State ---
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  // Fetch salary status
-  const fetchSalaryStatus = useCallback(async () => {
+  // Fetch monthly salary status
+  const fetchSalaryStatus = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Ensure credentials are sent with the request
-      const response = await axios.get(`${API_BASE_URL}/api/monthly-salary/status`, { withCredentials: true }); // Explicitly add if not global
+      const response = await axios.get(
+        `${API_BASE_URL}/api/monthly-salary/status`, 
+        { withCredentials: true }
+      );
+      
       if (response.data.status === 'success') {
         setSalaryData(response.data.data);
       } else {
-        throw new Error(response.data.message || 'Failed to fetch salary status.');
+        throw new Error(response.data.message || 'Failed to fetch salary status');
       }
     } catch (err) {
       console.error("Error fetching monthly salary status:", err);
-      setError(err.response?.data?.message || err.message || 'An error occurred while fetching data.');
+      setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
       setIsLoading(false);
     }
-  }, [API_BASE_URL]);
+  };
 
-  // --- Fetch History Function ---
-  const fetchSalaryHistory = useCallback(async () => {
-    if (!isHistoryModalOpen) return; // Only fetch when modal is open
-
+  // Fetch salary history
+  const fetchSalaryHistory = async () => {
     setIsHistoryLoading(true);
-    setHistoryError(null);
+    setHistory([]);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/monthly-salary/history`, { withCredentials: true });
+      const response = await axios.get(
+        `${API_BASE_URL}/api/monthly-salary/history`, 
+        { withCredentials: true }
+      );
+      
       if (response.data.status === 'success') {
         setHistory(response.data.history);
       } else {
-        throw new Error(response.data.message || 'Failed to fetch salary history.');
+        throw new Error(response.data.message || 'Failed to fetch history');
       }
     } catch (err) {
-      console.error("Error fetching monthly salary history:", err);
-      setHistoryError(err.response?.data?.message || err.message || 'An error occurred while fetching history.');
-      setHistory([]); // Clear history on error
+      console.error("Error fetching salary history:", err);
     } finally {
       setIsHistoryLoading(false);
     }
-  }, [API_BASE_URL, isHistoryModalOpen]);
-  // --- End Fetch History ---
+  };
 
-  useEffect(() => {
-    fetchSalaryStatus();
-  }, [fetchSalaryStatus]);
-
-  // --- Fetch history when modal opens ---
-  useEffect(() => {
-    if (isHistoryModalOpen) {
-      fetchSalaryHistory();
-    }
-  }, [isHistoryModalOpen, fetchSalaryHistory]);
-  // --- End Fetch on Open ---
-
+  // Collect monthly salary
   const handleCollectSalary = async () => {
     if (!salaryData?.isEligible) return;
-
+    
     setIsCollecting(true);
     setCollectionResult({ isOpen: false, type: '', message: '' });
+    
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/monthly-salary/collect`, {}, { withCredentials: true }); // Add credentials
+      const response = await axios.post(
+        `${API_BASE_URL}/api/monthly-salary/collect`, 
+        {}, 
+        { withCredentials: true }
+      );
+      
       if (response.data.status === 'success') {
         setCollectionResult({
           isOpen: true,
           type: 'success',
           message: response.data.message
         });
-        fetchSalaryStatus(); // Refresh status
+        // Refresh status and balance
+        await fetchSalaryStatus();
       } else {
-        throw new Error(response.data.message || 'Failed to collect salary.');
+        throw new Error(response.data.message || 'Failed to collect salary');
       }
     } catch (err) {
-      console.error("Error collecting monthly salary:", err);
+      console.error("Error collecting salary:", err);
       setCollectionResult({
         isOpen: true,
         type: 'error',
-        message: err.response?.data?.message || err.message || 'Failed to collect salary. Please try again.'
+        message: err.response?.data?.message || err.message || 'Failed to collect salary'
       });
     } finally {
       setIsCollecting(false);
     }
   };
 
-  const closePopup = () => {
-    setCollectionResult({ isOpen: false, type: '', message: '' });
-  };
-
-  // --- History Modal Handlers ---
+  // Open history modal and fetch data
   const openHistoryModal = () => {
     setIsHistoryModalOpen(true);
+    fetchSalaryHistory();
   };
 
-  const closeHistoryModal = () => {
-    setIsHistoryModalOpen(false);
-    // Optionally clear history state when closing to save memory
-    // setHistory([]);
-    // setHistoryError(null);
-  };
-  // --- End History Modal Handlers ---
-
-  // --- UI Helper Functions ---
+  // Helper functions
   const getProgressPercentage = () => {
-    if (!salaryData) return 0;
-    if (salaryData.requiredJoins === 0) return 100;
-    return Math.min((salaryData.recruitsThisMonth / salaryData.requiredJoins) * 100, 100);
+    if (!salaryData || salaryData.requiredJoins === 0) return 0;
+    return Math.min(100, (salaryData.recruitsThisMonth / salaryData.requiredJoins) * 100);
   };
 
   const getProgressColor = () => {
     const percentage = getProgressPercentage();
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 75) return 'bg-blue-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (percentage >= 100) return 'bg-gradient-to-r from-green-500 to-emerald-600';
+    if (percentage >= 75) return 'bg-gradient-to-r from-blue-500 to-indigo-600';
+    if (percentage >= 50) return 'bg-gradient-to-r from-yellow-500 to-amber-600';
+    return 'bg-gradient-to-r from-red-500 to-rose-600';
   };
 
-  const getOrdinalSuffix = (day) => {
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
 
-  // Helper to format YYYYMM to Month Year
+
   const formatYearMonth = (yearMonthStr) => {
     if (!yearMonthStr || yearMonthStr.length !== 6) return 'Invalid Date';
     const year = yearMonthStr.substring(0, 4);
-    const monthIndex = parseInt(yearMonthStr.substring(4, 6), 10) - 1; // JS months are 0-indexed
-    if (isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) return 'Invalid Date';
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"];
-    return `${monthNames[monthIndex]} ${year}`;
+    const monthIndex = parseInt(yearMonthStr.substring(4, 6), 10) - 1;
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return monthIndex >= 0 && monthIndex < 12 
+      ? `${monthNames[monthIndex]} ${year}` 
+      : 'Invalid Date';
   };
-  // --- End UI Helpers ---
+
+  // Circular progress component
+  const CircularProgress = ({ percentage, size = 180 }) => {
+    const strokeWidth = 20;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg className="w-full h-full" viewBox={`0 0 ${size} ${size}`}>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#e5e7eb"
+            strokeWidth={strokeWidth}
+          />
+          <motion.circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="url(#progressGradient)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            initial={{ strokeDasharray: circumference, strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            strokeDasharray={circumference}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+          <defs>
+            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%" >
+              <stop offset="0%" stopColor="#19202a" />
+              <stop offset="100%" stopColor="#19202a" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl  font-bold text-gray-800">
+            {salaryData?.recruitsThisMonth || 0}/{salaryData?.requiredJoins || 0}
+          </span>
+          <span className="text-xs text-gray-500 mt-1">Recruits</span>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    fetchSalaryStatus();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Popup/Toast for Collection Result */}
-      <NavBar/>
+      {/* Notification Popup */}
       <AnimatePresence>
         {collectionResult.isOpen && (
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-lg shadow-lg text-white flex items-center ${
-              collectionResult.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-xl text-white flex items-center ${
+              collectionResult.type === 'success' 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+                : 'bg-gradient-to-r from-red-500 to-rose-600'
             }`}
           >
             {collectionResult.type === 'success' ? (
-              <FaCheckCircle className="mr-2 text-xl" />
+              <FaCheckCircle className="mr-3 text-xl" />
             ) : (
-              <FaExclamationTriangle className="mr-2 text-xl" />
+              <FaExclamationTriangle className="mr-3 text-xl" />
             )}
-            <span>{collectionResult.message}</span>
+            <span className="font-medium">{collectionResult.message}</span>
             <button
-              onClick={closePopup}
+              onClick={() => setCollectionResult({ isOpen: false, type: '', message: '' })}
               className="ml-4 text-white hover:text-gray-200 focus:outline-none"
             >
               &times;
@@ -198,193 +237,215 @@ const MonthlySalaryDashboard = () => {
         )}
       </AnimatePresence>
 
-      <div className="mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="-mt-2  overflow-hidden mb-6"
-        >
-          <div className="bg-[#19202a] p-12 text-white ">
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center">
-              <FaCoins className="mr-3" />
-              Monthly Salary Dashboard
-            </h1>
-            <p className="text-indigo-100 mt-1">
-              Track Your monthly progress and collect your salary.
-            </p>
+      {/* Dashboard Layout */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Dashboard Header */}
+        <div className="bg-[#19202a] p-6 md:p-8 rounded-2xl shadow-xl text-white mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center">
+                <FaCoins className="mr-3 text-yellow-300" />
+                Monthly Salary Dashboard
+              </h1>
+              <p className="text-indigo-100 mt-1">
+                Track your progress and collect your monthly rewards
+              </p>
+            </div>
+           <div className="flex justify-between w-full">
+             <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 flex items-center">
+              <FaCalendarAlt className="mr-2 text-indigo-200" />
+              <div>
+                <p className="text-sm font-medium text-indigo-200">Current Month</p>
+                <p className="text-lg font-bold">
+                  {salaryData?.currentMonthName || 'Loading...'}
+                </p>
+              </div>
+            </div>
+             <div className="mt-4 md:mt-0 bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 flex items-center">
+              <FaVrCardboard className="mr-2 text-indigo-200" />
+              <div>
+                <p className="text-sm font-medium text-indigo-200">Current Balance</p>
+                <p className="text-lg font-bold">
+                 $ {salaryData?.currentBalance || 'Loading...'}
+                </p>
+              </div>
+            </div>
+           </div>
+
+                     <span className='text-sm mt-3 mb-3 text-yellow-300 '>Your Stage <span className="font-bold text-indigo-200"> {salaryData?.currentLevel}</span> and your salary day is <span className="font-bold text-indigo-200"> {salaryData?.designatedSalaryDay}</span></span>
+
           </div>
+        </div>
 
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <FaSpinner className="animate-spin text-4xl text-indigo-600" />
-            </div>
-          ) : error ? (
-            <div className="p-6">
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <FaExclamationTriangle className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center h-64">
+            <FaSpinner className="animate-spin text-4xl text-indigo-600" />
+          </div>
+        )}
+
+        {/* Error State */}
+        {!isLoading && error && (
+          <div className="p-6 mb-8">
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
                 </div>
               </div>
             </div>
-          ) : salaryData ? (
-            <>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3">
-                <motion.div
-                  whileHover={{ y: -5 }}
-                  className="bg-indigo-50 rounded-xl p-3 border border-indigo-100"
-                >
-                  <div className="flex items-center">
-                    <div className="p-3 bg-indigo-100 rounded-lg">
-                      <FaCoins className="text-indigo-600 text-xl" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm text-gray-500">Current Balance</p>
-                      <p className="text-xl font-bold text-gray-800">${salaryData.currentBalance.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </motion.div>
+          </div>
+        )}
 
-                <motion.div
-                  whileHover={{ y: -5 }}
-                  className="bg-purple-50 rounded-xl p-4 border border-purple-100"
-                >
-                  <div className="flex items-center">
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <FaCalendarAlt className="text-purple-600 text-xl" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm text-gray-500">Current Month</p>
-                      <p className="text-xl font-bold text-gray-800">{salaryData.currentMonthName}</p>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ y: -5 }}
-                  className="bg-blue-50 rounded-xl p-4 border border-blue-100"
-                >
-                  <div className="flex items-center">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <FaUsers className="text-blue-600 text-xl" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm text-gray-500">Current Stage</p>
-                      <p className="text-xl font-bold text-gray-800">Stage {salaryData.currentLevel}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Progress Section */}
-              <div className="px-3 pb-3">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Progress</h2>
-                <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Recruits {salaryData.recruitsThisMonth} / {salaryData.requiredJoins}
-                    </span>
-                    <span className="text-sm font-medium text-gray-700">
-                      {getProgressPercentage().toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-4">
-                    <motion.div
-                      className={`h-4 rounded-full ${getProgressColor()}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${getProgressPercentage()}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                    ></motion.div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap justify-between items-center text-sm text-gray-600">
-                    <span className="mr-4 flex items-center">
-                      <span className="font-medium">Salary</span>
-                      <span className="ml-1">${salaryData.levelSalary.toFixed(2)}</span>
-                    </span>
-                    <span className="mr-4 flex items-center">
-                      <span className="font-medium">Salary Day</span>
-                      <span className="ml-1 text-blue-500">
-                        {salaryData.designatedSalaryDay ? (
-                          <>
-                            {salaryData.designatedSalaryDay}
-                            <sup>{getOrdinalSuffix(salaryData.designatedSalaryDay)}</sup>
-                          </>
-                        ) : (
-                          'N/A'
-                        )}
-                      </span>
-                    </span>
-                    <span className="flex items-center">
-                      <span className="font-medium">Today</span>
-                      <span className="ml-1 text-blue-500">
-                        {salaryData.todayDate}
-                        <sup>{getOrdinalSuffix(salaryData.todayDate)}</sup>
-                      </span>
-                    </span>
-                  </div>
+        {/* Main Content */}
+        {!isLoading && !error && salaryData && (
+          <>
+       
+            {/* Progress Section */}
+            <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-md mb-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-800">Monthly Progress</h2>
+                <div className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium">
+                  {getProgressPercentage().toFixed(1)}% Complete
                 </div>
               </div>
-
-              {/* Collect Salary Section */}
-              <div className="px-6 pb-6">
-                <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-800 mb-3">Salary Collection</h3>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              
+              {/* Interactive Progress Visualization */}
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                {/* Circular Progress */}
+                <div className="flex-shrink-0">
+                  <CircularProgress percentage={getProgressPercentage()} />
+                </div>
+         
+              </div>
+                     
+                {/* Progress Details */}
+                <div className="flex-1 w-full">
+                    {/* Progress bar with animation */}
                     <div>
-                      <p className={`text-sm ${salaryData.isEligible ? 'text-green-600' : 'text-red-600'}`}>
-                        <span className="font-medium">Status:</span> {salaryData.reason}
-                      </p>
+                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Recruitment Progress</span>
+                        <span>{getProgressPercentage().toFixed(1)}%</span>
+                      </div>
+                      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded-full ${getProgressColor()}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${getProgressPercentage()}%` }}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                        />
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <button
-                        onClick={handleCollectSalary}
-                        disabled={!salaryData.isEligible || isCollecting}
-                        className={`px-5 py-2.5 rounded-lg font-medium flex items-center justify-center transition-all duration-300 ${
-                          salaryData.isEligible && !isCollecting
-                            ? 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {isCollecting ? (
-                          <>
-                            <FaSpinner className="animate-spin mr-2" />
-                            Collecting...
-                          </>
-                        ) : (
-                          <>
-                            <FaCoins className="mr-2" />
-                            Collect Salary
-                          </>
-                        )}
-                      </button>
-                      {/* History Button */}
-                      <button
-                        onClick={openHistoryModal}
-                        className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium flex items-center justify-center transition-colors"
-                      >
-                        <FaHistory className="mr-2" />
-                        View History
-                      </button>
+                    
+                    {/* Milestones */}
+                    <div className="space-y-4 mt-3 mb-3">
+                      <h3 className="font-semibold text-gray-700 flex items-center">
+                        <FaTrophy className="text-yellow-500 mr-2" />
+                        Progress Milestones
+                      </h3>
+               
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
+                        <p className="text-xs text-indigo-600 font-medium">Current Salary</p>
+                        <p className="text-lg font-bold text-gray-800">
+                          ${salaryData.levelSalary.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-xs text-blue-600 font-medium">Required Recruits</p>
+                        <p className="text-lg font-bold text-gray-800">
+                          {salaryData.requiredJoins}
+                        </p>
+                      </div>
                     </div>
                   </div>
+            </div>
+
+            {/* Collect Salary Section */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-3 border border-indigo-100 shadow-sm">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Salary Collection</h3>
+                  <div className={`inline-flex items-center px-4 py-2 rounded-xl ${
+                    salaryData.isEligible 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-orange-100 text-orange-800'
+                  }`}>
+                    {salaryData.isEligible ? (
+                      <FaCheckCircle className="mr-2 text-green-600" />
+                    ) : (
+                      <FaExclamationTriangle className="mr-2 text-orange-600" />
+                    )}
+                    <span className="font-medium">{salaryData.reason}</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleCollectSalary}
+                    disabled={!salaryData.isEligible || isCollecting}
+                    className={`px-6 py-3 rounded-xl font-bold flex items-center justify-center transition-all ${
+                      salaryData.isEligible && !isCollecting
+                        ? 'bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white shadow-lg'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {isCollecting ? (
+                      <>
+                        <FaSpinner className="animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FaCoins className="mr-2" />
+                        Collect Salary
+                      </>
+                    )}
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={openHistoryModal}
+                    className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-xl font-bold flex items-center justify-center border border-gray-200 shadow-sm"
+                  >
+                    <FaHistory className="mr-2" />
+                    Payment History
+                  </motion.button>
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="p-6 text-center text-gray-500">
-              No salary data available.
+              
+              {salaryData.isEligible && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-4 bg-white rounded-xl border border-green-200 flex items-start"
+                >
+                  <FaMedal className="text-green-500 text-2xl mr-3 mt-1" />
+                  <div>
+                    <p className="text-green-800 font-medium">
+                      You're eligible to collect your salary!
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Click the button to receive ${salaryData.levelSalary.toFixed(2)} now
+                    </p>
+                  </div>
+                </motion.div>
+              )}
             </div>
-          )}
-        </motion.div>
+          </>
+        )}
       </div>
 
-      {/* --- History Modal --- */}
+      {/* History Modal */}
       <AnimatePresence>
         {isHistoryModalOpen && (
           <motion.div
@@ -392,88 +453,80 @@ const MonthlySalaryDashboard = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
-            onClick={closeHistoryModal} // Close modal if backdrop is clicked
+            onClick={() => setIsHistoryModalOpen(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-4 flex justify-between items-center">
+              <div className="bg-[#1a202c] text-white p-3 flex justify-between items-center">
                 <h2 className="text-xl font-bold flex items-center">
-                  <FaHistory className="mr-2" /> Salary Payment History
+                  <FaHistory className="mr-3 text-yellow-400" /> 
+                  Salary Payment History
                 </h2>
                 <button
-                  onClick={closeHistoryModal}
+                  onClick={() => setIsHistoryModalOpen(false)}
                   className="text-gray-300 hover:text-white focus:outline-none"
                 >
-                  <FaTimes className="h-5 w-5" />
+                  <FaTimes className="h-6 w-6" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-2">
                 {isHistoryLoading ? (
                   <div className="flex justify-center items-center h-40">
-                    <FaSpinner className="animate-spin text-3xl text-gray-500" />
-                  </div>
-                ) : historyError ? (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-center">
-                    <p>Error loading history: {historyError}</p>
+                    <FaSpinner className="animate-spin text-3xl text-indigo-600" />
                   </div>
                 ) : history.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {history.map((payment) => (
-                          <tr key={payment.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-                              {new Date(payment.payment_date).toLocaleDateString()}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-                              {formatYearMonth(payment.payment_year_month)}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-                              {payment.level}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-green-600">
+                  <div className="space-y-4">
+                    {history.map((payment) => (
+                      <motion.div
+                        key={payment.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center">
+                          <div className="p-3 bg-indigo-100 rounded-lg text-indigo-700">
+                            <FaCoins className="text-xl" />
+                          </div>
+                          <div className="ml-4">
+                            <p className="font-bold text-gray-800">
                               ${parseFloat(payment.amount).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Stage {payment.level}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">
+                            {new Date(payment.payment_date).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatYearMonth(payment.payment_year_month)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-10 text-gray-500">
-                    <FaHistory className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                    <p>No salary payment history found.</p>
+                    <FaHistory className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                    <p className="text-lg font-medium">No salary payment history found</p>
+                    <p className="mt-2">Your salary payments will appear here once collected</p>
                   </div>
                 )}
               </div>
 
-              <div className="bg-gray-50 px-4 py-3 flex justify-end border-t border-gray-200">
-                <button
-                  onClick={closeHistoryModal}
-                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md transition-colors"
-                >
-                  Close
-                </button>
-              </div>
+            
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      {/* --- End History Modal --- */}
     </div>
   );
 };
