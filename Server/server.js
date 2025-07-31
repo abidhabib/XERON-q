@@ -2515,18 +2515,18 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
 
 
 
-const options = {
-  key: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/fullchain.pem')
-};
+// const options = {
+//   key: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/privkey.pem'),
+//   cert: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/fullchain.pem')
+// };
 
-https.createServer(options, app).listen(process.env.PORT, () => {
-  console.log('HTTPS Server running on port '+process.env.PORT);
-});
-
-// app.listen( process.env.PORT, () => {
-//     console.log('Listening on port ' +  process.env.PORT);
+// https.createServer(options, app).listen(process.env.PORT, () => {
+//   console.log('HTTPS Server running on port '+process.env.PORT);
 // });
+
+app.listen( process.env.PORT, () => {
+    console.log('Listening on port ' +  process.env.PORT);
+});
 
 
 

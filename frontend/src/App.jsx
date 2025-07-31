@@ -50,17 +50,54 @@ import MonthlySalaryDashboard from './new/MonthlySalary';
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
   const { isRejected, Userid, setAdminAuthenticated, currBalance, approved, adminAuthenticated, isAuthenticated, fetchUserData } = useContext(UserContext);
-  usePushNotifications();
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        console.log('Service Worker ready:', registration);
-      });
-    }
-  }, []);
-console.log(usePushNotifications());
-console.log(import.meta.env.VITE_VAPID_PUBLIC_KEY)
+    console.log("🔔 [APP DEBUG] App.js useEffect for SW registration triggered.");
+    const registerServiceWorker = async () => {
+      console.log("🔔 [APP DEBUG] Checking for Service Worker support in navigator...");
+      if (!('serviceWorker' in navigator)) {
+        console.warn("🔔 [APP DEBUG] Service Worker NOT supported by this browser.");
+        return;
+      }
+      console.log("🔔 [APP DEBUG] Service Worker IS supported.");
+
+      try {
+        console.log("🔔 [APP DEBUG] Attempting to register Service Worker at '/service-worker.js'...");
+        const registration = await navigator.serviceWorker.register("/service-worker.js");
+        console.log('✅ [APP DEBUG] Service Worker REGISTERED successfully.', { scope: registration.scope, state: registration.installing?.state || registration.waiting?.state || registration.active?.state });
+
+        // --- Detailed State Monitoring ---
+        const sw = registration.installing || registration.waiting || registration.active;
+        if (sw) {
+            console.log(`🔔 [APP DEBUG] Initial SW state: ${sw.state}`);
+            sw.addEventListener('statechange', (e) => {
+                console.log(`🔔 [APP DEBUG] SW state changed to: ${e.target.state}`);
+                if (e.target.state === 'activated') {
+                    console.log('✅ [APP DEBUG] Service Worker is now ACTIVATED.');
+                }
+            });
+        }
+
+        // --- Check navigator.serviceWorker.ready ---
+        console.log("🔔 [APP DEBUG] Now checking navigator.serviceWorker.ready (this is what usePushNotifications waits for)...");
+        const readyRegistration = await navigator.serviceWorker.ready;
+        console.log('✅ [APP DEBUG] navigator.serviceWorker.ready RESOLVED!', { scope: readyRegistration.scope });
+
+      } catch (error) {
+        console.error('❌ [APP DEBUG] Service Worker registration or ready check FAILED:', error);
+        // Provide specific hints based on common errors
+        if (error.message && error.message.includes('404')) {
+            console.error("   -> This usually means '/service-worker.js' was not found on the server. Check if it's deployed correctly and accessible at https://checking.run.place/service-worker.js");
+        }
+      }
+    };
+
+    registerServiceWorker();
+  }, []); // Empty dependency array: run once on mount
+
+  // --- Initialize Push Notifications Hook ---
+  // This will now run AFTER the SW registration attempt
+  usePushNotifications();
 
   
   useEffect(() => {
