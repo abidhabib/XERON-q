@@ -2516,6 +2516,8 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
 
 
 if (process.env.USE_SSL === 'true') {
+    console.log('🔒 HTTPS Server running on port ' + process.env.PORT);
+    
   const options = {
     key: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/privkey.pem'),
     cert: fs.readFileSync('/etc/letsencrypt/live/checking.run.place/fullchain.pem')
