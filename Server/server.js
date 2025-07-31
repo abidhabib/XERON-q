@@ -39,12 +39,7 @@ import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as n
 
 import https from 'https';
 const testing={
-    PORT:process.env.PORT,
-    DB_HOST:process.env.DB_HOST,
-    DB_USER:process.env.DB_USER,
-    DB_PASS:process.env.DB_PASS,
-    DB_NAME:process.env.DB_NAME,
-    give:process.env.give
+    test:"test"
 }
 
 
