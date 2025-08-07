@@ -46,6 +46,7 @@ import SalaryCollection from './new/WeekSalary';
 import Notifications from './new/Notifications';
 import MonthlyLevelsManager from './Dashboard/MonthlyLevelsManager./MonthlyLevelsManager';
 import MonthlySalaryDashboard from './new/MonthlySalary';
+import ProfileCard from './new/ProfileCard';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -95,8 +96,6 @@ function App() {
     registerServiceWorker();
   }, []); // Empty dependency array: run once on mount
 
-  // --- Initialize Push Notifications Hook ---
-  // This will now run AFTER the SW registration attempt
   usePushNotifications();
 
   
@@ -168,9 +167,10 @@ function App() {
           <Route path="/tasks" element={approved === 1 && isAuthenticated ? <DailyTasks Userid={Userid} currBalance={currBalance} /> : <Login />} />
           <Route path="/wallet" element={approved === 1 && isAuthenticated ? <Wallet /> : <Login />} />
           <Route path='/team' element={approved === 1 && isAuthenticated ? <Team /> : <Login />} />
-                    <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
+          <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
           <Route path='/alerts' element={approved === 1 && isAuthenticated ? <Notifications /> : <Login />} />
           <Route path='/SalaryofMonth' element={approved === 1 && isAuthenticated ? <MonthlySalaryDashboard /> : <Login />} />
+          <Route path='/contact-admin' element={approved === 1 && isAuthenticated ? <ProfileCard /> : <Login />} />
 
         </Routes>
       </BrowserRouter>

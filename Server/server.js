@@ -35,6 +35,7 @@ import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
 import FindReferrer from './routes/FindReferrer.js';
 import monthlyLevelsRoutes from './routes/monthlyLevels.js'; // Adjust path as needed
 import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as needed
+import adminProfileCardRoutes from './routes/adminProfileCardRoutes.js';
 
 
 import https from 'https';
@@ -107,7 +108,8 @@ app.use('/',getAllApprovedUsers)
 app.use('/',FindReferrer)
 app.use('/api/monthly-levels', monthlyLevelsRoutes); // Prefix all routes in monthlyLevels.js with /api/monthly-levels
 app.use('/api/monthly-salary', monthlySalaryRoutes);
-
+app.use('/api', adminProfileCardRoutes);
+app.use('/uploads', express.static('public/uploads'));
 
 
 
