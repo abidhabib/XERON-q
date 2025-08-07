@@ -1,9 +1,10 @@
 // components/PublicAdminCard.js
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom'; // Import useParams to get the token from the URL
 import { MessageCircle, Camera, Send } from 'lucide-react';
 
 const PublicAdminCard = () => {
-  // Base64 encoded default avatar (you can replace this with your own)
+  // Base64 encoded default avatar (fallback image)
   const DEFAULT_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiMzYjhmZjEiPjxwYXRoIGQ9Ik0xMiAxMmMxLjEgMCAyLS45IDItMnMtLjktMi0yLTItMiAuOS0yIDIgLjkgMiAyIDJ6bTYgOGgtMTJ2LTFjMC0yIDEtNCAzLTYuNSA5LjUtMiAzLTYuNSAzLTYuNXMyLjUgNC41IDYgNi41YzIgMS41IDMgMy41IDMgNS41djF6Ii8+PC9zdmc+";
 
   const [profileData, setProfileData] = useState(null);
@@ -11,37 +12,54 @@ const PublicAdminCard = () => {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Get the token parameter from the URL path (e.g., /admin-profile/:token)
+  const { token } = useParams();
+
   useEffect(() => {
     fetchPublicProfile();
-  }, [retryCount]);
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  }, [retryCount, token]); // Re-fetch if token or retryCount changes
 
   const fetchPublicProfile = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-      
       if (!apiBaseUrl) {
         throw new Error('API base URL not configured. Please check your environment variables.');
       }
 
-      const url = `${apiBaseUrl}/api/public/admin-profile`;
+      // --- Determine the API endpoint based on token presence ---
+      let url;
+      if (token) {
+        // Use the new token-validated endpoint if a token is present in the URL
+        console.log("Fetching profile using access token...");
+        url = `${apiBaseUrl}/api/admin/public-profile/${encodeURIComponent(token)}`;
+      } else {
+        // Fallback to the general public endpoint if no token (optional, adjust as needed)
+        console.warn("No access token provided, using general public endpoint.");
+        url = `${apiBaseUrl}/api/public/admin-profile`;
+      }
 
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(10000)
+        // Add a timeout for the request
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
+      // Handle HTTP errors
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: `;
         switch (response.status) {
+          case 401:
+            // Specifically handle 401 for token issues
+            errorMessage += token ? 'Invalid or expired access link.' : 'Unauthorized access.';
+            break;
           case 404:
-            errorMessage += 'Profile not found';
+            errorMessage += 'Profile not found.';
             break;
           case 500:
             errorMessage += 'Server error. Please try again later.';
@@ -50,18 +68,20 @@ const PublicAdminCard = () => {
             errorMessage += 'Service unavailable. Please try again later.';
             break;
           default:
-            errorMessage += response.statusText || 'Unknown error occurred';
+            errorMessage += response.statusText || 'Unknown error occurred.';
         }
         throw new Error(errorMessage);
       }
 
+      // Validate response content type
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Invalid response format. Expected JSON data.');
       }
 
       const data = await response.json();
-      
+
+      // Validate response data structure
       if (!data || (!data.profile && !data.socialLinks)) {
         throw new Error('Invalid profile data structure received from server.');
       }
@@ -71,6 +91,7 @@ const PublicAdminCard = () => {
     } catch (err) {
       console.error('Error fetching admin profile:', err);
       
+      // Construct user-friendly error message
       let errorMessage = 'Failed to load admin profile. ';
       
       if (err.name === 'AbortError') {
@@ -97,19 +118,24 @@ const PublicAdminCard = () => {
     return icons[iconName] || MessageCircle;
   };
 
+  // --- Render States ---
 
+  // Loading State
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Loading admin profile...</p>
+          <p className="mt-4 text-gray-600 font-medium">
+            {token ? 'Verifying access link...' : 'Loading admin profile...'}
+          </p>
           <p className="text-sm text-gray-500 mt-2">Please wait</p>
         </div>
       </div>
     );
   }
 
+  // Error State
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
@@ -143,6 +169,7 @@ const PublicAdminCard = () => {
     );
   }
 
+  // Handle case where profile data exists but is incomplete
   if (!profileData || (!profileData.profile && !profileData.socialLinks)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
@@ -167,6 +194,7 @@ const PublicAdminCard = () => {
 
   const { profile, socialLinks } = profileData;
 
+  // Handle case where profile object itself is missing
   if (!profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
@@ -183,6 +211,7 @@ const PublicAdminCard = () => {
     );
   }
 
+  // --- Main Success Render ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -196,8 +225,16 @@ const PublicAdminCard = () => {
             {/* Profile Image */}
             <div className="flex justify-center mb-4">
               <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100">
+                {/* --- CORRECTED IMAGE SRC LOGIC --- */}
                 <img
-                  src={apiBaseUrl + profile.profile_image_url || DEFAULT_AVATAR}
+                  // Use profile image URL if available, otherwise fallback. Prefix with API base URL if it's not an absolute URL or data URL.
+                  src={
+                    profile.profile_image_url
+                      ? profile.profile_image_url.startsWith('http') || profile.profile_image_url.startsWith('data:')
+                        ? profile.profile_image_url
+                        : `${import.meta.env.VITE_API_BASE_URL || ''}${profile.profile_image_url}`
+                      : DEFAULT_AVATAR
+                  }
                   alt={`${profile.full_name || 'Admin'} Profile`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -232,8 +269,10 @@ const PublicAdminCard = () => {
             {/* Social Links */}
             <div className="flex justify-center gap-4 flex-wrap">
               {socialLinks.map((social, index) => {
-                console.log("Social Link:", social);
-                
+                // --- REMOVED CONSOLE.LOG FOR PRODUCTION ---
+                // console.log("Social Link:", social); 
+
+                // Validate social link data before rendering
                 if (!social.platform_name || !social.icon_name) {
                   console.warn('Skipping invalid social link at index:', index);
                   return null;
@@ -243,7 +282,7 @@ const PublicAdminCard = () => {
                 
                 return (
                   <a
-                    key={`${social.platform_name}-${index}`}
+                    key={`${social.platform_name}-${index}`} // Consider using a unique ID if available in your data
                     href={social.url || '#'}
                     target={social.url ? "_blank" : "_self"}
                     rel={social.url ? "noopener noreferrer" : ""}
@@ -252,6 +291,7 @@ const PublicAdminCard = () => {
                     onClick={(e) => {
                       if (!social.url) {
                         e.preventDefault();
+                        // Optionally show a tooltip or message for disabled links
                       }
                     }}
                   >

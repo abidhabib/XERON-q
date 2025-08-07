@@ -161,7 +161,7 @@ function App() {
           <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
           <Route path='/alerts' element={approved === 1 && isAuthenticated ? <Notifications /> : <Login />} />
           <Route path='/SalaryofMonth' element={approved === 1 && isAuthenticated ? <MonthlySalaryDashboard /> : <Login />} />
-          <Route path='/contact-admin' element={approved === 1 && isAuthenticated ? <ProfileCard /> : <Login />} />
+          <Route path='/admin-profile/:token' element={approved === 1 && isAuthenticated ? <ProfileCard /> : <Login />} />
 
         </Routes>
       </BrowserRouter>

@@ -2,16 +2,15 @@
 import express from 'express';
 import AdminProfileCardController from '../controllers/adminProfileCardController.js';
 import multer from 'multer';
-import getUserIdFromSession from '../utils/getSessionMiddleware.js'; // Assuming this sets req.user
+import getUserIdFromSession from '../utils/getSessionMiddleware.js';
 import fs from 'fs';
 import path from 'path';
 const router = express.Router();
 
-// Configure multer for file uploads
+// Configure multer for file uploads (No changes here)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'public/uploads/';
-    // Create uploads directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -23,7 +22,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -37,20 +36,20 @@ const upload = multer({
   }
 });
 
-// Public route - anyone can access the general profile info (if needed elsewhere)
+// Public route - anyone can access the general profile info
 router.get('/public/admin-profile', AdminProfileCardController.getPublicProfile);
 
 // --- NEW: Public route - anyone with a VALID token can access the profile data ---
-// This uses the validatePublicToken middleware to check the token before fetching data
+// Uses the validatePublicToken middleware FIRST, then getPublicProfile
 router.get('/admin/public-profile/:token', AdminProfileCardController.validatePublicToken, AdminProfileCardController.getPublicProfile);
 
 // --- NEW: Admin route - generate the encrypted public access link ---
-// Requires authentication (via getUserIdFromSession) and admin privileges (checked in controller)
-router.post('/admin/generate-public-link', getUserIdFromSession, AdminProfileCardController.generatePublicLink);
+// Requires authentication via middleware and admin check in controller
+router.post('/admin/generate-public-link',  AdminProfileCardController.generatePublicLink);
 
-// Admin routes - require authentication and admin privileges (checked in controller)
-router.get('/admin/profile', getUserIdFromSession, AdminProfileCardController.getAdminProfile);
-router.put('/admin/profile', getUserIdFromSession, AdminProfileCardController.updateAdminProfile);
-router.post('/admin/profile/image', getUserIdFromSession, upload.single('profileImage'), AdminProfileCardController.uploadImage);
+// Admin routes - require authentication (via middleware) and admin privileges (checked in controller)
+router.get('/admin/profile',  AdminProfileCardController.getAdminProfile);
+router.put('/admin/profile',  AdminProfileCardController.updateAdminProfile);
+router.post('/admin/profile/image',  upload.single('profileImage'), AdminProfileCardController.uploadImage);
 
 export default router;
