@@ -124,6 +124,11 @@ export const Sidebar = () => {
           icon: <HiOutlineBell className="w-5 h-5" />,
           label: "Send Notification",
         },
+            {
+          path: "/admin-profile-manager",
+          icon: <HiOutlineCog className="w-5 h-5" />,
+          label: "Admin Contact Card",
+        },
            {
           path: "/commission",
           icon: <HiOutlineCash className="w-5 h-5" />,

@@ -34,6 +34,7 @@ const AdminProfileManager = () => {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [copySuccess, setCopySuccess] = useState('');
   const [apiErrors, setApiErrors] = useState({}); // State to hold API error messages
+const [storedPublicLink, setStoredPublicLink] = useState(null); // New state
 
   // Load existing data
   useEffect(() => {
@@ -214,7 +215,7 @@ const AdminProfileManager = () => {
     setApiErrors(prev => ({ ...prev, reset: null })); // Clear previous reset error
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken');
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
       if (!token || !apiBaseUrl) {
@@ -328,7 +329,7 @@ const AdminProfileManager = () => {
      setApiErrors(prev => ({ ...prev, save: null })); // Clear previous save error
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken');
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
       if (!token || !apiBaseUrl) {
@@ -518,7 +519,7 @@ const AdminProfileManager = () => {
                 </div>
                 {copySuccess && <p className="mt-2 text-sm text-green-600">{copySuccess}</p>}
                 <p className="mt-2 text-xs text-blue-600">
-                  This link is valid for 24 hours. Share it securely.
+                  This link is valid  securely.
                 </p>
                  {/* Display errors specifically for link generation if they occur after initial display */}
                 {apiErrors.generateLink && (

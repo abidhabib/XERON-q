@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql:3306
--- Generation Time: Jul 28, 2025 at 08:59 PM
+-- Generation Time: Aug 07, 2025 at 07:15 PM
 -- Server version: 8.3.0
 -- PHP Version: 8.2.8
 
@@ -12,10 +12,14 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 
--- Database: `uv1`
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
 --
-CREATE DATABASE IF NOT EXISTS `uv1` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE `uv1`;
+-- Database: `uv`
+--
 
 -- --------------------------------------------------------
 
@@ -29,6 +33,54 @@ CREATE TABLE `admins` (
   `username` varchar(55) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `role` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_profile_card`
+--
+
+CREATE TABLE `admin_profile_card` (
+  `id` int NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `title` varchar(150) DEFAULT NULL,
+  `profile_image_url` varchar(255) DEFAULT '/uploads/default-admin.png',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_profile_tokens`
+--
+
+CREATE TABLE `admin_profile_tokens` (
+  `id` int NOT NULL,
+  `token` varchar(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_by` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_social_links`
+--
+
+CREATE TABLE `admin_social_links` (
+  `id` int NOT NULL,
+  `platform_name` varchar(50) NOT NULL,
+  `icon_name` varchar(50) NOT NULL,
+  `color_class` varchar(50) NOT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `display_order` int DEFAULT '0',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -545,6 +597,26 @@ ALTER TABLE `admins`
   ADD PRIMARY KEY (`admin_id`);
 
 --
+-- Indexes for table `admin_profile_card`
+--
+ALTER TABLE `admin_profile_card`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `admin_profile_tokens`
+--
+ALTER TABLE `admin_profile_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token` (`token`),
+  ADD KEY `created_by` (`created_by`);
+
+--
+-- Indexes for table `admin_social_links`
+--
+ALTER TABLE `admin_social_links`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `bep20_settings`
 --
 ALTER TABLE `bep20_settings`
@@ -727,6 +799,24 @@ ALTER TABLE `withdraw_limit`
 --
 
 --
+-- AUTO_INCREMENT for table `admin_profile_card`
+--
+ALTER TABLE `admin_profile_card`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `admin_profile_tokens`
+--
+ALTER TABLE `admin_profile_tokens`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `admin_social_links`
+--
+ALTER TABLE `admin_social_links`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `bep20_settings`
 --
 ALTER TABLE `bep20_settings`
@@ -887,6 +977,12 @@ ALTER TABLE `withdraw_limit`
 --
 
 --
+-- Constraints for table `admin_profile_tokens`
+--
+ALTER TABLE `admin_profile_tokens`
+  ADD CONSTRAINT `admin_profile_tokens_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
 -- Constraints for table `monthly_recruits`
 --
 ALTER TABLE `monthly_recruits`
@@ -923,4 +1019,6 @@ ALTER TABLE `withdrawal_requests`
   ADD CONSTRAINT `fk_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
-
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
