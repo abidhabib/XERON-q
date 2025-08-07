@@ -3,7 +3,8 @@ import express from 'express';
 import AdminProfileCardController from '../controllers/adminProfileCardController.js';
 import multer from 'multer';
 import getUserIdFromSession from '../utils/getSessionMiddleware.js';
-
+import fs from 'fs';
+import path from 'path';
 const router = express.Router();
 
 // Configure multer for file uploads
