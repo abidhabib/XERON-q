@@ -2,7 +2,7 @@
 import express from 'express';
 import AdminProfileCardController from '../controllers/adminProfileCardController.js';
 import multer from 'multer';
-import getUserIdFromSession from '../utils/getSessionMiddleware.js';
+import getUserIdFromSession from '../utils/getSessionMiddleware.js'; // Assuming this sets req.user
 import fs from 'fs';
 import path from 'path';
 const router = express.Router();
@@ -37,12 +37,20 @@ const upload = multer({
   }
 });
 
-// Public route - anyone can access
+// Public route - anyone can access the general profile info (if needed elsewhere)
 router.get('/public/admin-profile', AdminProfileCardController.getPublicProfile);
 
-// Admin routes - require authentication and admin privileges
-router.get('/admin/profile', AdminProfileCardController.getAdminProfile);
-router.put('/admin/profile', AdminProfileCardController.updateAdminProfile);
-router.post('/admin/profile/image', upload.single('profileImage'), AdminProfileCardController.uploadImage);
+// --- NEW: Public route - anyone with a VALID token can access the profile data ---
+// This uses the validatePublicToken middleware to check the token before fetching data
+router.get('/admin/public-profile/:token', AdminProfileCardController.validatePublicToken, AdminProfileCardController.getPublicProfile);
+
+// --- NEW: Admin route - generate the encrypted public access link ---
+// Requires authentication (via getUserIdFromSession) and admin privileges (checked in controller)
+router.post('/admin/generate-public-link', getUserIdFromSession, AdminProfileCardController.generatePublicLink);
+
+// Admin routes - require authentication and admin privileges (checked in controller)
+router.get('/admin/profile', getUserIdFromSession, AdminProfileCardController.getAdminProfile);
+router.put('/admin/profile', getUserIdFromSession, AdminProfileCardController.updateAdminProfile);
+router.post('/admin/profile/image', getUserIdFromSession, upload.single('profileImage'), AdminProfileCardController.uploadImage);
 
 export default router;
