@@ -1,5 +1,6 @@
 import { createContext, useState, useCallback } from 'react';
 import axios from 'axios';
+import { RemoveTrailingZeros } from '../../utils/utils';
 
 export const UserContext = createContext();
 
@@ -42,7 +43,7 @@ export const UserProvider = ({ children }) => {
         setLevel(user.level);
         setTeam(user.team);
         setToday_team(user.today_team);
-        setCurrBalance(user.balance);
+        setCurrBalance(RemoveTrailingZeros(user.balance));
         setBackend_wallet(user.backend_wallet);
         setPaymentOk(user.payment_ok);
         setApproved(user.approved);

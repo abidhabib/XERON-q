@@ -9,7 +9,7 @@ export const RemoveTrailingZeros = (num) => {
     }
 
     // Truncate to 5 decimals without rounding
-    const truncated = Math.floor(num * 1000000) / 1000000;
+    const truncated = Math.floor(num * 10000) / 10000;
 
     // Convert to string and remove unnecessary trailing zeros
     return truncated.toString().replace(/(\.\d*?[1-9])0+$|\.0*$/, '$1');

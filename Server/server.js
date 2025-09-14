@@ -109,7 +109,8 @@ app.use('/',FindReferrer)
 app.use('/api/monthly-levels', monthlyLevelsRoutes); // Prefix all routes in monthlyLevels.js with /api/monthly-levels
 app.use('/api/monthly-salary', monthlySalaryRoutes);
 app.use('/api', adminProfileCardRoutes);
-app.use('/uploads', express.static('public/uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.urlencoded({ extended: true }));
 
 
 
@@ -612,68 +613,6 @@ app.post('/changePassword', (req, res) => {
         });
     });
 });
-app.post('/updateBalance', (req, res) => {
-    const { productId } = req.body;
-
-    if (!req.session.userId) {
-        return res.json({ status: 'error', error: 'User not logged in' });
-    }
-
-    const userId = req.session.userId;
-    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-
-    // Check if the product was already clicked today
-    const checkClickSql = `
-        SELECT 1 FROM user_product_clicks 
-        WHERE user_id = ? AND product_id = ? AND DATE(last_clicked) = ?
-    `;
-
-    con.query(checkClickSql, [userId, productId, today], (err, result) => {
-        if (err) {
-            return res.status(500).json({ status: 'error', error: 'Failed to check click history' });
-        }
-
-        if (result.length > 0) {
-            return res.json({ status: 'error', error: 'You have already clicked this product today' });
-        }
-
-        // Step 1: Get backend_wallet value
-        const getWalletSql = `SELECT backend_wallet FROM users WHERE id = ?`;
-        con.query(getWalletSql, [userId], (err, walletResult) => {
-            if (err || walletResult.length === 0) {
-                return res.status(500).json({ status: 'error', error: 'Failed to fetch backend_wallet' });
-            }
-
-            const backendWallet = walletResult[0].backend_wallet;
-            const onePercent = backendWallet * 0.012;
-
-            // Step 2: Deduct 1% from backend_wallet and increment balance
-            const updateWalletSql = `
-                UPDATE users 
-                SET backend_wallet = backend_wallet - ?, balance = balance + ? 
-                WHERE id = ?`;
-            con.query(updateWalletSql, [onePercent, onePercent, userId], (err, updateResult) => {
-                if (err) {
-                    return res.status(500).json({ status: 'error', error: 'Failed to update backend_wallet and balance' });
-                }
-
-                // Step 3: Insert or update the click history with the current timestamp
-                const updateLastClickedSql = `
-                    INSERT INTO user_product_clicks (user_id, product_id, last_clicked) 
-                    VALUES (?, ?, NOW()) 
-                    ON DUPLICATE KEY UPDATE last_clicked = VALUES(last_clicked)
-                `;
-                con.query(updateLastClickedSql, [userId, productId], (err, clickResult) => {
-                    if (err) {
-                        return res.status(500).json({ status: 'error', error: 'Failed to update last clicked time' });
-                    }
-
-                    return res.json({ status: 'success', message: 'Balance and backend_wallet updated successfully' });
-                });
-            });
-        });
-    });
-});
 
 
 
@@ -690,6 +629,7 @@ app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
 
     const { name, currentPassword, newPassword, phoneNumber } = req.body;
 
+    // Validation
     if (!name || !phoneNumber) {
         return res.status(400).json({ status: 'error', error: 'Name and phone number are required' });
     }
@@ -711,6 +651,7 @@ app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
 
         // Handle password change if current password and new password are provided
         if (currentPassword && newPassword) {
+            // Simple password comparison (in production, use bcrypt)
             if (userPassword !== currentPassword) {
                 return res.status(400).json({ status: 'error', error: 'Current password is incorrect' });
             }
@@ -722,7 +663,7 @@ app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
                     return res.status(500).json({ status: 'error', error: 'Failed to update password' });
                 }
 
-                // Update other fields (name and profile picture if provided)
+                // Update other fields (name, profile picture, phone number)
                 const updateUserDataQuery = 'UPDATE users SET name = ?, profile_picture = ?, phoneNumber = ? WHERE id = ?';
                 con.query(updateUserDataQuery, [name, profilePicturePath || existingProfilePicture, phoneNumber, req.session.userId], (err, result) => {
                     if (err) {
@@ -731,9 +672,15 @@ app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
 
                     // Delete existing profile picture if a new one is uploaded
                     if (existingProfilePicture && req.file) {
-                        fs.unlink(existingProfilePicture, (err) => {
-                            if (err) {
-                                console.error('Failed to delete existing profile picture:', err);
+                        // Check if file exists before trying to delete
+                        fs.access(existingProfilePicture, fs.constants.F_OK, (err) => {
+                            if (!err) {
+                                // File exists, safe to delete
+                                fs.unlink(existingProfilePicture, (unlinkErr) => {
+                                    if (unlinkErr) {
+                                        console.error('Failed to delete existing profile picture:', unlinkErr);
+                                    }
+                                });
                             }
                         });
                     }
@@ -751,9 +698,15 @@ app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
 
                 // Delete existing profile picture if a new one is uploaded
                 if (existingProfilePicture && req.file) {
-                    fs.unlink(existingProfilePicture, (err) => {
-                        if (err) {
-                            console.error('Failed to delete existing profile picture:', err);
+                    // Check if file exists before trying to delete
+                    fs.access(existingProfilePicture, fs.constants.F_OK, (err) => {
+                        if (!err) {
+                            // File exists, safe to delete
+                            fs.unlink(existingProfilePicture, (unlinkErr) => {
+                                if (unlinkErr) {
+                                    console.error('Failed to delete existing profile picture:', unlinkErr);
+                                }
+                            });
                         }
                     });
                 }
@@ -763,8 +716,6 @@ app.put('/updateProfile', upload.single('profilePicture'), async (req, res) => {
         }
     });
 });
-
-
 
 
 
@@ -1832,36 +1783,7 @@ app.get('/products', (req, res) => {
         res.status(200).json({ success: true, data: results });
     });
 });
-app.get('/fetchClickedProducts', (req, res) => {
-    if (!req.session.userId) {
-        return res.status(401).json({ status: 'error', error: 'User not authenticated' });
-    }
 
-    const userId = req.session.userId;
-
-    const getUnclickedProductsSql = `
-    SELECT * FROM products p
-    WHERE NOT EXISTS (
-        SELECT 1 FROM user_product_clicks upc 
-        WHERE upc.user_id = ? 
-        AND upc.product_id = p.id 
-        AND DATE(upc.last_clicked) = CURDATE()
-    )
-`;
-
-
-    con.query(getUnclickedProductsSql, [userId], (err, productResults) => {
-        if (err) {
-            console.error('Error fetching unclicked products:', err);
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch unclicked products' });
-        }
-
-        res.json({
-            status: 'success',
-            products: productResults
-        });
-    });
-});
 
 
 
@@ -1951,9 +1873,262 @@ app.get('/user/:id', (req, res) => {
     });
 });
 
+// GET endpoint - Get coin value
+app.get('/get-coin-value', async (req, res) => {
+    const connection = con.promise(); 
+    try {
+        const [result] = await connection.query(
+            'SELECT value FROM coin_value WHERE id = 1'
+        );
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: 'Coin value not found' });
+        }
+        
+        res.json({ value: result[0].value });
+    } catch (error) {
+        console.error('Error fetching coin value:', error);
+        res.status(500).json({ error: 'Failed to fetch coin value' });
+    }
+});
 
+// POST endpoint - Update coin value with validation
+app.post('/update-coin-value', async (req, res) => {
+    const { value } = req.body;
+    const connection = con.promise();
+    
+    // Validate input
+    if (value === undefined || value === null) {
+        return res.status(400).json({ error: 'Value is required' });
+    }
+    
+    // Validate that value is a number
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) {
+        return res.status(400).json({ error: 'Value must be a valid number' });
+    }
+    
+    // Ensure value is not negative (optional, based on your business logic)
+    if (numericValue < 0) {
+        return res.status(400).json({ error: 'Value cannot be negative' });
+    }
+    
+    try {
+        const [result] = await connection.query(
+            'UPDATE coin_value SET value = ? WHERE id = 1',
+            [numericValue]
+        );
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Coin value record not found' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Coin value updated successfully',
+            value: numericValue
+        });
+    } catch (error) {
+        console.error('Error updating coin value:', error);
+        res.status(500).json({ error: 'Failed to update coin value' });
+    }
+});
+// Fixed /exchange-coin endpoint
+app.post('/exchange-coin', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const userId = req.session.userId;
+    const connection = con.promise();
 
+    try {
+        await connection.query('START TRANSACTION');
+
+        // Get current coin value
+        const [valueResult] = await connection.query(
+            `SELECT value FROM coin_value WHERE id = 1`
+        );
+        
+        if (!valueResult.length) {
+            await connection.query('ROLLBACK');
+            return res.status(404).json({ error: 'Coin value not found' });
+        }
+        
+        const currentValue = valueResult[0].value;
+
+        // Get user coins with lock
+        const [user] = await connection.query(
+            `SELECT coin FROM users WHERE id = ? FOR UPDATE`,
+            [userId]
+        );
+
+        if (!user.length) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'User not found' });
+        }
+
+        const coins = user[0].coin;
+        if (coins <= 0) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'No coins to exchange' });
+        }
+
+        // Calculate USD amount
+        const usdAmount = coins * currentValue;
+
+        // Update user balance and reset coins
+        await connection.query(
+            `UPDATE users SET balance = balance + ?, coin = 0 WHERE id = ?`,
+            [usdAmount, userId] // Use usdAmount, not coins for balance update
+        );
+
+        // Insert into history
+        await connection.query(
+            `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'exchange', ?, ?)`,
+            [userId, coins, usdAmount]
+        );
+
+        // Get updated user data
+        const [updatedUser] = await connection.query(
+            `SELECT balance, coin FROM users WHERE id = ?`,
+            [userId]
+        );
+
+        await connection.query('COMMIT');
+
+        res.json({
+            success: true,
+            balance: updatedUser[0].balance,
+            coin: updatedUser[0].coin,
+            usd_amount: usdAmount
+        });
+    } catch (error) {
+        await connection.query('ROLLBACK');
+        console.error('Exchange error:', error);
+        res.status(500).json({ error: 'Exchange failed' });
+    }
+});
+
+// Fixed /user-data endpoint to match frontend expectations
+app.get('/user-data', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const [results] = await con.promise().query(
+            `SELECT backend_wallet, coin as winstuk_coin, balance, last_collect_date FROM users WHERE id = ?`,
+            [req.session.userId]
+        );
+
+        res.json(results[0]);
+    } catch (error) {
+        console.error('User data error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.get('/coin-collect-history', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const [results] = await con.promise().query(
+            `SELECT id, type, amount, usd_value, created_at FROM coin_collect_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
+            [req.session.userId]
+        );
+
+        res.json(results);
+    } catch (error) {
+        console.error('History error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/collect-coin', async (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = req.session.userId;
+
+    const connection = con.promise(); // ✅ Only use .promise()
+
+    try {
+        await connection.query('START TRANSACTION'); // ✅ start transaction
+
+        // 1. Fetch user data with lock
+        const [userRows] = await connection.query(
+            `SELECT backend_wallet, last_collect_date FROM users WHERE id = ? FOR UPDATE`,
+            [userId]
+        );
+
+        if (!userRows.length) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'User not found' });
+        }
+
+        const user = userRows[0];
+
+        // 2. Get current database date
+        const [currentDateRows] = await connection.query(
+            `SELECT CURRENT_DATE() AS today`
+        );
+        const today = currentDateRows[0].today;
+
+        if (user.last_collect_date >= today) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'Already collected today' });
+        }
+
+        if (user.backend_wallet <= 0) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'Insufficient funds' });
+        }
+
+        // 3. Calculate
+        const collectAmount = user.backend_wallet * 0.1;
+        const newWallet = user.backend_wallet - collectAmount;
+
+        // 4. Get current winstuk value
+        const [valueResult] = await connection.query(
+            `SELECT value FROM coin_value WHERE id = 1`
+        );
+        const coinValue = valueResult[0].value;
+console.log(coinValue);
+
+        // 5. Update user
+        await connection.query(
+            `UPDATE users SET backend_wallet = ?, coin = coin + ?, last_collect_date = CURDATE() WHERE id = ?`,
+            [newWallet, collectAmount, userId]
+        );
+
+        // 6. Insert into history
+        await connection.query(
+            `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'collect', ?, ?)`,
+            [userId, collectAmount, collectAmount * coinValue]
+        );
+
+        // 7. Get updated user data
+        const [updatedUserRows] = await connection.query(
+            `SELECT backend_wallet, coin, last_collect_date FROM users WHERE id = ?`,
+            [userId]
+        );
+
+        const updatedUser = updatedUserRows[0];
+
+        await connection.query('COMMIT');
+
+        res.json({
+            success: true,
+            backend_wallet: updatedUser.backend_wallet,
+            coin: updatedUser.coin,
+            collected_amount: collectAmount,
+            current_value: coinValue,
+            last_collect_date: updatedUser.last_collect_date, // timestamp ke saath
+        });
+    } catch (error) {
+        await connection.query('ROLLBACK');
+        console.error('Collect error:', error);
+        res.status(500).json({ error: 'Collection failed' });
+    }
+});
 
 
 

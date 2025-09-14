@@ -3,7 +3,7 @@ import { CheckCircle, Clock, AlertCircle, Bell, X } from 'react-feather';
 import { formatDistanceToNow } from 'date-fns';
 import { UserContext } from '../UserContext/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import NavBar from '../NavBAr';
+import NavBAr from '../NavBAr';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
@@ -15,34 +15,34 @@ const NotificationsPage = () => {
     
     if (/approved|success|congrat/i.test(lowerMsg)) {
       return {
-        icon: <CheckCircle className="w-5 h-5" />,
+        icon: <CheckCircle className="w-5 h-5 text-green-600" />,
         bg: 'bg-green-50',
-        border: 'border-l-4 border-green-500',
+        border: 'border-l-2 border-green-500',
         dot: 'bg-green-500',
         text: 'text-gray-800'
       };
     } else if (/pending|waiting|processing/i.test(lowerMsg)) {
       return {
-        icon: <Clock className="w-5 h-5" />,
+        icon: <Clock className="w-5 h-5 text-amber-600" />,
         bg: 'bg-amber-50',
-        border: 'border-l-4 border-amber-500',
+        border: 'border-l-2 border-amber-500',
         dot: 'bg-amber-500',
         text: 'text-gray-800'
       };
     } else if (/reject|error|fail/i.test(lowerMsg)) {
       return {
-        icon: <AlertCircle className="w-5 h-5" />,
+        icon: <AlertCircle className="w-5 h-5 text-red-600" />,
         bg: 'bg-red-50',
-        border: 'border-l-4 border-red-500',
+        border: 'border-l-2 border-red-500',
         dot: 'bg-red-500',
         text: 'text-gray-800'
       };
     }
     
     return {
-      icon: <Bell className="w-5 h-5" />,
+      icon: <Bell className="w-5 h-5 text-blue-600" />,
       bg: 'bg-blue-50',
-      border: 'border-l-4 border-blue-500',
+      border: 'border-l-2 border-blue-500',
       dot: 'bg-blue-500',
       text: 'text-gray-800'
     };
@@ -101,94 +101,103 @@ const NotificationsPage = () => {
   if (!userId) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50  max-w-4xl mx-auto">
-      {/* Header */}
-      <NavBar />
-    <div className="p-3">
-          <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-sans">
-            Notifications
-          </h1>
-          {unreadCount > 0 && (
-            <span className="ml-3 px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">
-              {unreadCount}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={markAllAsRead}
-          disabled={unreadCount === 0}
-          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
-            unreadCount > 0 
-              ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
-              : 'text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          Mark all as read
-        </button>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <NavBAr />
       </div>
 
-      {/* Notifications List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {notifications.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <Bell className="w-8 h-8 text-gray-400" />
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 pt-16">
+        <div className="px-4 py-6">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-gray-900">
+                Notifications
+              </h1>
+              {unreadCount > 0 && (
+                <span className="ml-3 px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
             </div>
-            <p className="text-gray-500 font-medium">No notifications yet</p>
-            <p className="text-gray-400 text-sm mt-1">We'll notify you when something arrives</p>
+            <button
+              onClick={markAllAsRead}
+              disabled={unreadCount === 0}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                unreadCount > 0 
+                  ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' 
+                  : 'text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Mark all read
+            </button>
           </div>
-        ) : (
-          <ul>
-            <AnimatePresence>
-              {notifications.map((notification) => {
-                const style = getNotificationStyle(notification.msg);
-                const isUnread = notification.is_read === 0;
-                
-                return (
-                  <motion.li
-                    key={notification.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={`${style.bg} ${style.border} border-b border-gray-100 last:border-b-0`}
-                  >
-                    <div className="flex items-start p-4">
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full ${isUnread ? 'bg-white' : 'bg-gray-50'} flex items-center justify-center mt-0.5`}>
-                        {style.icon}
-                      </div>
-                      
-                      <div className="ml-3 flex-1">
-                        <p className={`${style.text} font-medium text-sm`}>
-                          {notification.msg}
-                        </p>
-                        <div className="flex items-center mt-1.5">
-                          <span className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                          </span>
+
+          {/* Notifications List */}
+          <div className="rounded-xl overflow-hidden">
+            {notifications.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-xl border border-gray-200">
+                <div className="w-12 h-12 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Bell className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-gray-600 font-medium">No notifications</p>
+                <p className="text-gray-400 text-sm mt-1">You're all caught up!</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {notifications.map((notification) => {
+                    const style = getNotificationStyle(notification.msg);
+                    const isUnread = notification.is_read === 0;
+                    
+                    return (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={`${style.bg} ${style.border} rounded-lg border border-gray-200`}
+                      >
+                        <div className="flex items-start p-4">
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUnread ? 'bg-white' : 'bg-gray-50'}`}>
+                            {style.icon}
+                          </div>
+                          
+                          <div className="ml-3 flex-1">
+                            <p className={`${style.text} text-sm font-medium`}>
+                              {notification.msg}
+                            </p>
+                            <div className="flex items-center mt-1">
+                              <span className="text-xs text-gray-500">
+                                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                              </span>
+                              {isUnread && (
+                                <span className={`ml-2 w-2 h-2 rounded-full ${style.dot}`}></span>
+                              )}
+                            </div>
+                          </div>
+                          
                           {isUnread && (
-                            <span className={`ml-2 w-2 h-2 rounded-full ${style.dot}`}></span>
+                            <button
+                              onClick={() => markAsRead(notification.id)}
+                              className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </motion.li>
-                );
-              })}
-            </AnimatePresence>
-          </ul>
-        )}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
     </div>
   );
 };

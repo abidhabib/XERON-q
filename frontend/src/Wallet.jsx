@@ -1,68 +1,67 @@
-import  {  useEffect, useContext } from 'react';
-
-import './DailyTask.css';
-
+import { useEffect, useContext } from 'react';
 import { UserContext } from './UserContext/UserContext';
 import NavBAr from './NavBAr';
-import  { Toaster } from 'react-hot-toast';
-import   {WithdrwaHistory}  from './MyWithdrwal'
-import Modal from 'react-modal';
-Modal.setAppElement('#root');
+import { Toaster } from 'react-hot-toast';
+import { WithdrwaHistory } from './MyWithdrwal';
 import { useNavigate } from 'react-router-dom';
 import { RemoveTrailingZeros } from '../utils/utils';
 
 const Wallet = () => {
-
   const { userData, fetchUserData } = useContext(UserContext);
-
- 
-
-
-
+  const navigate = useNavigate();
 
   useEffect(() => {
-      fetchUserData();
+    fetchUserData();
   }, []);
 
+  const toWithdraw = () => { 
+    navigate('/cashout');
+  };
 
-const navigate=useNavigate()
-
-
-const toWithdrwa=()=>{  navigate('/cashout')
-}
   return (
-    <>
-    <div className="logo-m">
-      <NavBAr />
-    </div>
-
-    <div className="wallet-card  py-5 card-1">
-      <div className="right-part">
-        <p className='p-0 m-0'>CURRENT USD</p>
-        <p className='text-center balance m-0 mb-2 mt-1 fw-bold'>{RemoveTrailingZeros(Number(userData?.balance))} $</p>
-
-        <button className='withdrwa-button rounded-4 px-4 p-1' onClick={toWithdrwa}>
-          <span>GET MONEY</span>
-        </button>
+    <div className="flex flex-col min-h-screen bg-gray-900">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <NavBAr />
       </div>
 
-      <div className="right-part">
-        <p className='p-0 m-0'>TOTAL GET</p>
-        <p className='text-center balance m-0 mb-2 mt-1 fw-bold'>{RemoveTrailingZeros(Number(userData?.total_withdrawal))} $</p>
+      {/* Main Content Container - Takes remaining space */}
+      <div className="flex flex-col flex-1 pt-16">
+        {/* Wallet Cards - Auto height based on content */}
+        <div className="wallet-card rounded-b-xl bg-[#19202a] px-4 py-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center text-white">
+              <p className="text-sm font-medium text-gray-400">CURRENT USD</p>
+              <p className="text-2xl font-bold mt-1">
+                ${RemoveTrailingZeros(Number(userData?.balance))}
+              </p>
+            </div>
+            
+            <div className="text-center text-white">
+              <p className="text-sm font-medium text-gray-400">TOTAL WITHDRAWN</p>
+              <p className="text-2xl font-bold mt-1">
+                ${RemoveTrailingZeros(Number(userData?.total_withdrawal))}
+              </p>
+            </div>
+          </div>
+          
+          <button 
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 mt-4 text-sm rounded-lg font-medium shadow-sm transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+            onClick={toWithdraw}
+          >
+            Withdraw Funds
+          </button>
+        </div>
 
-        <button className='withdrwa-button rounded-4 px-4 p-1' onClick={() => { navigate('/withdrwas') }}>
-          <span>See Details</span>
-        </button>
-
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <WithdrwaHistory />
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div className="scrollable-container">
-      <WithdrwaHistory />
+      <Toaster />
     </div>
-    <Toaster />
-
-  </>
   );
 };
 

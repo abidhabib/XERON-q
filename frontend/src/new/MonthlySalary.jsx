@@ -1,21 +1,16 @@
-// src/components/User/MonthlySalaryDashboard.jsx
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useContext } from 'react';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCoins,
-  FaCalendarAlt,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaHistory, // Keep for the tab icon
+  FaHistory,
   FaSpinner,
-  FaTimes, // Can be removed if modal is gone, or keep for potential future use
-  FaTrophy,
-  FaMedal,
-  FaVrCardboard
+  
 } from 'react-icons/fa';
+import { UserContext } from '../UserContext/UserContext';
+import { RemoveTrailingZeros } from '../../utils/utils';
 
-// Lazy load NavBar component
 const NavBar = lazy(() => import('../NavBAr'));
 
 const MonthlySalaryDashboard = () => {
@@ -28,13 +23,12 @@ const MonthlySalaryDashboard = () => {
     type: '',
     message: ''
   });
-  const [history, setHistory] = useState([]); // State for history data
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false); // State for history loading
-  const [activeTab, setActiveTab] = useState('progress'); // State for active tab
+  const [history, setHistory] = useState([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('progress');
+  const { NewName, currBalance } = useContext(UserContext);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-  // --- Fetching Functions (Unchanged or slightly modified) ---
 
   const fetchSalaryStatus = async () => {
     setIsLoading(true);
@@ -57,11 +51,10 @@ const MonthlySalaryDashboard = () => {
     }
   };
 
-  // Modified fetchSalaryHistory to be called based on tab
   const fetchSalaryHistory = async () => {
-    if (history.length > 0) return; // Avoid refetching if already loaded
+    if (history.length > 0) return;
     setIsHistoryLoading(true);
-    setHistory([]); // Clear previous history if needed
+    setHistory([]);
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/monthly-salary/history`,
@@ -74,7 +67,6 @@ const MonthlySalaryDashboard = () => {
       }
     } catch (err) {
       console.error("Error fetching salary history:", err);
-      // Optionally set an error state for history if needed
     } finally {
       setIsHistoryLoading(false);
     }
@@ -96,11 +88,7 @@ const MonthlySalaryDashboard = () => {
           type: 'success',
           message: response.data.message
         });
-        // Refresh status and balance
         await fetchSalaryStatus();
-        // Optionally refresh history if the collection is shown there immediately
-        // setHistory([]); // Clear history to trigger refetch
-        // if (activeTab === 'history') fetchSalaryHistory();
       } else {
         throw new Error(response.data.message || 'Failed to collect salary');
       }
@@ -116,8 +104,6 @@ const MonthlySalaryDashboard = () => {
     }
   };
 
-  // --- Helper Functions (Unchanged) ---
-
   const getProgressPercentage = () => {
     if (!salaryData || salaryData.requiredJoins === 0) return 0;
     return Math.min(100, (salaryData.recruitsThisMonth / salaryData.requiredJoins) * 100);
@@ -125,10 +111,10 @@ const MonthlySalaryDashboard = () => {
 
   const getProgressColor = () => {
     const percentage = getProgressPercentage();
-    if (percentage >= 100) return 'bg-gradient-to-r from-green-400 to-emerald-600';
-    if (percentage >= 75) return 'bg-gradient-to-r from-blue-400 to-indigo-600';
-    if (percentage >= 50) return 'bg-gradient-to-r from-yellow-100 to-amber-600';
-    return 'bg-gradient-to-r from-red-500 to-rose-600';
+    if (percentage >= 100) return 'bg-green-500';
+    if (percentage >= 75) return 'bg-blue-500';
+    if (percentage >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   const formatYearMonth = (yearMonthStr) => {
@@ -144,10 +130,8 @@ const MonthlySalaryDashboard = () => {
       : 'Invalid Date';
   };
 
-  // --- Circular Progress Component (Unchanged) ---
-
-  const CircularProgress = ({ percentage, size = 180 }) => {
-    const strokeWidth = 20;
+  const CircularProgress = ({ percentage, size = 120 }) => {
+    const strokeWidth = 12;
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     const offset = circumference - (percentage / 100) * circumference;
@@ -162,366 +146,226 @@ const MonthlySalaryDashboard = () => {
             stroke="#e5e7eb"
             strokeWidth={strokeWidth}
           />
-          <motion.circle
+          <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="url(#progressGradient)"
+            stroke="#19202a"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
-            initial={{ strokeDasharray: circumference, strokeDashoffset: circumference }}
-            animate={{
-              strokeDashoffset: offset,
-              transition: {
-                duration: 1.5,
-                ease: "easeOut",
-                delay: 0.2 // Stagger animation
-              }
-            }}
             strokeDasharray={circumference}
+            strokeDashoffset={offset}
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
           />
-          <defs>
-            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#19202a" />
-              <stop offset="100%" stopColor="#19202a" />
-            </linearGradient>
-          </defs>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span
-            className="text-xl font-bold text-gray-800"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              transition: {
-                duration: 0.5,
-                delay: 0.5 // Stagger text animation
-              }
-            }}
-          >
+          <span className="text-lg font-bold text-gray-800">
             {salaryData?.recruitsThisMonth || 0}/{salaryData?.requiredJoins || 0}
-          </motion.span>
+          </span>
           <span className="text-xs text-gray-500 mt-1">Recruits</span>
         </div>
       </div>
     );
   };
 
-  // --- Effect for Initial Load (Unchanged) ---
   useEffect(() => {
     fetchSalaryStatus();
   }, []);
 
-  // --- Effect for Tab Change ---
   useEffect(() => {
     if (activeTab === 'history' && history.length === 0) {
        fetchSalaryHistory();
     }
-  }, [activeTab, history.length]); // Depend on activeTab and history length
-
+  }, [activeTab, history.length]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Lazy loaded NavBar with Suspense fallback */}
-      <Suspense fallback={
-        <div className="h-16 bg-[#19202a] flex items-center justify-center">
-          <FaSpinner className="animate-spin text-white text-xl" />
-        </div>
-      }>
-        <NavBar />
-      </Suspense>
-
-      {/* Notification Popup (Unchanged) */}
-      <AnimatePresence>
-        {collectionResult.isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.9 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              transition: {
-                type: "spring",
-                stiffness: 300,
-                damping: 20
-              }
-            }}
-            exit={{
-              opacity: 0,
-              y: -50,
-              scale: 0.9,
-              transition: { duration: 0.2 }
-            }}
-            className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-xl text-white flex items-center ${
-              collectionResult.type === 'success'
-                ? 'bg-gradient-to-r from-green-500 to-emerald-600'
-                : 'bg-gradient-to-r from-red-500 to-rose-600'
-            }`}
-          >
-            {collectionResult.type === 'success' ? (
-              <FaCheckCircle className="mr-3 text-xl" />
-            ) : (
-              <FaExclamationTriangle className="mr-3 text-xl" />
-            )}
-            <span className="font-medium">{collectionResult.message}</span>
-            <button
-              onClick={() => setCollectionResult({ isOpen: false, type: '', message: '' })}
-              className="ml-4 text-white hover:text-gray-200 focus:outline-none"
-            >
-              &times;
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Header Section (Unchanged) */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-          transition: {
-            duration: 0.6,
-            delay: 0.1
-          }
-        }}
-        className="bg-[#19202a] p-6 -mt-2 shadow-xl text-white mb-0" // Adjusted margin if needed
-      >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center mb-2">
-              <FaCoins className="mr-3 text-yellow-300" />
-              Monthly Salary Dashboard
-            </h1>
-            <p className="text-indigo-100 text-sm">
-              Track your progress and collect your monthly rewards
-            </p>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Suspense fallback={
+          <div className="h-14 bg-[#19202a] flex items-center justify-center">
+            <FaSpinner className="animate-spin text-white text-lg" />
           </div>
-         <div className="flex justify-between items-center mt-4 w-full">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-sm flex items-center">
-              <FaCalendarAlt className="mr-2 text-indigo-200" />
-              <div>
-                <p className="text-sm font-medium text-indigo-200">Current Month</p>
-                <p className=" font-bold text-sm">
-                  {salaryData?.currentMonthName || 'Loading...'}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 flex items-center">
-              <FaVrCardboard className="mr-2 text-indigo-200" />
-              <div>
-                <p className="text-sm font-medium text-indigo-200">Current Balance</p>
-                <p className="font-bold text-sm">
-                  $ {salaryData?.currentBalance || 'Loading...'}
-                </p>
-              </div>
-            </div>
-         </div>
-        </div>
-        <motion.span
-          className="text-sm mt-4 text-yellow-300 block"
-          initial={{ opacity: 0 }}
-          animate={{
-            opacity: 1,
-            transition: {
-              delay: 0.3
-            }
-          }}
-        >
-          Your Stage <span className="font-bold text-indigo-200"> {salaryData?.currentLevel}</span> and your salary date is <span className="font-bold text-indigo-200"> {salaryData?.designatedSalaryDay}</span>
-        </motion.span>
-      </motion.div>
-
-      {/* Tab Navigation */}
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            className={`py-2 px-4 font-medium text-sm rounded-t-lg ${
-              activeTab === 'progress'
-                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('progress')}
-          >
-            Progress
-          </button>
-          <button
-            className={`py-2 px-4 font-medium text-sm rounded-t-lg flex items-center ${
-              activeTab === 'history'
-                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('history')}
-          >
-            <FaHistory className="mr-2" />
-            Payment History
-          </button>
-        </div>
+        }>
+          <NavBar />
+        </Suspense>
       </div>
 
-      {/* Dashboard Content Area */}
-      <div className=" px-2 pb-2"> {/* Adjusted padding */}
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 pt-14">
+    
 
-        {/* Loading State (Unchanged) */}
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-center items-center h-64"
-          >
-            <FaSpinner className="animate-spin text-4xl text-indigo-600" />
-          </motion.div>
+        {/* Notification Toast */}
+        {collectionResult.isOpen && (
+          <div className={`fixed top-3 left-3 right-3 z-50 px-3 py-2 rounded-lg shadow text-white text-sm flex items-center ${
+            collectionResult.type === 'success'
+              ? 'bg-green-500'
+              : 'bg-red-500'
+          }`}>
+            {collectionResult.type === 'success' ? (
+              <FaCheckCircle className="mr-2 flex-shrink-0" />
+            ) : (
+              <FaExclamationTriangle className="mr-2 flex-shrink-0" />
+            )}
+            <span className="flex-1 truncate">{collectionResult.message}</span>
+            <button
+              onClick={() => setCollectionResult({ isOpen: false, type: '', message: '' })}
+              className="ml-2"
+            >
+              ×
+            </button>
+          </div>
         )}
 
-        {/* Error State (Unchanged) */}
-        {!isLoading && error && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-6 mb-8"
-          >
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+        {/* Content */}
+        <div className="px-3 py-4 flex-1">
+          <div className="max-w-md mx-auto w-full">
+            {/* Header Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h1 className="text-lg font-bold text-gray-900 flex items-center">
+                  <FaCoins className="mr-2 text-yellow-500" />
+                  Monthly Salary
+                </h1>
+                <div className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
+                  {salaryData?.currentLevel}
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Current Month</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {salaryData?.currentMonthName || 'Loading...'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Salary Date</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {salaryData?.designatedSalaryDay || 'Loading...'}
+                  </p>
                 </div>
               </div>
             </div>
-          </motion.div>
-        )}
 
-        {/* Main Content - Tabbed */}
-        {!isLoading && !error && salaryData && (
-          <>
-            {/* Progress Tab Content */}
-            {activeTab === 'progress' && (
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 mb-4">
+              <button
+                className={`px-3 py-2 text-xs font-medium ${
+                  activeTab === 'progress'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('progress')}
+              >
+                Progress
+              </button>
+              <button
+                className={`px-3 py-2 text-xs font-medium flex items-center ${
+                  activeTab === 'history'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('history')}
+              >
+                <FaHistory className="mr-1.5 text-xs" />
+                History
+              </button>
+            </div>
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex justify-center items-center h-32">
+                <FaSpinner className="animate-spin text-xl text-indigo-600" />
+              </div>
+            )}
+
+            {/* Error State */}
+            {!isLoading && error && (
+              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                <div className="flex items-center">
+                  <FaExclamationTriangle className="text-red-500 mr-2" />
+                  <span className="text-sm text-red-700">{error}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Main Content - Tabbed */}
+            {!isLoading && !error && salaryData && (
               <>
-                {/* Progress Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      delay: 0.2
-                    }
-                  }}
-                  className="bg-white rounded-2xl p-2 border border-gray-100 shadow-md mb-8"
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">Monthly Progress</h2>
-                    <div className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-medium">
-                      {getProgressPercentage().toFixed(1)}% Complete
-                    </div>
-                  </div>
-                  {/* Interactive Progress Visualization */}
-                  <div className="flex flex-col md:flex-row gap-8 items-center">
-                    {/* Circular Progress */}
-                    <div className="flex-shrink-0">
-                      <CircularProgress percentage={getProgressPercentage()} />
-                    </div>
-                    {/* Progress Details */}
-                    <div className="flex-1 w-full">
-                      {/* Progress bar with animation */}
-                      <div className="mb-6">
-                        <div className="flex justify-between text-sm text-gray-600 mb-2">
-                          <span className='underline'>Recruitment Progress</span>
-                          <span>{getProgressPercentage().toFixed(1)}%</span>
-                        </div>
-                        <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
-                          <motion.div
-                            className={`h-full rounded-full ${getProgressColor()}`}
-                            initial={{ width: 0 }}
-                            animate={{
-                              width: `${getProgressPercentage()}%`,
-                              transition: {
-                                duration: 1.5,
-                                ease: "easeOut",
-                                delay: 0.4
-                              }
-                            }}
-                          />
+                {/* Progress Tab */}
+                {activeTab === 'progress' && (
+                  <div className="space-y-4">
+                    {/* Progress Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-sm font-bold text-gray-800">Monthly Progress</h2>
+                        <div className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
+                          {getProgressPercentage().toFixed(0)}% Complete
                         </div>
                       </div>
-                      {/* Milestones */}
-                      <div className="space-y-4 mt-6 mb-6">
-                        <h3 className="font-semibold text-gray-700 flex items-center">
-                          <FaTrophy className="text-yellow-500 mr-2" />
-                          Progress Milestones
-                        </h3>
-                        {/* Add milestone details here if available */}
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                          <CircularProgress percentage={getProgressPercentage()} />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="mb-3">
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                              <span>Recruits</span>
+                              <span>{salaryData.recruitsThisMonth}/{salaryData.requiredJoins}</span>
+                            </div>
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${getProgressColor()}`}
+                                style={{ width: `${getProgressPercentage()}%` }}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-indigo-50 p-2 rounded">
+                              <p className="text-xs text-indigo-600">Salary Amount</p>
+                              <p className="text-sm font-bold text-gray-900">
+                                ${salaryData.levelSalary}
+                              </p>
+                            </div>
+                            <div className="bg-blue-50 p-2 rounded">
+                              <p className="text-xs text-blue-600">Required Join</p>
+                              <p className="text-sm font-bold text-gray-900">
+                                {salaryData.requiredJoins}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      {/* Stats */}
-                      <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                        initial={{ opacity: 0 }}
-                        animate={{
-                          opacity: 1,
-                          transition: {
-                            delay: 0.6
-                          }
-                        }}
-                      >
-                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
-                          <p className="text-xs text-indigo-600 font-medium">Current Salary</p>
-                          <p className="text-lg font-bold text-gray-800">
-                            ${salaryData.levelSalary.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-100">
-                          <p className="text-xs text-blue-600 font-medium">Required Recruits</p>
-                          <p className="text-lg font-bold text-gray-800">
-                            {salaryData.requiredJoins}
-                          </p>
-                        </div>
-                      </motion.div>
                     </div>
-                  </div>
-                </motion.div>
 
-                {/* Collect Salary Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      delay: 0.4
-                    }
-                  }}
-                  className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100 shadow-sm"
-                >
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-800 mb-3">Salary Collection</h3>
-                      <div className={`inline-flex items-center px-4 py-2 rounded-xl ${
-                        salaryData.isEligible
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {salaryData.isEligible ? (
-                          <FaCheckCircle className="mr-2 text-green-600" />
-                        ) : (
-                          <FaExclamationTriangle className="mr-2 text-orange-600" />
-                        )}
-                        <span className="font-medium">{salaryData.reason}</span>
+                    {/* Collect Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-bold text-gray-800">Salary Collection</h3>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          salaryData.isEligible
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {salaryData.isEligible ? 'Eligible' : 'Not Eligible'}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.98 }}
+                      
+                      <p className="text-xs text-gray-600 mb-4">
+                        {salaryData.reason}
+                      </p>
+                      
+                      <button
                         onClick={handleCollectSalary}
                         disabled={!salaryData.isEligible || isCollecting}
-                        className={`px-6 py-3 rounded-xl font-bold flex items-center justify-center transition-all ${
+                        className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm flex items-center justify-center ${
                           salaryData.isEligible && !isCollecting
-                            ? 'bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white shadow-lg'
+                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
                             : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         }`}
                       >
@@ -536,121 +380,64 @@ const MonthlySalaryDashboard = () => {
                             Collect Salary
                           </>
                         )}
-                      </motion.button>
-                      {/* Removed Payment History Button from here */}
+                      </button>
                     </div>
                   </div>
-                  {salaryData.isEligible && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{
-                        opacity: 1,
-                        height: 'auto',
-                        transition: {
-                          duration: 0.5,
-                          delay: 0.5
-                        }
-                      }}
-                      className="mt-4 p-4 bg-white rounded-xl border border-green-200 flex items-start"
-                    >
-                      <FaMedal className="text-green-500 text-2xl mr-3 mt-1" />
-                      <div>
-                        <p className="text-green-800 font-medium">
-                          You're eligible to collect your salary!
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Click the button to receive ${salaryData.levelSalary.toFixed(2)} now
-                        </p>
+                )}
+
+                {/* History Tab */}
+                {activeTab === 'history' && (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
+                      <FaHistory className="mr-2 text-indigo-600" />
+                      Payment History
+                    </h2>
+                    
+                    {isHistoryLoading ? (
+                      <div className="flex justify-center items-center h-24">
+                        <FaSpinner className="animate-spin text-lg text-indigo-600" />
                       </div>
-                    </motion.div>
-                  )}
-                </motion.div>
+                    ) : history.length > 0 ? (
+                      <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+                        {history.map((payment) => (
+                          <div
+                            key={payment.id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-100"
+                          >
+                            <div className="flex items-center">
+                              <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
+                                <FaCoins className="text-sm" />
+                              </div>
+                              <div className="ml-3">
+                                <p className="text-sm font-bold text-gray-800">
+                                  ${parseFloat(payment.amount).toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Stage {payment.level}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">
+                                {new Date(payment.payment_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <FaHistory className="mx-auto text-xl text-gray-300 mb-2" />
+                        <p className="text-sm">No payment history</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
-
-            {/* History Tab Content */}
-            {activeTab === 'history' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-md"
-              >
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                  <FaHistory className="mr-3 text-indigo-600" />
-                  Salary Payment History
-                </h2>
-
-                {isHistoryLoading ? (
-                  <div className="flex justify-center items-center h-40">
-                    <FaSpinner className="animate-spin text-3xl text-indigo-600" />
-                  </div>
-                ) : history.length > 0 ? (
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2"> {/* Added scroll */}
-                    <AnimatePresence>
-                      {history.map((payment, index) => (
-                        <motion.div
-                          key={payment.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                            transition: {
-                              delay: index * 0.05 // Slightly faster stagger
-                            }
-                          }}
-                          exit={{
-                            opacity: 0,
-                            y: -20,
-                            transition: {
-                              duration: 0.2
-                            }
-                          }}
-                          className="flex items-center justify-between p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-200"
-                        >
-                          <div className="flex items-center">
-                            <div className="p-3 bg-indigo-100 rounded-lg text-indigo-700">
-                              <FaCoins className="text-xl" />
-                            </div>
-                            <div className="ml-4">
-                              <p className="font-bold text-gray-800">
-                                ${parseFloat(payment.amount).toFixed(2)}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Stage {payment.level}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-gray-500">
-                              {new Date(payment.payment_date).toLocaleDateString()}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatYearMonth(payment.payment_year_month)}
-                            </p>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-10 text-gray-500"
-                  >
-                    <FaHistory className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                    <p className="text-lg font-medium">No salary payment history found</p>
-                    <p className="mt-2">Your salary payments will appear here once collected</p>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
-
-      {/* Removed History Modal Code Entirely */}
     </div>
   );
 };

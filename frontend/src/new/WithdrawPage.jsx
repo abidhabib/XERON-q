@@ -11,46 +11,49 @@ import {
   ShieldCheck,
   X
 } from 'lucide-react';
-
 import NavBAr from '../NavBAr';
+import { FiHome, FiMail, FiUsers } from "react-icons/fi";
+import { AiOutlineVerified } from "react-icons/ai";
+import NotificationBell from '../NotificationBell';
 
 const Toast = ({ message, type, onClose }) => {
   const iconMap = {
-    success: <CheckCircle2 className="w-4 h-4 text-green-600" />,
-    error: <AlertCircle className="w-4 h-4 text-red-600" />,
-    info: <AlertCircle className="w-4 h-4 text-blue-600" />
+    success: <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />,
+    error: <AlertCircle className="w-3.5 h-3.5 text-red-600" />,
+    info: <AlertCircle className="w-3.5 h-3.5 text-blue-600" />
   };
 
   return (
-    <div className="animate-fade-in-up flex items-center gap-2 px-3 py-2 text-sm bg-white border rounded-lg -200">
+    <div className="animate-fade-in-up flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-white border rounded shadow-sm border-gray-200">
       {iconMap[type]}
       <span className="flex-1 text-gray-700">{message}</span>
       <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-        <X className="w-4 h-4" />
+        <X className="w-3.5 h-3.5" />
       </button>
     </div>
   );
 };
 
 const SuccessModal = ({ onClose }) => (
-  <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-    <div className="bg-white rounded-xl p-4 w-11/12 max-w-sm text-center shadow-lg">
-      <CheckCircle2 className="mx-auto mb-3 text-green-600 w-10 h-10" />
-      <h2 className="text-lg font-semibold mb-1">Request Received</h2>
-      <p className="text-sm text-gray-600 mb-4">Processing will complete in a few hours.</p>
-      <button
-        onClick={onClose}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium"
-      >
-        View History
-      </button>
+  <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-3">
+    <div className="bg-white rounded-lg p-4 w-full max-w-xs shadow-lg">
+      <div className="text-center">
+        <CheckCircle2 className="mx-auto mb-2 text-green-500 w-8 h-8" />
+        <h3 className="text-sm font-semibold text-gray-900 mb-1">Request Received</h3>
+        <p className="text-xs text-gray-500 mb-3">Processing will complete in a few hours.</p>
+        <button
+          onClick={onClose}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded text-xs font-medium transition-colors"
+        >
+          View History
+        </button>
+      </div>
     </div>
   </div>
 );
 
-
 const WithdrawPage = () => {
-  const { Userid, userData, fetchUserData, team, level, currBalance } = useContext(UserContext);
+  const { Userid, userData, fetchUserData, team, level, currBalance, NewName, backend_wallet } = useContext(UserContext);
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +62,41 @@ const WithdrawPage = () => {
   const [toasts, setToasts] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
+
+  const menuItems = [
+    { 
+      name: "Home", 
+      link: "/wallet", 
+      icon: <FiHome className="w-4 h-4" />,
+      label: "Dashboard Home"
+    },
+    { 
+      name: "Alerts", 
+      link: "/alerts", 
+      icon: <NotificationBell iconClass="w-4 h-4" />,
+      label: "View Notifications"
+    },
+    { 
+      name: "Contact", 
+      link: "/contact", 
+      icon: <FiMail className="w-4 h-4" />,
+      label: "Contact Support"
+    },
+    { 
+      name: "Team", 
+      link: "/team", 
+      icon: <FiUsers className="w-4 h-4" />,
+      label: "View Team"
+    }
+  ];
+
+  // Calculate progress (backend_wallet / 3)
+  const progress = backend_wallet ? Math.min(Math.round((backend_wallet / 3) * 100), 100) : 0;
+
+  // Format currency properly
+  const formatCurrency = (amount) => {
+    return parseFloat(amount || 0).toFixed(2);
+  };
 
   const showToast = (message, type = 'info', duration = 4000) => {
     const id = Date.now();
@@ -152,8 +190,6 @@ const WithdrawPage = () => {
         totalWithdrawn: userData.total_withdrawal,
         team: team
       };
-      console.log(payload);
-      
 
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/withdraw`,
@@ -195,105 +231,177 @@ const WithdrawPage = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    showToast('Wallet address copied to clipboard', 'success');
+    showToast('Wallet address copied', 'success');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </div>
-
-      <div className=" mx-auto ">
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 right-0 z-50">
         <NavBAr />
-
-     
-
-        <div className="bg-[#19202a] p-3 rounded-b-xl text-white mb-4">
-        <p className="text-xs text-gray-300">Available Balance</p>
-  <div className="flex items-center gap-1 text-lg font-semibold">
-    <DollarSign className="w-4 h-4" />
-    <span>${RemoveTrailingZeros(currBalance)}</span>
-  </div>
-  {accountDetails && (
-    <div className="bg-gray-700 p-3 mt-3 rounded-lg text-xs">
-      <div className="flex items-start gap-2">
-        <ShieldCheck className="w-4 h-4 text-blue-500 mt-0.5" />
-        <div className="flex-1">
-          <p className="text-blue-100 font-medium uppercase tracking-wide">
-            <span className="underline text-amber-400">{accountDetails.address_type}</span> Wallet
-          </p>
-          
-          <p className="mt-2 font-mono text-sm break-all text-green-500">{accountDetails.coin_address}
-{" "}
-          <button onClick={() => copyToClipboard(accountDetails.coin_address)} className="text-gray-300 hover:text-blue-400">
-          <ClipboardCopy className="w-4 h-4" />
-        </button>
-          </p>
-          
-        </div>
-     
       </div>
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 pt-16">
+      {/* Mini Dashboard - Tightened version */}
+<div className="py-4 bg-[#19202a] shadow">
+  <div className="flex items-center px-3 mb-2.5">
+    <p className="text-white uppercase flex items-center text-sm font-medium">
+      {NewName || 'User'} 
+      <span className="text-green-500 ml-1">
+        <AiOutlineVerified className="w-4 h-4" />
+      </span>
+    </p>
+  </div>
+
+  <div className="flex justify-between items-center px-3 mb-3.5">
+    <div>
+      <p className="text-xs text-gray-400 mb-0.5">Available Balance</p>
+      <p className="text-white text-xl font-bold">
+        ${formatCurrency(currBalance)}
+      </p>
     </div>
-  )}
+    <div className="px-2.5 py-1 font-bold text-green-400 bg-transparent border border-green-400 rounded-full text-xs">
+      Progress {progress}%
+    </div>
+  </div>
+
+  <div className="px-3 pb-1.5">
+    <div className="grid grid-cols-4 gap-1.5">
+      {menuItems.map((item, index) => (
+        <button
+          key={index}
+          onClick={() => navigate(item.link)}
+          className="flex flex-col items-center p-1.5 text-white hover:bg-white/10 rounded transition-colors"
+          aria-label={item.label}
+        >
+          <div className="border border-white/20 rounded-full p-2 mb-0.5 flex items-center justify-center bg-white/5">
+            {item.icon}
+          </div>
+          <span className="text-xs text-center">{item.name}</span>
+        </button>
+      ))}
+    </div>
+  </div>
 </div>
 
+        {/* Toast Notifications */}
+        <div className="fixed top-3 right-3 z-50 space-y-1.5">
+          {toasts.map(toast => (
+            <Toast
+              key={toast.id}
+              message={toast.message}
+              type={toast.type}
+              onClose={() => removeToast(toast.id)}
+            />
+          ))}
+        </div>
+{/* Withdraw Content - Modern minimal design */}
+<div className="px-3 py-4 flex-1">
+  <div className="max-w-md mx-auto w-full">
+    {/* Account Info Card */}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Available Balance</p>
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-gray-400" />
+            <span className="text-xl font-bold text-gray-900">
+              ${RemoveTrailingZeros(currBalance)}
+            </span>
+          </div>
+        </div>
+       
+      </div>
 
-<div className="bg-white rounded-xl  p-4">
-  <div className="mb-4">
-    <div className="flex justify-between items-center mb-1">
-      <label className="text-sm font-medium">Amount</label>
+      {accountDetails && (
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-gray-700 uppercase tracking-wide">
+              {accountDetails.address_type} Wallet
+            </p>
+            <ShieldCheck className="w-4 h-4 text-indigo-500" />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <p className="font-mono text-xs text-gray-900 break-all flex-1">
+              {accountDetails.coin_address}
+            </p>
+            <button 
+              onClick={() => copyToClipboard(accountDetails.coin_address)} 
+              className="text-gray-400 hover:text-indigo-600 transition-colors p-1"
+            >
+              <ClipboardCopy className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* Withdraw Form */}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="mb-5">
+        <label className="text-xs font-medium text-gray-700 mb-2 block">Withdraw Amount</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <DollarSign className="w-4 h-4 text-gray-400" />
+          </div>
+          <input
+            type="number"
+            value={amount}
+            onChange={e => {
+              let value = e.target.value.replace(/[^0-9.]/g, '');
+              const parts = value.split('.');
+              if (parts.length > 2) value = parts[0] + '.' + parts[1];
+              if (value === '.') value = '0.';
+              setAmount(value);
+            }}
+            placeholder="0.00"
+            className="w-full pl-8 pr-16 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+          />
+          <button
+            onClick={() => setAmount(currBalance)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-700"
+          >
+            MAX
+          </button>
+        </div>
+        
+        <div className="mt-2 flex gap-2">
+          <span className="text-xs text-gray-500">Min: $10</span>
+          <span className="text-xs text-gray-500">•</span>
+          <span className="text-xs text-gray-500">Fee: $0</span>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-5">
+        <div className="flex items-start gap-2">
+          <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+          <div>
+            <p className="text-xs font-medium text-gray-900">Processing Time</p>
+            <p className="text-xs text-gray-600 mt-0.5">Withdrawals processed within 24 hours</p>
+          </div>
+        </div>
+      </div>
+
       <button
-        onClick={() => setAmount(currBalance)}
-        className="text-xs text-blue-600 hover:text-blue-700"
+        onClick={handleSubmit}
+        disabled={submitting || !accountDetails}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-sm rounded-lg font-medium shadow-sm transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        Use Max
+        {submitting ? (
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+            <span>Processing...</span>
+          </div>
+        ) : (
+          'Withdraw Funds'
+        )}
       </button>
     </div>
-    <div className="relative">
-      <input
-        type="number"
-        value={amount}
-        onChange={e => {
-          let value = e.target.value.replace(/[^0-9.]/g, '');
-          const parts = value.split('.');
-          if (parts.length > 2) value = parts[0] + '.' + parts[1];
-          if (value === '.') value = '0.';
-          setAmount(value);
-        }}
-        placeholder="0.00"
-        className="w-full text-sm pl-4 pr-12 py-2 bg-gray-50 border border-gray-200 rounded-md focus:ring-blue-500 focus:border-blue-500"
-      />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">USD</span>
-    </div>
   </div>
-
-  <p className="text-xs text-center text-gray-500 mb-4">No fees • Instant</p>
-
-  <button
-    onClick={handleSubmit}
-    disabled={submitting || !accountDetails}
-    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-2 text-sm rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
-    >
-    {submitting ? (
-      <div className="flex items-center justify-center gap-2">
-        <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-        <span>Processing...</span>
-      </div>
-    ) : (
-      'Withdraw'
-    )}
-  </button>
 </div>
-
-
+     
       </div>
 
       {showSuccessModal && <SuccessModal onClose={handleSuccessConfirm} />}

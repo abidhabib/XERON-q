@@ -15,7 +15,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 0 0 15px 15px;
-  background: var(--primery-color) !important;
+  background: #19202a;
   height: 240px;
 }
 
