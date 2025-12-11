@@ -103,8 +103,7 @@ const SubAdminsManagement = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-start w-full  ">
-            <Sidebar />
-            <div className="flex-1 p-4 ml-10 md:p-6 ml-0 md:ml-64">
+            <div className="p-4">
             {/* Header */}
                 <div className="mb-4 md:mb-6">
                     <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center">

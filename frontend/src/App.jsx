@@ -1,6 +1,6 @@
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useContext, useEffect, useState } from 'react';
 import { UserContext } from './UserContext/UserContext';
 import { ToastProvider } from './ToastContext';
@@ -48,10 +48,13 @@ import MonthlyLevelsManager from './Dashboard/MonthlyLevelsManager./MonthlyLevel
 import MonthlySalaryDashboard from './new/MonthlySalary';
 import ProfileCard from './new/ProfileCard';
 import AdminProfileManager from './Dashboard/AdminCard/AdminProfileManager';
+import AdminLayout from './Dashboard/AdminLayout';
+import { SidebarProvider } from './Dashboard/SidebarContext';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
   const { isRejected, Userid, setAdminAuthenticated, currBalance, approved, adminAuthenticated, isAuthenticated, fetchUserData } = useContext(UserContext);
+  // ❌ REMOVED: const Navigate = useContext(UserContext);
 
   useEffect(() => {
     const registerServiceWorker = async () => {
@@ -78,7 +81,7 @@ function App() {
       } catch (error) {
         // Provide specific hints based on common errors
         if (error.message && error.message.includes('404')) {
-            console.error("   -> This usually means '/service-worker.js' was not found on the server. Check if it's deployed correctly and accessible at https://checking.run.place/service-worker.js");
+            console.error("   -> This usually means '/service-worker.js' was not found on the server. Check if it's deployed correctly and accessible at https://checking.run.place/service-worker.js  ");
         }
       }
     };
@@ -120,30 +123,80 @@ function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
+              <SidebarProvider> 
+
         <Routes>
-          {/* Admin Routes - Protected by JWT */}
-          <Route path='/users' element={adminAuthenticated ? <ApprovedUsers /> : <AdminLogin />} />
-          <Route path='/easypaisa' element={adminAuthenticated ? <EasyPaisa /> : <AdminLogin />} />
-          <Route path='/rejecteduser' element={adminAuthenticated ? <RejectedUsers /> : <AdminLogin />} />
-          <Route path='/todayApproved' element={adminAuthenticated ? <TodayApproved /> : <AdminLogin />} />
-          <Route path='/withdrwa' element={adminAuthenticated ? <WithdrwaReques /> : <AdminLogin />} />
-          <Route path='/ApprovedWithdrwa' element={adminAuthenticated ? <ApprovedWithdraw /> : <AdminLogin />} />
-          <Route path='/products' element={adminAuthenticated ? <Product /> : <AdminLogin />} />
-          <Route path='/adminpanel' element={adminAuthenticated ? <Widgets /> : <AdminLogin />} />
-          <Route path='/pending' element={adminAuthenticated ? <PendingUsers /> : <AdminLogin />} />
-          <Route path='/accountsetting' element={adminAuthenticated ? <AccountSetting /> : <AdminLogin />} />
-          <Route path='/rejectwithdrwa' element={adminAuthenticated ? <RejectWithdraw /> : <AdminLogin />} />
-          <Route path='/w_salary' element={adminAuthenticated ? <Level /> : <AdminLogin />} />
-          <Route path='/commission' element={adminAuthenticated ? <Commission /> : <AdminLogin />} />
-          <Route path='/withdrawalLimits' element={adminAuthenticated ? <WithdrawLimits /> : <AdminLogin />} />
-          <Route path='/bonussettingforusers' element={adminAuthenticated ? <Bonus /> : <AdminLogin />} />
-          <Route path='/accounts' element={adminAuthenticated ? <Bep20Settings /> : <AdminLogin />} />
-          <Route path='/initialSettings' element={adminAuthenticated ? <Settings /> : <AdminLogin />} />
-          <Route path='/SubAdminsManagement' element={adminAuthenticated ? <SubAdminsManagement /> : <AdminLogin />} />
-          <Route path='/finduser' element={adminAuthenticated ? <FindUser /> : <AdminLogin />} />
-          <Route path='/sendNotification' element={adminAuthenticated ? <PushNotificationManager /> : <AdminLogin />} />
-          <Route path='/monthlyLevels' element={adminAuthenticated ? <MonthlyLevelsManager /> : <AdminLogin />} />
-          <Route path='/admin-profile-manager' element={adminAuthenticated ? <AdminProfileManager /> : <AdminLogin />} />
+
+{/* Admin Auth Routes */}
+
+<Route path="/admin/login" element={<AdminLogin />} />
+
+<Route path="/adminpanel" element={
+  adminAuthenticated ? <AdminLayout><Widgets /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/users" element={
+  adminAuthenticated ? <AdminLayout><ApprovedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/easypaisa" element={
+  adminAuthenticated ? <AdminLayout><EasyPaisa /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/rejecteduser" element={
+  adminAuthenticated ? <AdminLayout><RejectedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/todayApproved" element={
+  adminAuthenticated ? <AdminLayout><TodayApproved /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/withdrwa" element={
+  adminAuthenticated ? <AdminLayout><WithdrwaReques /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/ApprovedWithdrwa" element={
+  adminAuthenticated ? <AdminLayout><ApprovedWithdraw /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/products" element={
+  adminAuthenticated ? <AdminLayout><Product /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/pending" element={
+  adminAuthenticated ? <AdminLayout><PendingUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/accountsetting" element={
+  adminAuthenticated ? <AdminLayout><AccountSetting /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/rejectwithdrwa" element={
+  adminAuthenticated ? <AdminLayout><RejectWithdraw /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/w_salary" element={
+  adminAuthenticated ? <AdminLayout><Level /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/commission" element={
+  adminAuthenticated ? <AdminLayout><Commission /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/withdrawalLimits" element={
+  adminAuthenticated ? <AdminLayout><WithdrawLimits /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/bonussettingforusers" element={
+  adminAuthenticated ? <AdminLayout><Bonus /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/accounts" element={
+  adminAuthenticated ? <AdminLayout><Bep20Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/initialSettings" element={
+  adminAuthenticated ? <AdminLayout><Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/SubAdminsManagement" element={
+  adminAuthenticated ? <AdminLayout><SubAdminsManagement /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/finduser" element={
+  adminAuthenticated ? <AdminLayout><FindUser /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/sendNotification" element={
+  adminAuthenticated ? <AdminLayout><PushNotificationManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/monthlyLevels" element={
+  adminAuthenticated ? <AdminLayout><MonthlyLevelsManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
+<Route path="/admin-profile-manager" element={
+  adminAuthenticated ? <AdminLayout><AdminProfileManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+} />
 
           {/* User Routes - Protected by JWT */}
           <Route path='/' element={<Login />} />
@@ -164,6 +217,8 @@ function App() {
           <Route path='/admin-profile/:token' element={approved === 1 && isAuthenticated ? <ProfileCard /> : <Login />} />
 
         </Routes>
+                       </SidebarProvider>
+
       </BrowserRouter>
      
     </ToastProvider>

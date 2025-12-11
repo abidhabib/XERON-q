@@ -47,3 +47,12 @@ button
   width: 90%;
   max-width: 700px;
 }
+/* Prevent layout shift overflow */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Optional: smooth scroll */
+html {
+  scroll-behavior: smooth;
+}

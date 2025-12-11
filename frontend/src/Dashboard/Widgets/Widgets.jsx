@@ -64,82 +64,73 @@ const Widgets = () => {
   ];
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
+   <>
+    <h1 className="text-xl font-bold text-gray-800 mb-4">Dashboard Overview</h1>
 
-      <div className="flex-1 p-4 ml-10 md:p-6 ml-0 md:ml-64">
-        <h1 className="text-xl font-bold text-gray-800 mb-4">Dashboard Overview</h1>
-
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {Array.from({ length: 14 }).map((_, index) => (
-              <div
-                key={index}
-                className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 animate-pulse"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="bg-gray-200 rounded-md p-2 w-8 h-8"></div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded w-16"></div>
-                    <div className="h-5 bg-gray-300 rounded w-10"></div>
+    {loading ? (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {Array.from({ length: 14 }).map((_, index) => (
+          <div
+            key={index}
+            className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 animate-pulse"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="bg-gray-200 rounded-md p-2 w-8 h-8"></div>
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-200 rounded w-16"></div>
+                <div className="h-5 bg-gray-300 rounded w-10"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {widgets.map((widget, index) => (
+            <div
+              key={index}
+              className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 min-h-[100px]"
+            >
+              <div className="flex items-start sm:items-center space-x-2">
+                <div className="bg-indigo-50 text-indigo-600 rounded-md p-2">
+                  {React.cloneElement(widget.icon, { className: "w-4 h-4" })}
+                </div>
+                <div className="flex flex-col">
+                  <div className="text-xs font-medium text-gray-600 break-words whitespace-normal">
+                    {widget.title}
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-gray-800">
+                    {formatNumber(widget.value)}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {widgets.map((widget, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 min-h-[100px]"
-                >
-                  <div className="flex items-start sm:items-center space-x-2">
-                    <div className="bg-indigo-50 text-indigo-600 rounded-md p-2">
-                      {React.cloneElement(widget.icon, { className: "w-4 h-4" })}
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="text-xs font-medium text-gray-600 break-words whitespace-normal">
-                        {widget.title}
-                      </div>
-                      <div className="text-base sm:text-lg font-bold text-gray-800">
-                        {formatNumber(widget.value)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            </div>
+          ))}
+        </div>
+
+        {dashboardData?.subadminApprovals?.length > 0 && (
+          <section className="mt-8" aria-labelledby="subadmin-stats-title">
+            <h2 id="subadmin-stats-title" className="text-lg font-semibold text-gray-800 mb-4">
+              Subadmin Withdrawal Stats
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {dashboardData.subadminApprovals.map((admin) => (
+                <SubadminStatsCard 
+                  key={admin.subadminId || admin.subadmin} 
+                  admin={admin}
+                />
               ))}
             </div>
-
-            {dashboardData?.subadminApprovals?.length > 0 ? (
-  <section className="mt-8" aria-labelledby="subadmin-stats-title">
-    <h2 
-      id="subadmin-stats-title"
-      className="text-lg font-semibold text-gray-800 mb-4"
-    >
-      Subadmin Withdrawal Stats
-    </h2>
-    
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {dashboardData.subadminApprovals.map((admin) => (
-        <SubadminStatsCard 
-          key={admin.subadminId || admin.subadmin} 
-          admin={admin}
-        />
-      ))}
-    </div>
-  </section>
-) : null}
-
-
-            <div className="mt-10">
-              <MonthlyApprovalsDashboard />
-            </div>
-          </>
+          </section>
         )}
-      </div>
-    </div>
+
+        <div className="mt-10">
+          <MonthlyApprovalsDashboard />
+        </div>
+      </>
+    )}
+  </>
   );
 };
 

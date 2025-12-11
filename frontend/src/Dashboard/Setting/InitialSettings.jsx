@@ -281,10 +281,9 @@ const api = {
 
   // Layout Pattern - Responsive Grid
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+    <div className=" min-h-screen bg-gray-50">
       
-      <div className="flex-1 p-4 md:p-6 md:ml-64">
+      <div className="p-4">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">System Settings</h1>
           <p className="text-gray-600 mt-2">Manage platform configuration and preferences</p>

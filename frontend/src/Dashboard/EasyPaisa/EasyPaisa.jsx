@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Sidebar } from "../SideBarSection/Sidebar";
 import {
   HiOutlineSearch,
   HiOutlineRefresh,
@@ -14,7 +13,11 @@ import {
   HiOutlineTrash,
   HiOutlineLockOpen,
   HiOutlineX,
-  HiOutlineExclamation
+  HiOutlineExclamation,
+  HiOutlineEye,
+  HiOutlineCheck,
+  HiOutlineClock,
+  HiOutlineFilter
 } from 'react-icons/hi';
 import { FaSpinner } from 'react-icons/fa';
 import useBlockUser from '../Hooks/useBlockUser';
@@ -40,6 +43,7 @@ const CryptoUsers = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [selectedAction, setSelectedAction] = useState('all');
 
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -50,37 +54,51 @@ const CryptoUsers = () => {
   });
 
   const filteredData = useMemo(() => {
-    return data.filter(user =>
-      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.id?.toString().includes(searchTerm.toLowerCase()) ||
-      user.trx_id?.toString().includes(searchTerm.trimEnd())
-    );
-  }, [data, searchTerm]);
+    let filtered = data;
+    
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(user =>
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.id?.toString().includes(searchTerm.toLowerCase()) ||
+        user.trx_id?.toString().includes(searchTerm.toLowerCase()) ||
+        user.refer_by?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Filter by action type
+    if (selectedAction === 'pending') {
+      // Users that are pending (not approved/rejected)
+      filtered = filtered.filter(user => !user.approved && !user.rejected);
+    } else if (selectedAction === 'blocked') {
+      filtered = filtered.filter(user => user.blocked);
+    }
+    
+    return filtered;
+  }, [data, searchTerm, selectedAction]);
 
   const fetchData = async () => {
-  setIsLoading(true);
-  try {
-    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/EasypaisaUsers`);
-    console.log("Fetched users:", response.data.approvedUsers); // Check if blocked is included
-    if (response.data?.approvedUsers) {
-      setData(response.data.approvedUsers);
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/EasypaisaUsers`);
+      if (response.data?.approvedUsers) {
+        setData(response.data.approvedUsers);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching users:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const handleSearch = (e) => {
-    setSearchTerm(e.target.value.trimStart());
-  }
+    setSearchTerm(e.target.value.trim());
+  };
 
   // Open confirmation dialog
   const openConfirmation = (userId, userName, actionType, callback) => {
@@ -145,21 +163,20 @@ const CryptoUsers = () => {
     }
   };
 
-  const handleDelete = async (userId) => {
-    if (loadingDeleteUsers.includes(userId)) return;
-
-    if (!window.confirm('Are you sure you want to permanently delete this user?')) return;
-
-    setLoadingDeleteUsers((prev) => [...prev, userId]);
-
-    try {
-      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/deleteUser/${userId}`);
-      setData(prev => prev.filter(user => user.id !== userId));
-    } catch (error) {
-      console.error("Error deleting user:", error);
-    } finally {
-      setLoadingDeleteUsers((prev) => prev.filter(id => id !== userId));
-    }
+  const handleDelete = (userId, userName) => {
+    openConfirmation(
+      userId,
+      userName,
+      'delete',
+      async (id) => {
+        try {
+          await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/deleteUser/${id}`);
+          setData(prev => prev.filter(user => user.id !== id));
+        } catch (error) {
+          console.error("Error deleting user:", error);
+        }
+      }
+    );
   };
 
   const showUserDetails = (user) => {
@@ -191,7 +208,8 @@ const CryptoUsers = () => {
       }));
     }
   };
- const handleBlockClick = (userId, blockedStatus, userName) => {
+
+  const handleBlockClick = (userId, blockedStatus, userName) => {
     openConfirmation(
       userId, 
       userName,
@@ -203,6 +221,7 @@ const CryptoUsers = () => {
       }
     );
   };
+
   const validateForm = () => {
     const errors = {};
     if (!editFormData.name) errors.name = 'Name is required';
@@ -213,7 +232,6 @@ const CryptoUsers = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-console.log(data);
 
   const handleUpdateUser = async () => {
     if (!validateForm()) return;
@@ -227,7 +245,6 @@ console.log(data);
         email: editFormData.email
       });
 
-      // Update local data
       setData(prev => prev.map(user =>
         user.id === selectedUser.id
           ? { ...user, ...editFormData }
@@ -256,433 +273,505 @@ console.log(data);
   };
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
+    <div className="min-h-screen bg-gray-50">
       {/* Confirmation Modal */}
-      <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity ${confirmationModal.isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="bg-white rounded-xl shadow-lg max-w-md w-full transform transition-transform scale-95">
-          <div className="p-6">
-            <div className="flex items-center mb-4">
-              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                <HiOutlineExclamation className="h-6 w-6 text-red-600" />
+      {confirmationModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full animate-fadeIn">
+            <div className="p-6">
+              <div className="text-center mb-4">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                  <HiOutlineExclamation className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="mt-3 text-lg font-semibold text-gray-900">
+                  Confirm {confirmationModal.actionType}
+                </h3>
               </div>
-              <h3 className="ml-4 text-lg font-medium text-gray-900">
-                Confirm {confirmationModal.actionType}
-              </h3>
-            </div>
 
-            <div className="mt-2">
-              <p className="text-sm text-gray-500">
-                Are you sure you want to {confirmationModal.actionType} user{' '}
-                <span className="font-medium">{confirmationModal.userName}</span>?
-                {confirmationModal.actionType === 'reject' && ' This will permanently remove their approval status.'}
-              </p>
-            </div>
+              <div className="mt-2 text-center">
+                <p className="text-sm text-gray-600">
+                  Are you sure you want to {confirmationModal.actionType} user{' '}
+                  <span className="font-medium text-gray-900">{confirmationModal.userName}</span>?
+                </p>
+                {confirmationModal.actionType === 'delete' && (
+                  <p className="mt-1 text-xs text-red-500">
+                    This action cannot be undone.
+                  </p>
+                )}
+              </div>
 
-            <div className="mt-5 sm:mt-6 flex justify-end space-x-3">
-              <button
-                type="button"
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                onClick={closeConfirmation}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                onClick={handleConfirmAction}
-              >
-                Confirm {confirmationModal.actionType}
-              </button>
+              <div className="mt-6 flex justify-center space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={closeConfirmation}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`px-4 py-2 text-sm text-white rounded-lg transition-colors ${
+                    confirmationModal.actionType === 'delete' 
+                      ? 'bg-red-600 hover:bg-red-700' 
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                  }`}
+                  onClick={handleConfirmAction}
+                >
+                  Confirm
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 p-4 ml-10 md:p-6 ml-0 md:ml-64">
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-xl mr-4">
-                <HiOutlineCreditCard className="w-6 h-6 text-blue-600" />
+      {/* Main Content */}
+      <main className="p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-lg bg-white shadow-sm border border-gray-200">
+                <HiOutlineCreditCard className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Crypto Users</h1>
-                <p className="text-gray-600">Manage cryptocurrency payment verifications</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Crypto Users</h1>
+                <p className="text-sm text-gray-600 mt-1">Manage cryptocurrency payment verifications</p>
               </div>
             </div>
+            
             <button
               onClick={fetchData}
-              className="flex items-center text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              disabled={isLoading}
+              className="flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <HiOutlineRefresh className="mr-2" /> Refresh
+              {isLoading ? (
+                <FaSpinner className="animate-spin w-4 h-4 mr-2" />
+              ) : (
+                <HiOutlineRefresh className="w-4 h-4 mr-2" />
+              )}
+              Refresh
             </button>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-2 mb-6">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <HiOutlineSearch className="text-gray-400" />
+          {/* Filters and Search */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <HiOutlineSearch className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Search users by name, email, ID, or TXID..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
               </div>
-              <input
-                type="text"
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                placeholder="Search by name, email, ID or TXID..."
-                value={searchTerm}
-                onChange={handleSearch}
-              />
+              
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center bg-gray-50 rounded-lg px-3 py-2">
+                  <HiOutlineFilter className="w-4 h-4 text-gray-500 mr-2" />
+                  <select 
+                    value={selectedAction}
+                    onChange={(e) => setSelectedAction(e.target.value)}
+                    className="bg-transparent text-sm focus:outline-none"
+                  >
+                    <option value="all">All Users</option>
+                    <option value="pending">Pending</option>
+                    <option value="blocked">Blocked</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                <span className="font-medium text-gray-900">{filteredData.length}</span> users found
+                {searchTerm && (
+                  <span className="ml-2">
+                    • Searching for "<span className="font-medium">{searchTerm}</span>"
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
+        {/* User Table */}
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <FaSpinner className="animate-spin text-4xl text-blue-600" />
+          <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl shadow-sm border border-gray-200">
+            <FaSpinner className="animate-spin text-4xl text-indigo-600 mb-4" />
+            <p className="text-gray-600">Loading users...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-blue-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                      TXID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                      Referred By
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData.length > 0 ? filteredData.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                      <td
-                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer"
-                      >
-                        <div className="flex items-center">
-                          <HiOutlineUser className="mr-2 text-gray-500" />
-                          {user.id}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.name || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                        {user.trx_id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.refer_by || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleApprove(user.id)}
-                            disabled={loadingApproveUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${loadingApproveUsers.includes(user.id)
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-green-100 text-green-700 hover:bg-green-200'
-                              }`}
-                          >
-                            {loadingApproveUsers.includes(user.id) ? (
-                              <FaSpinner className="animate-spin mr-1" />
-                            ) : (
-                              <HiOutlineCheckCircle className="mr-1" />
-                            )}
-                            Approve
-                          </button>
-
-                          <button
-                            onClick={() => showUserDetails(user)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200`}
-                          >
-                            Edit
-                          </button>
-
-                          {/* Block/Unblock Button */}
-                           <button
-                            onClick={() => handleBlockClick(user.id, user.blocked ?? 0, user.name)}
-                            disabled={loadingBlockUser}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${
-                              user.blocked
-                                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            {loadingBlockUser ? (
-                              <FaSpinner className="animate-spin mr-1" />
-                            ) : (
-                              <HiOutlineLockOpen className="mr-1" />
-                            )}
-                            {user.blocked ? 'Unblock' : 'Block'}
-                            {user.blocked ? 'ed' : ''}
-                          </button>
-                          
-                          {/* Reject Button */}
-                          <button
-                            onClick={() => openConfirmation(
-                              user.id,
-                              user.name || `ID: ${user.id}`,
-                              'reject',
-                              () => handleReject(user.id)
-                            )}
-                            disabled={loadingRejectUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${loadingRejectUsers.includes(user.id)
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-red-100 text-red-700 hover:bg-red-200'
-                              }`}
-                          >
-                            {loadingRejectUsers.includes(user.id) ? (
-                              <FaSpinner className="animate-spin mr-1" />
-                            ) : (
-                              <HiOutlineXCircle className="mr-1" />
-                            )}
-                            Reject
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (window.confirm('Are you sure you want to permanently delete this user?')) {
-                                handleDelete(user.id);
-                              }
-                            }}
-                            disabled={loadingDeleteUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${loadingDeleteUsers.includes(user.id)
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
-                          >
-                            {loadingDeleteUsers.includes(user.id) ? (
-                              <FaSpinner className="animate-spin mr-1" />
-                            ) : (
-                              <HiOutlineTrash className="mr-1" />
-                            )}
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {filteredData.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <HiOutlineUser className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  {searchTerm ? 'No users match your search criteria' : 'No crypto users found'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center">
-                        <div className="flex flex-col items-center justify-center">
-                          <HiOutlineUser className="w-12 h-12 text-gray-400 mb-3" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-1">No pending users found</h3>
-                          <p className="text-gray-500">All verification requests have been processed</p>
-                        </div>
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        TXID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Referrer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredData.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                              <HiOutlineUser className="w-4 h-4 text-indigo-600" />
+                            </div>
+                            <div className="ml-3">
+                              <div className="font-medium text-gray-900">
+                                {user.name || `User #${user.id}`}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {user.email || 'No email'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 font-mono">
+                            {user.trx_id || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {user.refer_by || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              user.blocked 
+                                ? 'bg-red-100 text-red-800' 
+                                : user.approved
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {user.blocked ? (
+                                <>
+                                  <HiOutlineBan className="w-3 h-3 mr-1" />
+                                  Blocked
+                                </>
+                              ) : user.approved ? (
+                                <>
+                                  <HiOutlineCheck className="w-3 h-3 mr-1" />
+                                  Approved
+                                </>
+                              ) : (
+                                <>
+                                  <HiOutlineClock className="w-3 h-3 mr-1" />
+                                  Pending
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-1">
+                            <button
+                              onClick={() => showUserDetails(user)}
+                              className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                              title="View details"
+                            >
+                              <HiOutlineEye className="w-4 h-4" />
+                            </button>
+                            
+                            <button
+                              onClick={() => handleApprove(user.id)}
+                              disabled={loadingApproveUsers.includes(user.id)}
+                              className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              title="Approve user"
+                            >
+                              {loadingApproveUsers.includes(user.id) ? (
+                                <FaSpinner className="animate-spin w-4 h-4" />
+                              ) : (
+                                <HiOutlineCheckCircle className="w-4 h-4" />
+                              )}
+                            </button>
+                            
+                            <button
+                              onClick={() => handleReject(user.id)}
+                              disabled={loadingRejectUsers.includes(user.id)}
+                              className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Reject user"
+                            >
+                              {loadingRejectUsers.includes(user.id) ? (
+                                <FaSpinner className="animate-spin w-4 h-4" />
+                              ) : (
+                                <HiOutlineXCircle className="w-4 h-4" />
+                              )}
+                            </button>
+                            
+                            <button
+                              onClick={() => handleBlockClick(user.id, user.blocked ?? 0, user.name)}
+                              disabled={loadingBlockUser}
+                              className={`p-1.5 rounded transition-colors ${
+                                user.blocked
+                                  ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                                  : 'text-gray-600 hover:text-gray-700 hover:bg-gray-100'
+                              }`}
+                              title={user.blocked ? 'Unblock user' : 'Block user'}
+                            >
+                              <HiOutlineLockOpen className="w-4 h-4" />
+                            </button>
+                            
+                            <button
+                              onClick={() => handleDelete(user.id, user.name)}
+                              className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Delete user"
+                            >
+                              <HiOutlineTrash className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
+      </main>
 
-        {/* User Detail Modal */}
-        {selectedUser && (
-          <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity ${isDetailModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <div className="bg-white rounded-xl shadow-lg max-w-md w-full transform transition-transform scale-95">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {isEditing ? "Edit User Details" : "User Details"}
-                  </h2>
-                  <button
-                    onClick={() => setIsDetailModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-500"
-                  >
-                    <HiOutlineX className="w-6 h-6" />
-                  </button>
+      {/* User Detail Modal */}
+      {selectedUser && isDetailModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full animate-fadeIn max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">User Details</h2>
+                  <p className="text-sm text-gray-600 mt-1">ID: #{selectedUser.id}</p>
                 </div>
+                <button
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <HiOutlineX className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+            </div>
 
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {!isEditing ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">User ID</div>
-                      <div className="font-medium">{selectedUser.id}</div>
+                      <div className="text-xs text-gray-500 mb-1">Full Name</div>
+                      <div className="font-medium text-gray-900">{selectedUser.name || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Transaction ID</div>
+                      <div className="font-medium font-mono text-sm text-indigo-600 break-all">
+                        {selectedUser.trx_id || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Referred By</div>
+                      <div className="font-medium text-gray-900">{selectedUser.refer_by || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Email Address</div>
+                      <div className="font-medium text-gray-900">{selectedUser.email || 'N/A'}</div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Status</div>
-                      <div className="font-medium text-yellow-600">Pending Verification</div>
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedUser.blocked 
+                          ? 'bg-red-100 text-red-800' 
+                          : selectedUser.approved
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {selectedUser.blocked ? 'Blocked' : selectedUser.approved ? 'Approved' : 'Pending'}
+                      </div>
                     </div>
                   </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 py-2.5 rounded-lg border ${
+                        formErrors.name ? 'border-red-500' : 'border-gray-300'
+                      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors`}
+                      placeholder="Enter full name"
+                    />
+                    {formErrors.name && <p className="mt-1 text-xs text-red-500">{formErrors.name}</p>}
+                  </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Transaction ID
+                    </label>
+                    <input
+                      type="text"
+                      name="trx_id"
+                      value={editFormData.trx_id}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 py-2.5 rounded-lg border ${
+                        formErrors.trx_id ? 'border-red-500' : 'border-gray-300'
+                      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors font-mono text-sm`}
+                      placeholder="Enter transaction ID"
+                    />
+                    {formErrors.trx_id && <p className="mt-1 text-xs text-red-500">{formErrors.trx_id}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Referred By
+                    </label>
+                    <input
+                      type="text"
+                      name="refer_by"
+                      value={editFormData.refer_by}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 py-2.5 rounded-lg border ${
+                        formErrors.refer_by ? 'border-red-500' : 'border-gray-300'
+                      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors`}
+                      placeholder="Enter referrer"
+                    />
+                    {formErrors.refer_by && <p className="mt-1 text-xs text-red-500">{formErrors.refer_by}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={editFormData.email}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 py-2.5 rounded-lg border ${
+                        formErrors.email ? 'border-red-500' : 'border-gray-300'
+                      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors`}
+                      placeholder="Enter email"
+                    />
+                    {formErrors.email && <p className="mt-1 text-xs text-red-500">{formErrors.email}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex justify-between items-center">
+                <div>
                   {isEditing ? (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input
-                          type="text"
-                          name="name"
-                          value={editFormData.name}
-                          onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md ${formErrors.name ? 'border-red-500' : 'border-gray-300'
-                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          placeholder="Enter full name"
-                        />
-                        {formErrors.name && <p className="mt-1 text-xs text-red-500">{formErrors.name}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
-                        <input
-                          type="text"
-                          name="trx_id"
-                          value={editFormData.trx_id}
-                          onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md break-all text-sm ${formErrors.trx_id ? 'border-red-500' : 'border-gray-300'
-                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          placeholder="Enter transaction ID"
-                        />
-                        {formErrors.trx_id && <p className="mt-1 text-xs text-red-500">{formErrors.trx_id}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Referred By</label>
-                        <input
-                          type="text"
-                          name="refer_by"
-                          value={editFormData.refer_by}
-                          onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md ${formErrors.refer_by ? 'border-red-500' : 'border-gray-300'
-                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          placeholder="Enter referrer"
-                        />
-                        {formErrors.refer_by && <p className="mt-1 text-xs text-red-500">{formErrors.refer_by}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={editFormData.email}
-                          onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border rounded-md ${formErrors.email ? 'border-red-500' : 'border-gray-300'
-                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          placeholder="Enter email"
-                        />
-                        {formErrors.email && <p className="mt-1 text-xs text-red-500">{formErrors.email}</p>}
-                      </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-3 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUpdateUser}
+                        disabled={isUpdating}
+                        className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+                      >
+                        {isUpdating ? (
+                          <>
+                            <FaSpinner className="animate-spin mr-2" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <HiOutlineSave className="mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Full Name</div>
-                          <div className="font-medium">{selectedUser.name || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Transaction ID</div>
-                          <div className="font-medium break-all text-sm text-blue-600">{selectedUser.trx_id || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Referred By</div>
-                          <div className="font-medium">{selectedUser.refer_by || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Email</div>
-                          <div className="font-medium">{selectedUser.email || 'N/A'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between pt-4 gap-2 border-t border-gray-200">
-                    <div className="flex space-x-2">
-                      {isEditing ? (
-                        <>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="flex items-center px-2 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-                          >
-                            <HiOutlineBan className="mr-1" /> Cancel
-                          </button>
-                          <button
-                            onClick={handleUpdateUser}
-                            disabled={isUpdating}
-                            className="flex items-center px-2 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                          >
-                            {isUpdating ? (
-                              <FaSpinner className="animate-spin mr-1" />
-                            ) : (
-                              <HiOutlineSave className="mr-1" />
-                            )}
-                            Save
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => setIsEditing(true)}
-                          className="flex items-center  px-2 py-1 text-sm text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-                        >
-                          <HiOutlinePencilAlt className="mr-1" /> Edit Details
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => openConfirmation(
-                          selectedUser.id,
-                          selectedUser.name || `ID: ${selectedUser.id}`,
-                          'reject',
-                          () => handleReject(selectedUser.id)
-                        )}
-                        disabled={loadingRejectUsers.includes(selectedUser.id)}
-                        className={`flex items-center px-4 py-1 text-sm rounded-md transition-colors ${loadingRejectUsers.includes(selectedUser.id)
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
-                      >
-                        {loadingRejectUsers.includes(selectedUser.id) ? (
-                          <FaSpinner className="animate-spin mr-1" />
-                        ) : (
-                          <HiOutlineXCircle className="mr-1" />
-                        )}
-                        Reject
-                      </button>
-                      <button
-                        onClick={() => handleApprove(selectedUser.id)}
-                        disabled={loadingApproveUsers.includes(selectedUser.id)}
-                        className={`flex items-center px-4 py-1 text-sm rounded-md transition-colors ${loadingApproveUsers.includes(selectedUser.id)
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                      >
-                        {loadingApproveUsers.includes(selectedUser.id) ? (
-                          <FaSpinner className="animate-spin mr-1" />
-                        ) : (
-                          <HiOutlineCheckCircle className="mr-1" />
-                        )}
-                        Approve
-                      </button>
-                    </div>
-                  </div>
-
-                  {updateSuccess && (
-                    <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md border border-green-100">
-                      User details updated successfully!
-                    </div>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="px-3 py-2 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors flex items-center"
+                    >
+                      <HiOutlinePencilAlt className="mr-2" />
+                      Edit Details
+                    </button>
                   )}
                 </div>
+                
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleReject(selectedUser.id)}
+                    disabled={loadingRejectUsers.includes(selectedUser.id)}
+                    className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+                  >
+                    {loadingRejectUsers.includes(selectedUser.id) ? (
+                      <FaSpinner className="animate-spin mr-2" />
+                    ) : (
+                      <HiOutlineXCircle className="mr-2" />
+                    )}
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleApprove(selectedUser.id)}
+                    disabled={loadingApproveUsers.includes(selectedUser.id)}
+                    className="px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors flex items-center"
+                  >
+                    {loadingApproveUsers.includes(selectedUser.id) ? (
+                      <FaSpinner className="animate-spin mr-2" />
+                    ) : (
+                      <HiOutlineCheckCircle className="mr-2" />
+                    )}
+                    Approve
+                  </button>
+                </div>
               </div>
+              
+              {updateSuccess && (
+                <div className="mt-3 p-3 bg-green-50 text-green-700 rounded-lg border border-green-100">
+                  User details updated successfully!
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

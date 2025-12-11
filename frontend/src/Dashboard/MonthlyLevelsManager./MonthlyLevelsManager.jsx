@@ -172,8 +172,7 @@ const handleInputChange = (e) => {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 p-4 ml-10 md:p-6 ml-0 md:ml-64">
+      <div className="p-4">
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <div>

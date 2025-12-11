@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Sidebar } from "../SideBarSection/Sidebar";
 import axios from 'axios';
 import { 
   HiOutlineSearch, 
   HiOutlineRefresh,
-
   HiOutlineUser,
   HiOutlineMail,
-  HiOutlineCreditCard
+  HiOutlineCreditCard,
+  HiOutlineCalendar,
+  HiOutlineCheckCircle,
+  HiOutlineXCircle,
+  HiOutlineClock,
+  HiOutlineCurrencyDollar,
+  HiOutlineLocationMarker,
+  HiOutlineUsers,
+  HiOutlineExclamation
 } from 'react-icons/hi';
 import { FaSpinner } from 'react-icons/fa';
 
@@ -16,8 +22,14 @@ const TodayApproved = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingRejectUsers, setLoadingRejectUsers] = useState([]);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    onConfirm: null
+  });
   
-  // Sort data to show biggest IDs first
+  // Sort data to show newest IDs first
   const sortedData = [...data].sort((a, b) => b.id - a.id);
   
   // Frontend search implementation
@@ -25,31 +37,51 @@ const TodayApproved = () => {
     (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (user.id && user.id.toString().includes(searchTerm)) ||
-    (user.trx_id && user.trx_id.toString().includes(searchTerm))
+    (user.trx_id && user.trx_id.toString().includes(searchTerm)) ||
+    (user.refer_by && user.refer_by.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/todayApproved`);
-        if (response.data && response.data.approvedUsers) {
-          setData(response.data.approvedUsers);
-        }
-      } catch (error) {
-        console.error("Error fetching today's approved users:", error);
-      } finally {
-        setIsLoading(false);
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/todayApproved`);
+      if (response.data && response.data.approvedUsers) {
+        setData(response.data.approvedUsers);
       }
-    };
-    
+    } catch (error) {
+      console.error("Error fetching today's approved users:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const openConfirmation = (userId, userName) => {
+    setConfirmationModal({
+      isOpen: true,
+      userId,
+      userName,
+      onConfirm: () => handleReject(userId)
+    });
+  };
+
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      userId: null,
+      userName: '',
+      onConfirm: null
+    });
+  };
 
   const handleReject = async (userId) => {
     if (loadingRejectUsers.includes(userId)) return;
     
     setLoadingRejectUsers(prev => [...prev, userId]);
+    closeConfirmation();
     
     try {
       await axios.put(`${import.meta.env.VITE_API_BASE_URL}/rejectUserCurrMin/${userId}`);
@@ -61,133 +93,232 @@ const TodayApproved = () => {
     }
   };
 
-
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value.trim());
+  };
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      
-      <div className="flex-1 p-4 ml-10 md:p-6 ml-0 md:ml-64">
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-xl mr-4">
-                <HiOutlineUser className="w-6 h-6 text-blue-600" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Confirmation Modal */}
+      {confirmationModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full animate-fadeIn">
+            <div className="p-6">
+              <div className="text-center mb-4">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                  <HiOutlineExclamation className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="mt-3 text-lg font-semibold text-gray-900">
+                  Reject User
+                </h3>
+              </div>
+
+              <div className="mt-2 text-center">
+                <p className="text-sm text-gray-600">
+                  Are you sure you want to reject{' '}
+                  <span className="font-medium text-gray-900">{confirmationModal.userName}</span>?
+                  This will remove their approval status.
+                </p>
+              </div>
+
+              <div className="mt-6 flex justify-center space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={closeConfirmation}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  onClick={confirmationModal.onConfirm}
+                >
+                  Reject User
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-lg bg-white shadow-sm border border-gray-200">
+                <HiOutlineCalendar className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Today's Approved Users</h1>
-                <p className="text-gray-600">Users approved in the last 24 hours</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Today's Approved Users</h1>
+                <p className="text-sm text-gray-600 mt-1">Users approved in the last 24 hours</p>
               </div>
-            </div>
-            <button 
-              onClick={() => window.location.reload()}
-              className="flex items-center text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <HiOutlineRefresh className="mr-2" /> Refresh
-            </button>
-          </div>
-          
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <HiOutlineSearch className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                placeholder="Search by name, email, ID or TXID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </div>
             
-           
+            <div className="flex items-center space-x-3">
+              <div className="hidden sm:flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg">
+                <HiOutlineUsers className="w-4 h-4 text-green-600 mr-2" />
+                <span className="text-sm font-medium text-gray-900">{filteredData.length}</span>
+                <span className="text-sm text-gray-600 ml-1">users</span>
+              </div>
+              
+              <button 
+                onClick={fetchData}
+                disabled={isLoading}
+                className="flex items-center px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {isLoading ? (
+                  <FaSpinner className="animate-spin w-4 h-4 mr-2" />
+                ) : (
+                  <HiOutlineRefresh className="w-4 h-4 mr-2" />
+                )}
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <HiOutlineSearch className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  placeholder="Search users by name, email, ID, or TXID..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </div>
+              
+              <div className="text-sm text-gray-600 flex items-center">
+                {searchTerm && (
+                  <>
+                    <span className="font-medium text-gray-900">{filteredData.length}</span>
+                    <span className="ml-1">results for "</span>
+                    <span className="font-medium mx-1">{searchTerm}</span>
+                    <span>"</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* User Table */}
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <FaSpinner className="animate-spin text-4xl text-blue-600" />
+          <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl shadow-sm border border-gray-200">
+            <FaSpinner className="animate-spin text-4xl text-green-600 mb-4" />
+            <p className="text-gray-600">Loading today's approved users...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {filteredData.length > 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {filteredData.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <HiOutlineUser className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No approved users found</h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  {searchTerm ? 'No users match your search criteria' : 'No users approved in the last 24 hours'}
+                </p>
+              </div>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-blue-50">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                        ID
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        User
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                        Name
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Transaction
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                        TXID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                        Referred By
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Balance
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
-                        Address
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200">
                     {filteredData.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4">
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1">
+                              <HiOutlineUser className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="ml-3">
+                              <div className="font-medium text-gray-900">
+                                {user.name || `User #${user.id}`}
+                              </div>
+                              <div className="text-sm text-gray-500 flex items-center mt-1">
+                                <HiOutlineMail className="w-3 h-3 mr-1 flex-shrink-0" />
+                                <span className="truncate max-w-xs">{user.email}</span>
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                Ref: {user.refer_by || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            <div className="flex items-center mb-1">
+                              <HiOutlineCreditCard className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+                              <span className="font-mono truncate max-w-xs">
+                                {user.trx_id || 'N/A'}
+                              </span>
+                            </div>
+                            {user.completeAddress && (
+                              <div className="flex items-center text-xs text-gray-500 mt-2">
+                                <HiOutlineLocationMarker className="w-3 h-3 mr-1 flex-shrink-0" />
+                                <span className="truncate max-w-xs">{user.completeAddress}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
                           <div className="flex items-center">
-                            <HiOutlineUser className="mr-2 text-gray-500" />
-                            {user.id}
+                            <HiOutlineCurrencyDollar className="w-4 h-4 text-gray-400 mr-2" />
+                            <span className="font-medium text-gray-900">
+                              {user.balance || '0'}
+                            </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.name || 'N/A'}
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <HiOutlineCheckCircle className="w-3 h-3 mr-1" />
+                            Approved
+                          </span>
+                       
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center max-w-xs truncate">
-                            <HiOutlineMail className="mr-2 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{user.email}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                          <div className="flex items-center max-w-xs truncate">
-                            <HiOutlineCreditCard className="mr-2 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{user.trx_id || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.refer_by || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                          {user.balance || '0'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
-                          {user.completeAddress || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-6 py-4">
                           <button
-                            onClick={() => handleReject(user.id)}
+                            onClick={() => openConfirmation(user.id, user.name || `User #${user.id}`)}
                             disabled={loadingRejectUsers.includes(user.id)}
-                            className={`flex items-center px-3 py-1 rounded-md transition-colors ${
-                              loadingRejectUsers.includes(user.id)
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-red-100 text-red-700 hover:bg-red-200'
-                            }`}
+                            className="flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                           >
                             {loadingRejectUsers.includes(user.id) ? (
-                              <FaSpinner className="animate-spin mr-1" />
-                            ) : 'Reject'}
+                              <>
+                                <FaSpinner className="animate-spin mr-2" />
+                                Rejecting...
+                              </>
+                            ) : (
+                              <>
+                                <HiOutlineXCircle className="mr-2" />
+                                Reject
+                              </>
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -195,20 +326,10 @@ const TodayApproved = () => {
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <div className="py-12 text-center">
-                <div className="flex flex-col items-center justify-center">
-                  <HiOutlineUser className="w-16 h-16 text-gray-400 mb-3" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No approved users found</h3>
-                  <p className="text-gray-500">
-                    {searchTerm ? 'No matches for your search' : 'No users approved today'}
-                  </p>
-                </div>
-              </div>
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

@@ -1,8 +1,10 @@
-import React, { useState, useContext, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { UserContext } from "../../UserContext/UserContext";
-import { 
-  HiOutlineViewGrid, 
+import React, { useState, useContext, useEffect, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { UserContext } from "../../UserContext/UserContext";  
+import { useSidebar } from "../SidebarContext";
+
+import {
+  HiOutlineViewGrid,
   HiOutlineUsers,
   HiOutlineCurrencyDollar,
   HiOutlineXCircle,
@@ -20,213 +22,125 @@ import {
   HiOutlineCamera,
   HiOutlineAnnotation,
   HiOutlineFilter,
-  HiOutlineBell
+  HiOutlineBell,
 } from "react-icons/hi";
 
 export const Sidebar = () => {
   const { setAdminAuthenticated } = useContext(UserContext);
   const location = useLocation();
-  const [isMinimized, setIsMinimized] = useState(() => {
-    // Initialize state from localStorage if available
-    const savedState = localStorage.getItem('sidebarMinimized');
-    return savedState ? JSON.parse(savedState) : false;
-  });
-  
-  // Persist state to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('sidebarMinimized', JSON.stringify(isMinimized));
-  }, [isMinimized]);
+  const navigate = useNavigate();
+
+
+
+  // Persist state with useEffect
+  const { isMinimized, toggleMinimized } = useSidebar();
+
 
   const logout = () => {
     localStorage.removeItem("adminAuth");
     localStorage.removeItem("adminToken");
     setAdminAuthenticated(false);
-  };
-
-  const toggleSidebar = () => {
-    setIsMinimized(prev => !prev);
+    navigate("/admin/login", { replace: true });
   };
 
   const isActive = (path) => location.pathname === path;
+  const toggleSidebar = toggleMinimized;
 
-  // Menu structure
   const menuItems = [
     {
       group: "Dashboard",
       items: [
-        {
-          path: "/adminpanel",
-          icon: <HiOutlineViewGrid className="w-5 h-5" />,
-          label: "Dashboard",
-        }
-      ]
+        { path: "/adminpanel", icon: <HiOutlineViewGrid />, label: "Dashboard" },
+      ],
     },
     {
       group: "User Management",
       items: [
-        {
-          path: "/users",
-          icon: <HiOutlineUsers className="w-5 h-5" />,
-          label: "All Users",
-        },
-        {
-          path: "/easypaisa",
-          icon: <HiOutlineCurrencyDollar className="w-5 h-5" />,
-          label: "Crypto Users",
-        },
-        {
-          path: "/rejecteduser",
-          icon: <HiOutlineXCircle className="w-5 h-5" />,
-          label: "Rejected Users",
-        },
-        {
-          path: "/todayApproved",
-          icon: <HiOutlineCheckCircle className="w-5 h-5" />,
-          label: "Today Approved",
-        },
-        {
-          path: "/pending",
-          icon: <HiOutlineClock className="w-5 h-5" />,
-          label: "Pending Users",
-        },
-        {
-          path: "/finduser",
-          icon: <HiOutlineFilter className="w-5 h-5" />,
-          label: "Find User",
-        }
-      ]
+        { path: "/users", icon: <HiOutlineUsers />, label: "All Users" },
+        { path: "/easypaisa", icon: <HiOutlineCurrencyDollar />, label: "Crypto Users" },
+        { path: "/rejecteduser", icon: <HiOutlineXCircle />, label: "Rejected Users" },
+        { path: "/todayApproved", icon: <HiOutlineCheckCircle />, label: "Today Approved" },
+        { path: "/pending", icon: <HiOutlineClock />, label: "Pending Users" },
+        { path: "/finduser", icon: <HiOutlineFilter />, label: "Find User" },
+      ],
     },
     {
       group: "Withdrawals",
       items: [
-        {
-          path: "/withdrwa",
-          icon: <HiOutlineCash className="w-5 h-5" />,
-          label: "Withdraw Requests",
-        },
-        {
-          path: "/ApprovedWithdrwa",
-          icon: <HiOutlineShieldCheck className="w-5 h-5" />,
-          label: "Approved Withdraw",
-        },
-        {
-          path: "/rejectwithdrwa",
-          icon: <HiOutlineDocumentText className="w-5 h-5" />,
-          label: "Rejected Withdrawa",
-        }
-      ]
+        { path: "/withdrwa", icon: <HiOutlineCash />, label: "Withdraw Requests" },
+        { path: "/ApprovedWithdrwa", icon: <HiOutlineShieldCheck />, label: "Approved Withdraw" },
+        { path: "/rejectwithdrwa", icon: <HiOutlineDocumentText />, label: "Rejected Withdraw" },
+      ],
     },
     {
       group: "Administration",
       items: [
-        {
-          path: "/sendNotification",
-          icon: <HiOutlineBell className="w-5 h-5" />,
-          label: "Send Notification",
-        },
-            {
-          path: "/admin-profile-manager",
-          icon: <HiOutlineCog className="w-5 h-5" />,
-          label: "Admin Contact Card",
-        },
-           {
-          path: "/commission",
-          icon: <HiOutlineCash className="w-5 h-5" />,
-          label: "Commission",
-        },
-         {
-          path: "/w_salary",
-          icon: <HiOutlineViewGrid className="w-5 h-5" />,
-          label: "Week Salary",
-        },
-   {
-          path: "/monthlyLevels",
-          icon: <HiOutlineViewGrid className="w-5 h-5" />,
-          label: "Monthly Salary",
-        },
-
-        {
-          path: "/SubAdminsManagement",
-          icon: <HiOutlineUserGroup className="w-5 h-5" />,
-          label: "Sub Admins",
-        },
-        {
-          path: "/accounts",
-          icon: <HiDocumentDuplicate className="w-5 h-5" />,
-          label: "Admin Wallet",
-        },
-        {
-          path: "/initialsettings",
-          icon: <HiOutlineAnnotation className="w-5 h-5" />,
-          label: "Fee-Inintial-Offer",
-        },
-        {
-          path: "/products",
-          icon: <HiOutlineCamera className="w-5 h-5" />,
-          label: "Products",
-        },
-        {
-          path: "/withdrawalLimits",
-          icon: <HiOutlineClock className="w-5 h-5" />,
-          label: "Withdraw Limits",
-        },
-        {
-          path: "/accountsetting",
-          icon: <HiOutlineCog className="w-5 h-5" />,
-          label: "Settings",
-        }
-      ]
-    }
+        { path: "/sendNotification", icon: <HiOutlineBell />, label: "Send Notification" },
+        { path: "/admin-profile-manager", icon: <HiOutlineCog />, label: "Admin Contact Card" },
+        { path: "/commission", icon: <HiOutlineCash />, label: "Commission" },
+        { path: "/w_salary", icon: <HiOutlineViewGrid />, label: "Week Salary" },
+        { path: "/monthlyLevels", icon: <HiOutlineViewGrid />, label: "Monthly Salary" },
+        { path: "/SubAdminsManagement", icon: <HiOutlineUserGroup />, label: "Sub Admins" },
+        { path: "/accounts", icon: <HiDocumentDuplicate />, label: "Admin Wallet" },
+        { path: "/initialSettings", icon: <HiOutlineAnnotation />, label: "Fee-Initial-Offer" },
+        { path: "/products", icon: <HiOutlineCamera />, label: "Products" },
+        { path: "/withdrawalLimits", icon: <HiOutlineClock />, label: "Withdraw Limits" },
+        { path: "/accountsetting", icon: <HiOutlineCog />, label: "Settings" },
+      ],
+    },
   ];
 
   return (
-    <div 
-      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-50 border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${
-        isMinimized ? "w-12" : "w-64"
+    <div
+      className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-gray-200 bg-white shadow-lg transition-all duration-300 ease-in-out ${
+        isMinimized ? "w-16" : "w-64"
       }`}
     >
       {/* Header */}
-      <div className={`p-4 border-b border-gray-200 ${isMinimized ? "flex justify-center" : ""}`}>
+      <div className={`flex items-center justify-between p-4 border-b border-gray-200 ${isMinimized ? "flex-col gap-2" : ""}`}>
         <div className="flex items-center space-x-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700">
+            <HiOutlineUserGroup className="h-6 w-6 text-white" />
+          </div>
           {!isMinimized && (
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 w-10 h-10 rounded-lg flex items-center justify-center">
-              <HiOutlineUserGroup className="w-6 h-6 text-white" />
-            </div>
-          )}
-          {!isMinimized ? (
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
-              <p className="text-xs text-gray-500">Administration Dashboard</p>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 w-10 h-10 rounded-lg flex items-center justify-center">
-              <HiOutlineUserGroup className="w-6 h-6 text-white" />
+              <h1 className="text-lg font-bold text-gray-800">Admin Panel</h1>
+              <p className="text-xs text-gray-500">Dashboard</p>
             </div>
           )}
         </div>
+
+        {/* Toggle Button - inside header for better alignment */}
+        {!isMinimized && (
+          <button
+            onClick={toggleSidebar}
+            className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Collapse sidebar"
+          >
+            <HiOutlineChevronLeft className="h-4 w-4" />
+          </button>
+        )}
       </div>
-      
-      {/* Toggle Button */}
-      <div className="absolute top-4 right-0 transform translate-x-1/2 z-10">
-        <button
-          onClick={toggleSidebar}
-          className="bg-white border border-gray-300 rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors"
-          aria-label={isMinimized ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isMinimized ? (
-            <HiOutlineChevronRight className="w-4 h-4 text-gray-600" />
-          ) : (
-            <HiOutlineChevronLeft className="w-4 h-4 text-gray-600" />
-          )}
-        </button>
-      </div>
-      
+
+      {/* Toggle in minimized mode */}
+      {isMinimized && (
+        <div className="relative -right-2 mb-2 flex justify-center">
+          <button
+            onClick={toggleSidebar}
+            className="rounded-full bg-white p-1.5 text-gray-500 shadow-md hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Expand sidebar"
+          >
+            <HiOutlineChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-2 px-2">
+      <div className="flex-1 overflow-y-auto px-2 py-4">
         {menuItems.map((group, groupIndex) => (
-          <div key={groupIndex} className="mb-8">
+          <div key={groupIndex} className="mb-6 last:mb-0">
             {!isMinimized && (
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 px-2 mb-2">
+              <h3 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                 {group.group}
               </h3>
             )}
@@ -235,22 +149,22 @@ export const Sidebar = () => {
                 <li key={itemIndex}>
                   <Link
                     to={item.path}
-                    className={`
-                      flex items-center space-x-3 px-1 py-2 rounded-xl
-                      transition-all duration-200
-                      ${isActive(item.path) 
-                        ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-sm" 
-                        : "text-gray-600 hover:bg-gray-50"}
-                      ${isMinimized ? "justify-center" : ""}
-                    `}
-                    title={isMinimized ? item.label : ""}
+                    className={`flex items-center space-x-3 rounded-xl px-2 py-2.5 text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isActive(item.path)
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    } ${isMinimized ? "justify-center px-2" : ""}`}
+                    title={isMinimized ? item.label : undefined}
+                    aria-current={isActive(item.path) ? "page" : undefined}
                   >
-                    <span className={isActive(item.path) ? "text-blue-500" : "text-gray-400"}>
+                    <span
+                      className={`h-5 w-5 ${
+                        isActive(item.path) ? "text-blue-600" : "text-gray-400"
+                      }`}
+                    >
                       {item.icon}
                     </span>
-                    {!isMinimized && (
-                      <span className="font-medium text-sm">{item.label}</span>
-                    )}
+                    {!isMinimized && <span>{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -258,20 +172,18 @@ export const Sidebar = () => {
           </div>
         ))}
       </div>
-      
-      {/* Footer */}
-      <div className={`p-4 border-t border-gray-200 ${isMinimized ? "flex justify-center" : ""}`}>
+
+      {/* Footer - Logout */}
+      <div className={`border-t border-gray-200 p-3 ${isMinimized ? "flex justify-center" : ""}`}>
         <button
           onClick={logout}
-          className={`
-            flex items-center space-x-2 px-4 py-2 rounded-xl
-            text-sm text-white bg-red-500 hover:bg-red-600
-            transition-colors duration-200 border border-red-600
-            ${isMinimized ? "px-3" : "w-full justify-center"}
-          `}
-          title={isMinimized ? "Logout" : ""}
+          className={`flex w-full items-center space-x-2 rounded-xl px-2 py-2 text-sm font-medium text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 ${
+            isMinimized ? "justify-center" : "justify-center"
+          } bg-red-500 hover:bg-red-600`}
+          title={isMinimized ? "Logout" : undefined}
+          aria-label="Logout from admin panel"
         >
-          <HiOutlineLogout className="w-5 h-5" />
+          <HiOutlineLogout className="h-5 w-5" />
           {!isMinimized && <span>Logout</span>}
         </button>
       </div>
