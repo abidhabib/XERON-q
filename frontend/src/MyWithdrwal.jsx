@@ -178,7 +178,6 @@ export const WithdrwaHistory = () => {
       </div>
 
       <div className="px-2.5 pt-4">
-        {/* Loading State */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <ClipLoader color="#6366f1" size={40} />
@@ -186,7 +185,6 @@ export const WithdrwaHistory = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!isLoading && filteredRequests.length === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
             <div className="w-20 h-20 mb-4 text-gray-300">
