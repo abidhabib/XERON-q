@@ -11,7 +11,7 @@ import { RemoveTrailingZeros } from "../utils/utils";
 import { ClipLoader } from "react-spinners";
 import { IoCheckmarkOutline } from "react-icons/io5";
 import { PiArrowsClockwiseLight, PiCalendarBlank, PiFunnelSimple } from "react-icons/pi";
-import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, subDays, isWithinInterval } from "date-fns";
 
 export const WithdrwaHistory = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
@@ -21,27 +21,25 @@ export const WithdrwaHistory = () => {
   const [hideNumber, setHideNumber] = useState(
     JSON.parse(localStorage.getItem("hideNumber")) || false
   );
-  const [dateFilter, setDateFilter] = useState("7d");
-  const [customDateRange, setCustomDateRange] = useState({
-    start: "",
-    end: ""
-  });
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  
+  // Filter state
   const [statusFilter, setStatusFilter] = useState("all");
-
-  const dateFilters = [
-    { id: "1d", label: "Last 24 hours" },
-    { id: "7d", label: "Last 7 days" },
-    { id: "30d", label: "Last 30 days" },
-    { id: "mtd", label: "Month to date" },
-    { id: "custom", label: "Custom range" }
-  ];
+  const [dateRange, setDateRange] = useState("7d");
+  const [showFilters, setShowFilters] = useState(false);
+  const [isFiltered, setIsFiltered] = useState(false);
 
   const statusFilters = [
-    { id: "all", label: "All" },
+    { id: "all", label: "All Status" },
     { id: "approved", label: "Completed" },
     { id: "pending", label: "Processing" },
     { id: "rejected", label: "Rejected" }
+  ];
+
+  const dateRanges = [
+    { id: "1d", label: "Today" },
+    { id: "7d", label: "7 Days" },
+    { id: "30d", label: "30 Days" },
+    { id: "all", label: "All Time" }
   ];
 
   useEffect(() => {
@@ -68,52 +66,41 @@ export const WithdrwaHistory = () => {
     
     let filtered = [...withdrawalRequests];
     
+    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(request => request.approved === statusFilter);
     }
     
-    const now = new Date();
-    let startDate, endDate;
-    
-    switch (dateFilter) {
-      case "1d":
-        startDate = subDays(now, 1);
-        endDate = now;
-        break;
-      case "7d":
-        startDate = subDays(now, 7);
-        endDate = now;
-        break;
-      case "30d":
-        startDate = subDays(now, 30);
-        endDate = now;
-        break;
-      case "mtd":
-        startDate = startOfMonth(now);
-        endDate = endOfMonth(now);
-        break;
-      case "custom":
-        if (customDateRange.start && customDateRange.end) {
-          startDate = new Date(customDateRange.start);
-          endDate = new Date(customDateRange.end);
-        }
-        break;
-      default:
-        startDate = subDays(now, 7);
-        endDate = now;
-    }
-    
-    if (startDate && endDate) {
+    // Date range filter
+    if (dateRange !== "all") {
+      const now = new Date();
+      let startDate;
+      
+      switch (dateRange) {
+        case "1d":
+          startDate = subDays(now, 1);
+          break;
+        case "7d":
+          startDate = subDays(now, 7);
+          break;
+        case "30d":
+          startDate = subDays(now, 30);
+          break;
+        default:
+          startDate = subDays(now, 7);
+      }
+      
       filtered = filtered.filter(request => {
         const rawDate = request.date ?? request.request_date;
         const requestDate = new Date(rawDate);
-        return isWithinInterval(requestDate, { start: startDate, end: endDate });
+        return requestDate >= startDate && requestDate <= now;
       });
     }
     
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     setFilteredRequests(filtered);
-  }, [withdrawalRequests, dateFilter, statusFilter, customDateRange]);
+    setIsFiltered(statusFilter !== "all" || dateRange !== "7d");
+  }, [withdrawalRequests, dateRange, statusFilter]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -144,156 +131,149 @@ export const WithdrwaHistory = () => {
     localStorage.setItem("hideNumber", JSON.stringify(newState));
   };
 
-  const handleDateFilterChange = (filterId) => {
-    setDateFilter(filterId);
-    if (filterId !== "custom") {
-      setShowFilterModal(false);
-    }
-  };
-
-  const handleCustomDateChange = (e, type) => {
-    setCustomDateRange(prev => ({
-      ...prev,
-      [type]: e.target.value
-    }));
-  };
-
-  const applyCustomDateRange = () => {
-    if (customDateRange.start && customDateRange.end) {
-      setShowFilterModal(false);
-    }
-  };
-
   const resetFilters = () => {
-    setDateFilter("7d");
     setStatusFilter("all");
-    setCustomDateRange({ start: "", end: "" });
-    setShowFilterModal(false);
+    setDateRange("7d");
+    setShowFilters(false);
+  };
+
+  const applyFilters = () => {
+    setShowFilters(false);
   };
 
   const getFilterSummary = () => {
-    const dateFilterLabel = dateFilters.find(f => f.id === dateFilter)?.label || "";
-    let summary = dateFilterLabel;
-    
-    if (statusFilter !== "all") {
-      const statusFilterLabel = statusFilters.find(f => f.id === statusFilter)?.label || "";
-      summary += ` • ${statusFilterLabel}`;
+    const dateLabel = dateRanges.find(f => f.id === dateRange)?.label || "";
+    if (statusFilter === "all") {
+      return dateLabel;
     }
-    
-    if (dateFilter === "custom" && customDateRange.start && customDateRange.end) {
-      const start = format(new Date(customDateRange.start), "MMM dd");
-      const end = format(new Date(customDateRange.end), "MMM dd");
-      summary = `Custom: ${start} - ${end}`;
-    }
-    
-    return summary;
+    const statusLabel = statusFilters.find(f => f.id === statusFilter)?.label;
+    return `${dateLabel} • ${statusLabel}`;
   };
 
   return (
-    <div className="withdraw-history min-h-screen font-sans bg-gray-50">
-      {/* Filter Header */}
-      <div className="bg-white rounded-lg p-3 mb-3 shadow-sm">
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Fixed Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800 text-sm">Withdrawal History</h2>
-          <div className="flex items-center gap-1.5">
-            <button 
-              onClick={() => setShowFilterModal(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              <PiFunnelSimple className="w-3.5 h-3.5" />
-              Filter
-            </button>
-            <button 
-              onClick={resetFilters}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              <PiArrowsClockwiseLight className="w-3.5 h-3.5" />
-              Reset
-            </button>
+          <div>
+            <h1 className="font-semibold text-gray-800 text-lg">Withdrawals</h1>
+            <div className="flex items-center gap-1 mt-0.5">
+              <PiCalendarBlank className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-500">
+                {getFilterSummary()} • {filteredRequests.length}
+              </span>
+            </div>
           </div>
-        </div>
-        
-        <div className="text-xs text-gray-500 flex items-center gap-1 mt-2">
-          <PiCalendarBlank className="w-3.5 h-3.5" />
-          <span>{getFilterSummary()}</span>
-          <span className="ml-1 text-gray-400">
-            • {filteredRequests.length} transactions
-          </span>
+          
+          <button 
+            onClick={() => setShowFilters(true)}
+            className="relative p-2 rounded-full bg-indigo-50 text-indigo-600"
+          >
+            <PiFunnelSimple className="w-5 h-5" />
+            {isFiltered && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex justify-center items-center min-h-[150px]">
-          <ClipLoader color="#6366f1" size={30} />
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && filteredRequests.length === 0 && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-8">
-          <div className="w-16 h-16 mb-4 text-indigo-500/20">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
+      <div className="px-2.5 pt-4">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <ClipLoader color="#6366f1" size={40} />
+            <p className="mt-4 text-gray-500 text-sm">Loading transactions...</p>
           </div>
-          <h3 className="text-gray-500 text-sm font-medium mb-1">No transactions found</h3>
-          <p className="text-gray-400 text-xs max-w-[200px]">
-            Try adjusting your filters or reset to see all transactions
-          </p>
-          <button
-            onClick={resetFilters}
-            className="mt-3 px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-xs hover:bg-indigo-600 transition-colors"
-          >
-            Reset Filters
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* Transaction List */}
-      {!isLoading && filteredRequests.length > 0 && (
-        <div className="grid gap-2.5">
-          {filteredRequests.map((request, index) => (
-            <TransactionCard
-              key={`${request.id}-${index}`}
-              request={request}
-              formatDate={formatDate}
-              statusData={statusData}
-              setSelectedTransaction={setSelectedTransaction}
-            />
-          ))}
-        </div>
-      )}
+        {/* Empty State */}
+        {!isLoading && filteredRequests.length === 0 && (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+            <div className="w-20 h-20 mb-4 text-gray-300">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h3 className="text-gray-600 font-medium mb-1">No transactions</h3>
+            <p className="text-gray-400 text-sm mb-6 max-w-[250px]">
+              {isFiltered 
+                ? "No transactions match your filters" 
+                : "You haven't made any withdrawals yet"}
+            </p>
+            
+            {isFiltered ? (
+              <button
+                onClick={resetFilters}
+                className="w-full max-w-[200px] px-4 py-3 bg-indigo-500 text-white rounded-xl text-sm font-medium active:bg-indigo-600"
+              >
+                Reset Filters
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowFilters(true)}
+                className="w-full max-w-[200px] px-4 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium active:bg-gray-200"
+              >
+                View Filters
+              </button>
+            )}
+          </div>
+        )}
 
-      {/* Filter Modal */}
-      {showFilterModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-sm shadow-xl">
-            <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-gray-800">Filter Transactions</h3>
+        {/* Transaction List */}
+        {!isLoading && filteredRequests.length > 0 && (
+          <div className="space-y-2.5">
+            {filteredRequests.map((request, index) => (
+              <TransactionCard
+                key={`${request.id}-${index}`}
+                request={request}
+                formatDate={formatDate}
+                statusData={statusData}
+                setSelectedTransaction={setSelectedTransaction}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Filter Modal - Bottom Sheet for Mobile */}
+      {showFilters && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowFilters(false)}
+          />
+          
+          {/* Bottom Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl animate-slideUp">
+            {/* Drag Handle */}
+            <div className="pt-3 flex justify-center">
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+            </div>
+            
+            <div className="px-4 pt-6 pb-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-semibold text-gray-800 text-lg">Filter Transactions</h2>
                 <button
-                  onClick={() => setShowFilterModal(false)}
-                  className="p-1 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowFilters(false)}
+                  className="p-2 text-gray-500"
                 >
-                  <RxCross2 className="w-4 h-4" />
+                  <RxCross2 className="w-5 h-5" />
                 </button>
               </div>
-            </div>
-
-            <div className="p-4">
+              
               {/* Status Filter */}
-              <div className="mb-5">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Status</h4>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Status</h3>
+                <div className="grid grid-cols-2 gap-2">
                   {statusFilters.map(filter => (
                     <button
                       key={filter.id}
                       onClick={() => setStatusFilter(filter.id)}
-                      className={`px-2.5 py-1 rounded-full text-xs ${
+                      className={`py-2 rounded-xl text-sm font-sm transition-all ${
                         statusFilter === filter.id
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-indigo-500 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
                       }`}
                     >
                       {filter.label}
@@ -302,83 +282,75 @@ export const WithdrwaHistory = () => {
                 </div>
               </div>
               
-              {/* Date Filter */}
-              <div>
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Date Range</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {dateFilters.map(filter => (
+              {/* Date Range Filter */}
+              <div className="mb-8">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Time Period</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {dateRanges.map(range => (
                     <button
-                      key={filter.id}
-                      onClick={() => handleDateFilterChange(filter.id)}
-                      className={`px-2.5 py-1 rounded-full text-xs ${
-                        dateFilter === filter.id
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      key={range.id}
+                      onClick={() => setDateRange(range.id)}
+                      className={`py-2 rounded-xl text-sm font-medium transition-all ${
+                        dateRange === range.id
+                          ? 'bg-indigo-500 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
                       }`}
                     >
-                      {filter.label}
+                      {range.label}
                     </button>
                   ))}
                 </div>
-                
-                {dateFilter === "custom" && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      <div>
-                        <input
-                          type="date"
-                          value={customDateRange.start}
-                          onChange={(e) => handleCustomDateChange(e, "start")}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="date"
-                          value={customDateRange.end}
-                          onChange={(e) => handleCustomDateChange(e, "end")}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      onClick={applyCustomDateRange}
-                      disabled={!customDateRange.start || !customDateRange.end}
-                      className={`w-full px-3 py-1.5 text-xs rounded ${
-                        customDateRange.start && customDateRange.end
-                          ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      Apply Range
-                    </button>
-                  </div>
-                )}
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={resetFilters}
+                  className="flex-1 py-2 bg-red-100 text-white-700 rounded-xl text-sm font-medium active:bg-gray-200"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="flex-1 py-2 bg-indigo-500 text-white rounded-xl text-sm font-medium active:bg-indigo-600"
+                >
+                  Apply Filters
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Transaction Modal */}
+      {/* Transaction Details Modal */}
       {selectedTransaction && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-sm shadow-xl">
-            <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-gray-800">Transaction Details</h3>
-                <button
-                  onClick={() => setSelectedTransaction(null)}
-                  className="p-1 text-gray-500 hover:text-gray-700"
-                >
-                  <RxCross2 className="w-4 h-4" />
-                </button>
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setSelectedTransaction(null)}
+          />
+          
+          {/* Bottom Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+              <div className="px-5 pt-6 pb-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-800 text-lg">Transaction Details</h2>
+                  <button
+                    onClick={() => setSelectedTransaction(null)}
+                    className="p-2 text-gray-500"
+                  >
+                    <RxCross2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="p-3">
-              <div className="flex flex-col items-center">
-                <div className="relative w-20 h-20">
+            <div className="px-3 pb-8">
+              {/* Status Icon */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative w-24 h-24 mb-4">
                   <Lottie
                     loop={false}
                     play={true}
@@ -387,69 +359,65 @@ export const WithdrwaHistory = () => {
                       : selectedTransaction.approved === "pending" 
                       ? pendingAnimation 
                       : RejectAnimation}
-                    className="w-20 h-20"
+                    className="w-24 h-24"
                   />
                 </div>
-                <div className={`mt-3 w-full flex items-center justify-center px-3 py-1 rounded text-xs ${
+                <div className={`px-4 py-1.5 rounded-full text-sm font-medium ${
                   selectedTransaction.approved === "approved" 
                     ? "bg-emerald-100 text-emerald-700"
                     : selectedTransaction.approved === "pending" 
                     ? "bg-amber-100 text-amber-700"
                     : "bg-rose-100 text-rose-700"
                 }`}>
-                  {selectedTransaction.approved.charAt(0).toUpperCase() + selectedTransaction.approved.slice(1)}
+                  {selectedTransaction.approved === "approved" ? "Completed" : 
+                   selectedTransaction.approved === "pending" ? "Processing" : "Rejected"}
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3 mt-3">
-                <div className="space-y-3 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">ID</span>
-                    <span className="text-gray-800 font-mono text-xs">
-                    {String(selectedTransaction.id).slice(0, 6)}-{String(selectedTransaction.uid)}
-                    </span>
-                  </div>
-                  
-                  <div className="border-t border-dashed border-gray-200 my-2"></div>
-                  
-                  <DetailItem 
-                    label="Date" 
-                    value={formatDateTime(selectedTransaction.date)}
-                    valueColor="text-gray-800"
-                  />
-                  
-                  <DetailItem 
-                    label="Amount" 
-                    value={`$${RemoveTrailingZeros(Number(selectedTransaction.amount))}`}
+              {/* Details Card */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="space-y-4">
+                  <DetailRow 
+                    label="Transaction ID"
+                    value={`${String(selectedTransaction.id).slice(0, 6)}-${String(selectedTransaction.uid)}`}
                     monospace
-                    valueColor="text-indigo-600 font-medium"
                   />
                   
-                  <div className="border-t border-dashed border-gray-200 my-2"></div>
-
-                  <div className="space-y-3">
-                    <DetailItem 
-                      label="Wallet" 
-                      value={selectedTransaction.bank_name}
-                      valueColor="text-gray-800"
-                    />
-                    
-                    <SecureDetailItem
-                      label="Address"
-                      value={selectedTransaction.account_number}
-                      hidden={hideNumber}
-                      onToggle={toggleHideNumber}
-                      formatValue={v => v.replace(/(.{4})/g, '$1 ').trim()}
-                      valueColor="text-gray-800 text-right font-mono"
-                    />
-                  </div>
+                  <div className="h-px bg-gray-200"></div>
                   
-                  <div className="border-t border-dashed border-gray-200 my-2"></div>
+                  <DetailRow 
+                    label="Date & Time"
+                    value={formatDateTime(selectedTransaction.date)}
+                  />
                   
-                  <div className="flex justify-between pt-1">
-                    <span className="text-gray-500">Fee</span>
-                    <span className="text-gray-800">${RemoveTrailingZeros(Number(selectedTransaction.fee))}</span>
-                  </div>
+                  <DetailRow 
+                    label="Amount"
+                    value={`$${RemoveTrailingZeros(Number(selectedTransaction.amount))}`}
+                    valueClass="text-indigo-600 font-semibold text-lg"
+                  />
+                  
+                  <div className="h-px bg-gray-200"></div>
+                  
+                  <DetailRow 
+                    label="Wallet"
+                    value={selectedTransaction.bank_name || "Not specified"}
+                  />
+                  
+                  <SecureDetailRow
+                    label="Wallet Address"
+                    value={selectedTransaction.account_number}
+                    hidden={hideNumber}
+                    onToggle={toggleHideNumber}
+                    formatValue={v => v.replace(/(.{4})/g, '$1 ').trim()}
+                  />
+                  
+                  <div className="h-px bg-gray-200"></div>
+                  
+                  <DetailRow 
+                    label="Processing Fee"
+                    value={`$${RemoveTrailingZeros(Number(selectedTransaction.fee))}`}
+                    valueClass="text-gray-600"
+                  />
                 </div>
               </div>
             </div>
@@ -460,61 +428,66 @@ export const WithdrwaHistory = () => {
   );
 };
 
+// Mobile-optimized Transaction Card
 const TransactionCard = ({ request, formatDate, statusData, setSelectedTransaction }) => {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
   const { label } = statusData(request.approved);
 
   const statusColors = {
     approved: {
-      bg: 'bg-emerald-100',
+      bg: 'bg-emerald-500',
       text: 'text-emerald-700',
-      iconBg: 'bg-emerald-600',
+      lightBg: 'bg-emerald-50',
     },
     pending: {
-      bg: 'bg-amber-100',
+      bg: 'bg-amber-500',
       text: 'text-amber-700',
-      iconBg: 'bg-amber-600',
+      lightBg: 'bg-amber-50',
     },
     rejected: {
-      bg: 'bg-rose-100',
+      bg: 'bg-rose-500',
       text: 'text-rose-700',
-      iconBg: 'bg-rose-600',
+      lightBg: 'bg-rose-50',
     },
   };
 
   return (
     <div
       ref={ref}
-      className={`p-2.5 rounded-lg transition-all cursor-pointer bg-white shadow-sm hover:shadow border border-gray-100 ${
-        inView ? "animate-fadeInUp" : "opacity-0 translate-y-2"
+      className={`bg-white rounded-xl p-3 shadow-sm active:shadow-md active:scale-[0.998] transition-all ${
+        inView ? "animate-fadeInUp" : "opacity-0"
       }`}
       onClick={() => setSelectedTransaction(request)}
     >
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${statusColors[request.approved].bg}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${statusColors[request.approved].lightBg}`}>
           {request.approved === "approved" ? (
-            <IoCheckmarkOutline className={`w-4 h-4 ${statusColors[request.approved].text}`} />
+            <IoCheckmarkOutline className={`w-5 h-5 ${statusColors[request.approved].text}`} />
           ) : request.approved === "pending" ? (
-            <PiArrowsClockwiseLight className={`w-4 h-4 ${statusColors[request.approved].text}`} />
+            <PiArrowsClockwiseLight className={`w-5 h-5 ${statusColors[request.approved].text}`} />
           ) : (
-            <RxCross2 className={`w-4 h-4 ${statusColors[request.approved].text}`} />
+            <RxCross2 className={`w-5 h-5 ${statusColors[request.approved].text}`} />
           )}
         </div>
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className={`text-xs font-medium ${statusColors[request.approved].text}`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-sm font-medium ${statusColors[request.approved].text}`}>
               {label}
-            </h3>
-            <span className="text-xs font-medium text-gray-800">
+            </span>
+            <span className="text-sm font-semibold text-gray-800">
               ${RemoveTrailingZeros(request.amount)}
             </span>
           </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-gray-500">
-              {formatDate(request.date)}
-            </span>
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusColors[request.approved].bg} ${statusColors[request.approved].text}`}>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">
+                {formatDate(request.date)}
+              </span>
+              <span className={`w-2 h-2 rounded-full ${statusColors[request.approved].bg}`}></span>
+            </div>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[request.approved].lightBg} ${statusColors[request.approved].text}`}>
               {request.approved}
             </span>
           </div>
@@ -524,35 +497,72 @@ const TransactionCard = ({ request, formatDate, statusData, setSelectedTransacti
   );
 };
 
-const DetailItem = ({ label, value, monospace = false, valueColor = "text-gray-800" }) => (
-  <div className="flex justify-between items-center py-1.5">
-    <span className="text-gray-500 text-xs">{label}</span>
-    <span className={`${valueColor} ${monospace ? 'font-mono' : ''} text-xs`}>
+// Mobile-optimized Detail Components
+const DetailRow = ({ label, value, monospace = false, valueClass = "" }) => (
+  <div className="flex justify-between items-start">
+    <span className="text-sm text-gray-500 flex-shrink-0 mr-4">{label}</span>
+    <span className={`text-sm text-gray-800 text-right break-all ${monospace ? 'font-mono' : ''} ${valueClass}`}>
       {value}
     </span>
   </div>
 );
 
-const SecureDetailItem = ({ label, value, hidden, onToggle, formatValue, valueColor }) => (
-  <div className="flex justify-between items-center py-1.5">
-    <span className="text-gray-500 text-xs">{label}</span>
-    <div className="flex items-center gap-1.5">
-      <span className={`${valueColor} ${hidden ? 'tracking-widest' : ''} text-xs`}>
+const SecureDetailRow = ({ label, value, hidden, onToggle, formatValue }) => (
+  <div className="flex justify-between items-start">
+    <span className="text-sm text-gray-500 flex-shrink-0 mr-4">{label}</span>
+    <div className="flex items-center gap-2">
+      <span className={`text-sm text-gray-800 font-mono text-right ${hidden ? 'tracking-widest' : ''}`}>
         {hidden 
           ? '•••• •••• •••• ••••' 
           : formatValue ? formatValue(value) : value}
       </span>
       <button
         onClick={onToggle}
-        className="text-indigo-500 hover:text-indigo-700 p-0.5 rounded transition-colors"
+        className="p-1 text-indigo-500 active:text-indigo-700 flex-shrink-0"
         aria-label={`${hidden ? 'Reveal' : 'Hide'} ${label}`}
       >
         {hidden ? (
-          <GoEyeClosed className="w-3.5 h-3.5" />
+          <GoEyeClosed className="w-4 h-4" />
         ) : (
-          <GoEye className="w-3.5 h-3.5" />
+          <GoEye className="w-4 h-4" />
         )}
       </button>
     </div>
   </div>
 );
+
+// Add mobile-specific animations
+const styles = `
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+`;
+
+// Inject styles
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);

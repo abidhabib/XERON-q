@@ -59,7 +59,7 @@ const About = () => {
       <div className="flex flex-col flex-1 pt-16">
         {/* Mini Dashboard - EXACT SAME HEIGHT AS REFERRAL PROGRAM */}
         <div className="py-6 bg-[#19202a] shadow-lg">
-          <div className="flex items-center px-4 mb-4">
+          <div className="flex items-center px-4 mb-4 mt-2">
             <p className="text-white uppercase flex items-center text-lg font-medium">
               {NewName || 'User'} 
               <span className="text-green-500 ml-1">

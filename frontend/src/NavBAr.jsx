@@ -101,7 +101,7 @@ const NavBar = () => {
   return (
     <>
       {/* Fixed Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-[#19202a]">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-2 py-2 bg-[#19202a] ">
         {/* Hamburger Menu */}
         <button 
           onClick={toggleMenu}
@@ -115,7 +115,7 @@ const NavBar = () => {
 
         {/* Logo */}
         <div className="flex items-center justify-center">
-          <img src='logo.svg' className="w-16" alt="Logo" />
+          <img src='logo.png' className="w-[120px]" alt="Logo" />
         </div>
 
         {/* Spacer for flex alignment */}

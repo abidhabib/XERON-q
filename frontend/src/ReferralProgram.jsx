@@ -133,7 +133,6 @@ const ReferralProgram = () => {
         </div>
 
         {/* Referral Content - Maintaining consistent spacing */}
-        <div className="px-4 mt-6 pb-6 flex-1">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             {/* Header */}
             <div className="p-4 border-b border-gray-100">
@@ -267,7 +266,6 @@ const ReferralProgram = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

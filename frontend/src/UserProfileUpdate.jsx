@@ -250,7 +250,7 @@ const UserProfileUpdate = () => {
         {/* Profile Content */}
         <div className="px-3 py-4 flex-1">
           <div className="max-w-md mx-auto w-full">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-lg shadow-sm   p-3">
               <div className="mb-4">
                 <h2 className="text-base font-bold text-gray-900">Profile Settings</h2>
                 <p className="text-xs text-gray-500 mt-1">Manage your account information</p>

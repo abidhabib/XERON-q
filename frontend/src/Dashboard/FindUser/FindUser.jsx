@@ -408,13 +408,13 @@ const FindUser = () => {
                                             onChange={(e) => setInputTerm(e.target.value)}
                                             onKeyPress={(e) => handleKeyPress(e, handleGeneralSearch)}
                                             placeholder="Search by ID, email, phone, or TXID..."
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                            className="w-full pl-10 pr-4 py-2 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                         />
                                     </div>
                                     <button
                                         disabled={!inputTerm.trim()}
                                         onClick={handleGeneralSearch}
-                                        className={`px-4 py-2.5 rounded-r-lg transition-colors ${
+                                        className={`px-4 py-2 rounded-r-lg transition-colors ${
                                             inputTerm.trim()
                                                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -427,7 +427,7 @@ const FindUser = () => {
 
                             {/* Referer Search */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className=" text-sm font-medium text-gray-700 mb-2">
                                     Search by Referer
                                 </label>
                                 <div className="flex">
@@ -437,12 +437,12 @@ const FindUser = () => {
                                         value={refererSearch}
                                         onChange={(e) => setRefererSearch(e.target.value)}
                                         onKeyPress={(e) => handleKeyPress(e, handleRefererSearch)}
-                                        className="w-full px-4 py-2.5 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                        className=" px-4 py- rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                     />
                                     <button
                                         disabled={!refererSearch.trim()}
                                         onClick={handleRefererSearch}
-                                        className={`px-4 py-2.5 rounded-r-lg transition-colors ${
+                                        className={`px-4 py-2 rounded-r-lg transition-colors ${
                                             refererSearch.trim()
                                                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -818,7 +818,7 @@ const FindUser = () => {
                                         type="text"
                                         value={editingUser.name || ''}
                                         onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                     />
                                 </div>
                                 
@@ -830,7 +830,7 @@ const FindUser = () => {
                                         type="email"
                                         value={editingUser.email || ''}
                                         onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                     />
                                 </div>
                                 
@@ -842,7 +842,7 @@ const FindUser = () => {
                                         type="text"
                                         value={editingUser.phoneNumber || ''}
                                         onChange={(e) => setEditingUser({ ...editingUser, phoneNumber: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                     />
                                 </div>
                                 
@@ -855,7 +855,7 @@ const FindUser = () => {
                                         step="0.01"
                                         value={editingUser.balance || ''}
                                         onChange={(e) => setEditingUser({ ...editingUser, balance: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                     />
                                 </div>
                                 
@@ -867,7 +867,7 @@ const FindUser = () => {
                                         type="text"
                                         value={editingUser.trx_id || ''}
                                         onChange={(e) => setEditingUser({ ...editingUser, trx_id: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors font-mono"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors font-mono"
                                     />
                                 </div>
                                 
@@ -880,7 +880,7 @@ const FindUser = () => {
                                         step="0.01"
                                         value={editingUser.total_withdrawal || ''}
                                         onChange={(e) => setEditingUser({ ...editingUser, total_withdrawal: e.target.value })}
-                                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
                                     />
                                 </div>
                             </div>
@@ -890,13 +890,13 @@ const FindUser = () => {
                             <div className="flex justify-end space-x-3">
                                 <button
                                     onClick={() => setModalIsOpen(false)}
-                                    className="px-4 py-2.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    className="px-4 py-2.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                                 >
                                     Save Changes
                                 </button>
