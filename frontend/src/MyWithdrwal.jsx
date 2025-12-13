@@ -1,30 +1,26 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
-import Lottie from "react-lottie-player";
-import checkmarkAnimation from "./checkmark.json";
-import RejectAnimation from "./reject.json";
-import pendingAnimation from "./pendingAnimation.json";
+
 import { GoEye, GoEyeClosed } from "react-icons/go";
 import { RxCross2 } from "react-icons/rx";
 import { RemoveTrailingZeros } from "../utils/utils";
 import { ClipLoader } from "react-spinners";
 import { IoCheckmarkOutline } from "react-icons/io5";
 import { PiArrowsClockwiseLight, PiCalendarBlank, PiFunnelSimple } from "react-icons/pi";
-import { format, subDays, isWithinInterval } from "date-fns";
+import { format, subDays } from "date-fns";
+import PaymentReceipt from "./new/PaymentReceipt";
 
 export const WithdrwaHistory = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [hideNumber, setHideNumber] = useState(
-    JSON.parse(localStorage.getItem("hideNumber")) || false
-  );
+
   
   // Filter state
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateRange, setDateRange] = useState("7d");
+  const [dateRange, setDateRange] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [isFiltered, setIsFiltered] = useState(false);
 
@@ -107,10 +103,6 @@ export const WithdrwaHistory = () => {
     return format(date, "dd-MM-yyyy");
   };
 
-  const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return format(date, "dd MMM yyyy, hh:mm a");
-  };
 
   const statusData = (status) => {
     switch (status) {
@@ -125,11 +117,7 @@ export const WithdrwaHistory = () => {
     }
   };
 
-  const toggleHideNumber = () => {
-    const newState = !hideNumber;
-    setHideNumber(newState);
-    localStorage.setItem("hideNumber", JSON.stringify(newState));
-  };
+
 
   const resetFilters = () => {
     setStatusFilter("all");
@@ -330,96 +318,10 @@ export const WithdrwaHistory = () => {
           />
           
           {/* Bottom Sheet */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
-              <div className="px-5 pt-6 pb-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-semibold text-gray-800 text-lg">Transaction Details</h2>
-                  <button
-                    onClick={() => setSelectedTransaction(null)}
-                    className="p-2 text-gray-500"
-                  >
-                    <RxCross2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-3 pb-8">
-              {/* Status Icon */}
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative w-24 h-24 mb-4">
-                  <Lottie
-                    loop={false}
-                    play={true}
-                    animationData={selectedTransaction.approved === "approved" 
-                      ? checkmarkAnimation 
-                      : selectedTransaction.approved === "pending" 
-                      ? pendingAnimation 
-                      : RejectAnimation}
-                    className="w-24 h-24"
-                  />
-                </div>
-                <div className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                  selectedTransaction.approved === "approved" 
-                    ? "bg-emerald-100 text-emerald-700"
-                    : selectedTransaction.approved === "pending" 
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-rose-100 text-rose-700"
-                }`}>
-                  {selectedTransaction.approved === "approved" ? "Completed" : 
-                   selectedTransaction.approved === "pending" ? "Processing" : "Rejected"}
-                </div>
-              </div>
-
-              {/* Details Card */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="space-y-4">
-                  <DetailRow 
-                    label="Transaction ID"
-                    value={`${String(selectedTransaction.id).slice(0, 6)}-${String(selectedTransaction.uid)}`}
-                    monospace
-                  />
-                  
-                  <div className="h-px bg-gray-200"></div>
-                  
-                  <DetailRow 
-                    label="Date & Time"
-                    value={formatDateTime(selectedTransaction.date)}
-                  />
-                  
-                  <DetailRow 
-                    label="Amount"
-                    value={`$${RemoveTrailingZeros(Number(selectedTransaction.amount))}`}
-                    valueClass="text-indigo-600 font-semibold text-lg"
-                  />
-                  
-                  <div className="h-px bg-gray-200"></div>
-                  
-                  <DetailRow 
-                    label="Wallet"
-                    value={selectedTransaction.bank_name || "Not specified"}
-                  />
-                  
-                  <SecureDetailRow
-                    label="Wallet Address"
-                    value={selectedTransaction.account_number}
-                    hidden={hideNumber}
-                    onToggle={toggleHideNumber}
-                    formatValue={v => v.replace(/(.{4})/g, '$1 ').trim()}
-                  />
-                  
-                  <div className="h-px bg-gray-200"></div>
-                  
-                  <DetailRow 
-                    label="Processing Fee"
-                    value={`$${RemoveTrailingZeros(Number(selectedTransaction.fee))}`}
-                    valueClass="text-gray-600"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+      <PaymentReceipt 
+            selectedTransaction={selectedTransaction}
+            setSelectedTransaction={setSelectedTransaction}
+          />
         </div>
       )}
     </div>

@@ -1,50 +1,84 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { CheckCircle, Clock, AlertCircle, Bell, X } from 'react-feather';
+import { 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  Bell, 
+  X, 
+  Info,
+  ChevronRight
+} from 'react-feather';
 import { formatDistanceToNow } from 'date-fns';
 import { UserContext } from '../UserContext/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import NavBAr from '../NavBAr';
+import BalanceCard from './BalanceCard';
+import { BiSolidCheckboxChecked } from 'react-icons/bi';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { Userid: userId } = useContext(UserContext);
+  const [isLoading, setIsLoading] = useState(true);
 
   const getNotificationStyle = (msg) => {
     const lowerMsg = msg.toLowerCase();
     
-    if (/approved|success|congrat/i.test(lowerMsg)) {
+    if (/approved|success|congrat|completed/i.test(lowerMsg)) {
       return {
-        icon: <CheckCircle className="w-5 h-5 text-green-600" />,
-        bg: 'bg-green-50',
-        border: 'border-l-2 border-green-500',
-        dot: 'bg-green-500',
-        text: 'text-gray-800'
+        icon: <CheckCircle className="w-4.5 h-4.5 text-emerald-600" />,
+        accent: 'emerald',
+        bg: 'bg-white',
+        border: 'border border-gray-100',
+        dot: 'bg-emerald-500',
+        iconBg: 'bg-emerald-50',
+        titleColor: 'text-gray-900',
+        timeColor: 'text-gray-500'
       };
     } else if (/pending|waiting|processing/i.test(lowerMsg)) {
       return {
-        icon: <Clock className="w-5 h-5 text-amber-600" />,
-        bg: 'bg-amber-50',
-        border: 'border-l-2 border-amber-500',
+        icon: <Clock className="w-4.5 h-4.5 text-amber-600" />,
+        accent: 'amber',
+        bg: 'bg-white',
+        border: 'border border-gray-100',
         dot: 'bg-amber-500',
-        text: 'text-gray-800'
+        iconBg: 'bg-amber-50',
+        titleColor: 'text-gray-900',
+        timeColor: 'text-gray-500'
       };
-    } else if (/reject|error|fail/i.test(lowerMsg)) {
+    } else if (/reject|error|fail|declined/i.test(lowerMsg)) {
       return {
-        icon: <AlertCircle className="w-5 h-5 text-red-600" />,
-        bg: 'bg-red-50',
-        border: 'border-l-2 border-red-500',
-        dot: 'bg-red-500',
-        text: 'text-gray-800'
+        icon: <AlertCircle className="w-4.5 h-4.5 text-rose-600" />,
+        accent: 'rose',
+        bg: 'bg-white',
+        border: 'border border-gray-100',
+        dot: 'bg-rose-500',
+        iconBg: 'bg-rose-50',
+        titleColor: 'text-gray-900',
+        timeColor: 'text-gray-500'
+      };
+    } else if (/info|update|notice/i.test(lowerMsg)) {
+      return {
+        icon: <Info className="w-4.5 h-4.5 text-blue-600" />,
+        accent: 'blue',
+        bg: 'bg-white',
+        border: 'border border-gray-100',
+        dot: 'bg-blue-500',
+        iconBg: 'bg-blue-50',
+        titleColor: 'text-gray-900',
+        timeColor: 'text-gray-500'
       };
     }
     
     return {
-      icon: <Bell className="w-5 h-5 text-blue-600" />,
-      bg: 'bg-blue-50',
-      border: 'border-l-2 border-blue-500',
-      dot: 'bg-blue-500',
-      text: 'text-gray-800'
+      icon: <Bell className="w-4.5 h-4.5 text-gray-600" />,
+      accent: 'gray',
+      bg: 'bg-white',
+      border: 'border border-gray-100',
+      dot: 'bg-gray-400',
+      iconBg: 'bg-gray-50',
+      titleColor: 'text-gray-900',
+      timeColor: 'text-gray-500'
     };
   };
 
@@ -52,15 +86,21 @@ const NotificationsPage = () => {
     if (!userId) return;
     
     try {
+      setIsLoading(true);
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/${userId}`);
       const data = await response.json();
       
       if (data?.status === 'success') {
-        setNotifications(data.data || []);
-        setUnreadCount(data.data?.filter(n => n.is_read === 0).length || 0);
+        const sortedNotifications = (data.data || []).sort((a, b) => 
+          new Date(b.created_at) - new Date(a.created_at)
+        );
+        setNotifications(sortedNotifications);
+        setUnreadCount(sortedNotifications.filter(n => n.is_read === 0).length || 0);
       }
     } catch (error) {
       console.error('Fetch error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -79,7 +119,7 @@ const NotificationsPage = () => {
   };
 
   const markAllAsRead = async () => {
-    if (unreadCount === 0) return;
+    if (unreadCount === 0 || isLoading) return;
     
     try {
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/${userId}/read-all`, {
@@ -101,101 +141,178 @@ const NotificationsPage = () => {
   if (!userId) return null;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Navbar */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <NavBAr />
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col flex-1 pt-16">
-        <div className="px-4 py-6">
+      {/* Main Content - Starting below Navbar */}
+      <div className="pt-16">
+        {/* Balance Card */}
+        <div className="pt- pb-4">
+          <BalanceCard />
+        </div>
+
+        {/* Notifications Container */}
+        <div className="px-4 md:px-6 py-4">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                Notifications
-              </h1>
-              {unreadCount > 0 && (
-                <span className="ml-3 px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">
-                  {unreadCount}
-                </span>
-              )}
+          <div className="flex justify-between items-center mb-5">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                {unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1">
+                    <div className="relative">
+                      <div className="w-5 h-5 bg-gradient-to-br from-rose-500 to-rose-600 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-semibold text-white">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Notifications
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {notifications.length} total • {unreadCount} unread
+                </p>
+              </div>
             </div>
+            
             <button
               onClick={markAllAsRead}
-              disabled={unreadCount === 0}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                unreadCount > 0 
-                  ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' 
+              disabled={unreadCount === 0 || isLoading}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                unreadCount > 0 && !isLoading
+                  ? 'text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50' 
                   : 'text-gray-400 cursor-not-allowed'
               }`}
             >
-              Mark all read
+              <BiSolidCheckboxChecked className="w-4 h-4" />
+              <span>Mark all read</span>
             </button>
           </div>
 
           {/* Notifications List */}
-          <div className="rounded-xl overflow-hidden">
-            {notifications.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-xl border border-gray-200">
-                <div className="w-12 h-12 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Bell className="w-6 h-6 text-gray-400" />
+          <div className="space-y-2">
+            {isLoading ? (
+              // Skeleton Loaders
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse">
+                  <div className="flex gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gray-200"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-gray-600 font-medium">No notifications</p>
-                <p className="text-gray-400 text-sm mt-1">You're all caught up!</p>
+              ))
+            ) : notifications.length === 0 ? (
+              // Empty State
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mb-4">
+                  <Bell className="w-7 h-7 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">All caught up!</h3>
+                <p className="text-gray-500 text-sm">
+                  You don't have any notifications right now.
+                </p>
               </div>
             ) : (
-              <div className="space-y-2">
-                <AnimatePresence>
-                  {notifications.map((notification) => {
-                    const style = getNotificationStyle(notification.msg);
-                    const isUnread = notification.is_read === 0;
-                    
-                    return (
-                      <motion.div
-                        key={notification.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className={`${style.bg} ${style.border} rounded-lg border border-gray-200`}
-                      >
-                        <div className="flex items-start p-4">
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUnread ? 'bg-white' : 'bg-gray-50'}`}>
+              <AnimatePresence>
+                {notifications.map((notification) => {
+                  const style = getNotificationStyle(notification.msg);
+                  const isUnread = notification.is_read === 0;
+                  
+                  return (
+                    <motion.div
+                      key={notification.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className={`${style.bg} ${style.border} rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200`}
+                    >
+                      <div className="p-3">
+                        <div className="flex items-start gap-3">
+                          {/* Icon Container */}
+                          <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${style.iconBg} flex items-center justify-center`}>
                             {style.icon}
                           </div>
                           
-                          <div className="ml-3 flex-1">
-                            <p className={`${style.text} text-sm font-medium`}>
-                              {notification.msg}
-                            </p>
-                            <div className="flex items-center mt-1">
-                              <span className="text-xs text-gray-500">
-                                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                              </span>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className={`${style.titleColor} text-sm font-medium leading-tight pr-2`}>
+                                {notification.msg}
+                              </p>
                               {isUnread && (
-                                <span className={`ml-2 w-2 h-2 rounded-full ${style.dot}`}></span>
+                                <button
+                                  onClick={() => markAsRead(notification.id)}
+                                  className="flex-shrink-0 text-gray-300 hover:text-gray-400 transition-colors p-0.5"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
                               )}
                             </div>
+                            
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className={`${style.timeColor} text-xs`}>
+                                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                              </span>
+                              
+                              <div className="flex items-center gap-2">
+                                {isUnread && (
+                                  <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>
+                                )}
+                                <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+                              </div>
+                            </div>
                           </div>
-                          
-                          {isUnread && (
-                            <button
-                              onClick={() => markAsRead(notification.id)}
-                              className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
+                      </div>
+                      
+                      {/* Unread Indicator Line */}
+                      {isUnread && (
+                        <div className="h-0.5 bg-gradient-to-r from-gray-900 via-gray-700 to-transparent rounded-b-xl"></div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             )}
           </div>
+
+          {/* Footer Stats */}
+          {notifications.length > 0 && !isLoading && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>
+                  Showing {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                </span>
+                <div className="flex items-center gap-3">
+                  {unreadCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span>{unreadCount} unread</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-emerald-600">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>All read</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { UserContext } from './UserContext/UserContext';
 import NavBAr from './NavBAr';
 import NotificationBell from './NotificationBell';
 import { useNavigate } from 'react-router-dom';
+import BalanceCard from './new/BalanceCard';
 
 const Team = () => {
   const { Userid, NewName, currBalance, backend_wallet } = useContext(UserContext);
@@ -88,44 +89,7 @@ const Team = () => {
       {/* Main Content */}
       <div className="flex flex-col flex-1 pt-16">
         {/* Mini Dashboard */}
-        <div className="py-6 bg-[#19202a] shadow-lg">
-          <div className="flex items-center px-4 mb-4">
-            <p className="text-white uppercase flex items-center text-lg font-medium">
-              {NewName || 'User'} 
-              <span className="text-green-500 ml-1">
-                <AiOutlineVerified className="w-5 h-5" />
-              </span>
-            </p>
-          </div>
-
-          <div className="flex justify-between items-center px-4 mb-6">
-            <p className="text-white text-2xl font-bold">
-              ${formatCurrency(currBalance)}
-            </p>
-            <div className="px-3 py-1.5 font-bold text-green-400 bg-transparent border border-green-400 rounded-full text-xs">
-              Progress {progress}%
-            </div>
-          </div>
-
-          <div className="px-4 pb-2">
-            <div className="grid grid-cols-4 gap-2">
-              {menuItems.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={() => navigate(item.link)}
-                  className="flex flex-col items-center p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-                  aria-label={item.label}
-                >
-                  <div className="border border-white/20 rounded-full p-2.5 mb-1 flex items-center justify-center bg-white/5">
-                    {item.icon}
-                  </div>
-                  <span className="text-xs text-center mt-1">{item.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
+      <BalanceCard/>
         {/* Team Content */}
         <div className="px-4 py-6 flex-1">
           <div className="mb-6">

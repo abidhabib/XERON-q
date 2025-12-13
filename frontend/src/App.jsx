@@ -81,7 +81,7 @@ function App() {
       } catch (error) {
         // Provide specific hints based on common errors
         if (error.message && error.message.includes('404')) {
-            console.error("   -> This usually means '/service-worker.js' was not found on the server. Check if it's deployed correctly and accessible at https://checking.run.place/service-worker.js  ");
+            console.error(" ❌ [APP ERROR] Service Worker registration failed: service-worker.js not found (404). Ensure the file exists at the root of your public directory.");
         }
       }
     };

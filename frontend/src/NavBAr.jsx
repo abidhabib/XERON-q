@@ -101,7 +101,7 @@ const NavBar = () => {
   return (
     <>
       {/* Fixed Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-2 py-2 bg-[#19202a] ">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-2 py-3 bg-[#19202a] ">
         {/* Hamburger Menu */}
         <button 
           onClick={toggleMenu}
@@ -142,7 +142,7 @@ const NavBar = () => {
               exit={{ opacity: 0, y: -20 }}
               className="fixed top-16 left-0 right-0 z-50 bg-[#19202a] shadow-xl rounded-b-2xl"
             >
-              <div className="grid grid-cols-4 gap-4 p-4">
+              <div className="grid grid-cols-4 gap-4 py-10">
                 {menuItems.map((item, index) => (
                   <button
                     key={index}
@@ -154,8 +154,8 @@ const NavBar = () => {
                       item.isLogout ? 'text-red-400' : 'text-white hover:bg-white/10'
                     }`}
                   >
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full mb-1 ${
-                      item.isLogout ? 'bg-red-500/20' : 'bg-blue-500'
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full mb-1 border ${
+                      item.isLogout ? 'border-red-500/20' : 'border-white/20'
                     }`}>
                       {item.icon}
                     </div>
@@ -164,6 +164,7 @@ const NavBar = () => {
                 ))}
               </div>
             </motion.div>
+            
           </>
         )}
       </AnimatePresence>
