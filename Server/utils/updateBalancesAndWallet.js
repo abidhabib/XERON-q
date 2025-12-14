@@ -59,11 +59,11 @@ export const updateBalancesAndWallet = async (userId, depth = 0) => {
                     web_credits = web_credits + ?
                 WHERE id = ?
             `, [
-                directBonusAmount,      // balance
-                indirectBonusAmount,    // backend_wallet
-                totalCredits,           // all_credits (includes all 4)
-                weekCreditAmount,       // week_credits
-                webCreditAmount,        // web_credits
+                directBonusAmount,        
+                indirectBonusAmount,      
+                totalCredits,             
+                weekCreditAmount,         
+                webCreditAmount,          
                 referrerId
             ]);
 

@@ -7,7 +7,9 @@ import {
   Users,
   Bell,
   Mail,
-  CheckCheck
+  CheckCheck,
+  Crown,
+  Shield
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { RemoveTrailingZeros } from '../../utils/utils';
@@ -20,7 +22,8 @@ function BalanceCard() {
     total_withdrawal,
     unreadCount,
     markAllNotificationsAsRead,
-    Userid
+    Userid,
+    level
   } = useContext(UserContext);
   
   const navigate = useNavigate();
@@ -79,8 +82,12 @@ function BalanceCard() {
       <div className="flex items-center justify-between px-4 mb-4 mt-1">
         <p className="text-white text-base font-medium flex items-center">
           {NewName || 'User'}
-          <CheckCheck size={16} className="text-emerald-400 ml-1" />
-        </p>
+<div className="relative ml-2 w-5 h-5 flex items-center justify-center">
+  <Shield size={50} className="text-[#f8c23c]" strokeWidth={2} />
+  <span className="absolute inset-0 flex items-center justify-center text-[12px]  text-white">
+    {level || 1}
+  </span>
+</div>        </p>
         <span className="text-[12px] font-medium text-[#D4AF37]/90">
           {progress}% Progress
         </span>
@@ -93,7 +100,7 @@ function BalanceCard() {
             <p className={`text-white text-2xl font-semibold tracking-tight transition-all duration-700 ${balanceLoaded ? 'opacity-100' : 'opacity-0'}`}>
               ${RemoveTrailingZeros(currBalance)}
             </p>
-            <p className="text-[11px] text-[#D4AF37]/80 mt-1 tracking-wide uppercase">Available Balance</p>
+            <p className="text-[11px] text-[#f8c23c] mt-1 tracking-wide uppercase">Available Balance</p>
           </div>
           <div className="flex flex-col items-center">
             <p className="text-white/85 text-2xl font-semibold tracking-tight">
