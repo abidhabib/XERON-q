@@ -1,4 +1,3 @@
-// controllers/approveUser.js (or wherever your approveUser function is)
 import { updateBalancesAndWallet } from '../utils/updateBalancesAndWallet.js';
 import { queryAsync } from '../utils/queryAsync.js';
 import moment from 'moment';
@@ -17,7 +16,6 @@ export const approveUser = async (req, res) => {
     try {
         await queryAsync('START TRANSACTION');
 
-        // --- Approve the new user ---
         const [userDetails] = await queryAsync(`
             SELECT name, email 
             FROM users 
@@ -41,7 +39,6 @@ export const approveUser = async (req, res) => {
         `, [userId]);
 
         await updateBalancesAndWallet(userId);
-        // --- End Approve User ---
 
         const referrerResult = await queryAsync(`
             SELECT refer_by
@@ -52,7 +49,6 @@ export const approveUser = async (req, res) => {
         const referrerId = referrerResult[0]?.refer_by;
 
         if (referrerId) {
-            // --- Update Referrer's Team Count (Approved Referrals) ---
             const approvedCountResult = await queryAsync(`
                 SELECT COUNT(*) AS approved_count
                 FROM users
@@ -67,30 +63,24 @@ export const approveUser = async (req, res) => {
                     team = ? -- This is the total approved count
                 WHERE id = ?
             `, [approvedCount, referrerId]);
-            // --- End Update Referrer's Team Count ---
 
 
-            // --- Weekly Recruitment Tracking (Existing Logic) ---
             const currentWeek = moment().format('YYYYWW');
             await queryAsync(`
                 INSERT INTO weekly_recruits (user_id, week_id, new_members)
                 VALUES (?, ?, 1)
                 ON DUPLICATE KEY UPDATE new_members = new_members + 1
             `, [referrerId, currentWeek]);
-            // --- End Weekly Recruitment Tracking ---
 
 
-            // --- Monthly Recruitment Tracking & Level Update (New Logic) ---
-            const currentYearMonth = moment().format('YYYYMM'); // e.g., 202407
+            const currentYearMonth = moment().format('YYYYMM'); 
 
-            // 1. Increment the monthly recruit count for the referrer for the CURRENT month
             await queryAsync(`
                 INSERT INTO monthly_recruits (user_id, \`year_month\`, new_members)
                 VALUES (?, ?, 1)
                 ON DUPLICATE KEY UPDATE new_members = new_members + 1
             `, [referrerId, currentYearMonth]);
 
-            // 2. Fetch monthly levels configuration to determine the new monthly level
             const monthlyLevelsResult = await queryAsync(`
                 SELECT month_level, required_joins
                 FROM monthly_levels
@@ -101,20 +91,17 @@ export const approveUser = async (req, res) => {
             for (const level of monthlyLevelsResult) {
                 if (approvedCount >= level.required_joins) {
                     newMonthlyLevel = level.month_level;
-                    break; // Stop at the first (highest) matching level
+                    break;
                 }
             }
 
-            // 4. Update the referrer's monthly_salary_level in the users table dynamically
-            // This ensures it always reflects the level based on their total team size (approvedCount)
             await queryAsync(`
                 UPDATE users
                 SET monthly_salary_level = ?
                 WHERE id = ?
             `, [newMonthlyLevel, referrerId]);
 
-            // Optional: Fetch referrer details for potential monthly level notification
-            // (Requires fetching the old level first for comparison)
+
             
             const [referrerDetails] = await queryAsync(`SELECT name, monthly_salary_level FROM users WHERE id = ?`, [referrerId]);
             const oldMonthlyLevel = referrerDetails?.monthly_salary_level || 0;
@@ -124,21 +111,13 @@ export const approveUser = async (req, res) => {
                  await queryAsync(insertNotificationQuery, [referrerId, monthlyUpgradeMessage]);
             }
             
-            // --- End Monthly Recruitment Tracking & Level Update ---
 
-
-            // --- Existing Weekly Level & Notification Logic (if still needed) ---
-            // You can keep the existing weekly recruit update, level update, and notification logic here
-            // if those features are still active.
-
-            // Example: Basic referral notification (you can enhance this)
             const notificationMessage = `🎉 New referral approved!
             User: ${userDetails.name} (${userDetails.email})
             has joined under your referral.
             Your total team count is now ${approvedCount}.`;
 
             await queryAsync(insertNotificationQuery, [referrerId, notificationMessage]);
-            // --- End Existing Logic ---
         }
 
         await queryAsync('COMMIT');
@@ -149,7 +128,7 @@ export const approveUser = async (req, res) => {
         });
     } catch (error) {
         console.error('Transaction error in approveUser:', error.message);
-        console.error(error); // Log full error for debugging
+        console.error(error);
         await queryAsync('ROLLBACK');
         res.status(500).json({
             status: 'error',

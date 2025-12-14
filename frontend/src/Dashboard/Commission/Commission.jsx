@@ -1,7 +1,6 @@
 // src/components/Admin/Commission.jsx (or your relevant path)
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Sidebar } from "../SideBarSection/Sidebar";
 import {
   HiOutlineRefresh,
   HiOutlinePencilAlt,
@@ -10,21 +9,26 @@ import {
 import Modal from 'react-modal';
 import { FaSpinner } from 'react-icons/fa';
 
-Modal.setAppElement('#root'); // Ensure this matches your app's root ID
+Modal.setAppElement('#root'); 
 
 const Commission = () => {
   const [commissionData, setCommissionData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // State for the update modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState({ id: '', direct_bonus: '', indirect_bonus: '' });
+const [editingItem, setEditingItem] = useState({
+  id: '',
+  person: '',
+  direct_bonus: '',
+  indirect_bonus: '',
+  week_backend: '',
+  web_backend: ''
+});
   const [formErrors, setFormErrors] = useState({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  // Fetch data function using useCallback for potential optimization
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -41,31 +45,26 @@ const Commission = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [API_BASE_URL]); // Depend on API_BASE_URL
+  }, [API_BASE_URL]); 
 
-  // Fetch data on component mount
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Handle Refresh button click
   const handleRefresh = () => {
     fetchData();
   };
 
-  // Open the modal for updating an item
   const handleUpdateClick = (item) => {
     setEditingItem({ ...item });
-    setFormErrors({}); // Clear previous errors
+    setFormErrors({}); 
     setIsModalOpen(true);
   };
 
-  // Handle input changes in the modal form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditingItem(prevData => ({ ...prevData, [name]: value }));
 
-    // Clear error for the field being edited
     if (formErrors[name]) {
         setFormErrors(prev => {
             const newErrors = { ...prev };
@@ -82,44 +81,40 @@ const Commission = () => {
     }
   };
 
-  // Handle saving the updated data
   const handleSave = async (e) => {
-    e.preventDefault(); // Prevent default form submission
-    setFormErrors({}); // Clear previous errors
+    e.preventDefault();
+    setFormErrors({}); 
 
-    // Basic client-side validation (optional, backend should validate too)
-    const errors = {};
-    if (editingItem.direct_bonus === '' || isNaN(Number(editingItem.direct_bonus))) {
-        errors.direct_bonus = 'Direct Bonus must be a valid number.';
-    }
-    if (editingItem.indirect_bonus === '' || isNaN(Number(editingItem.indirect_bonus))) {
-        errors.indirect_bonus = 'Indirect Bonus must be a valid number.';
-    }
-
-    if (Object.keys(errors).length > 0) {
-        setFormErrors(errors);
-        return; // Stop if client-side validation fails
-    }
+ const errors = {};
+if (editingItem.direct_bonus === '' || isNaN(Number(editingItem.direct_bonus))) {
+  errors.direct_bonus = 'Direct Bonus must be a valid number.';
+}
+if (editingItem.indirect_bonus === '' || isNaN(Number(editingItem.indirect_bonus))) {
+  errors.indirect_bonus = 'Indirect Bonus must be a valid number.';
+}
+if (editingItem.week_backend === '' || isNaN(Number(editingItem.week_backend))) {
+  errors.week_backend = 'Week Backend must be a valid number.';
+}
+if (editingItem.web_backend === '' || isNaN(Number(editingItem.web_backend))) {
+  errors.web_backend = 'Web Backend must be a valid number.';
+}
 
     try {
       const response = await axios.put(`${API_BASE_URL}/updateCommissionData`, {
-        id: editingItem.id,
-        direct_bonus: Number(editingItem.direct_bonus), // Ensure numbers are sent
-        indirect_bonus: Number(editingItem.indirect_bonus),
-      });
-
+  id: editingItem.id,
+  direct_bonus: Number(editingItem.direct_bonus),
+  indirect_bonus: Number(editingItem.indirect_bonus),
+  week_backend: Number(editingItem.week_backend),
+  web_backend: Number(editingItem.web_backend),
+});
       if (response.data.status === 'success') {
-        setIsModalOpen(false); // Close the modal
-        fetchData(); // Refresh the data list
-        // Optionally reset editingItem, though closing the modal is enough
-        // setEditingItem({ id: '', direct_bonus: '', indirect_bonus: '' });
+        setIsModalOpen(false); 
+        fetchData();
       } else {
-        // Handle potential backend errors during update
         throw new Error(response.data.message || 'Failed to update data');
       }
     } catch (err) {
       console.error('Error updating commission data:', err);
-      // Display error in the modal
       setFormErrors({ general: err.message || 'An error occurred while saving the data.' });
     }
   };
@@ -162,6 +157,8 @@ const Commission = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Member</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Direct Bonus (%)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Indirect Bonus (%)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Week Backend (%)</th>
+<th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Web Backend (%)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -172,6 +169,8 @@ const Commission = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.person}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.direct_bonus}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.indirect_bonus}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.week_backend}</td>
+<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.web_backend}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
                             onClick={() => handleUpdateClick(item)}
@@ -265,7 +264,49 @@ const Commission = () => {
                   <p className="mt-1 text-sm text-red-600">{formErrors.indirect_bonus}</p>
                 )}
               </div>
+<div className="mb-4">
+  <label htmlFor="week_backend" className="block text-sm font-medium text-gray-700 mb-1">
+    Week Backend (%)
+  </label>
+  <input
+    type="number"
+    id="week_backend"
+    name="week_backend"
+    value={editingItem.week_backend}
+    onChange={handleInputChange}
+    min="0"
+    step="any"
+    required
+    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
+      formErrors.week_backend ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
+    }`}
+  />
+  {formErrors.week_backend && (
+    <p className="mt-1 text-sm text-red-600">{formErrors.week_backend}</p>
+  )}
+</div>
 
+<div className="mb-4">
+  <label htmlFor="web_backend" className="block text-sm font-medium text-gray-700 mb-1">
+    Web Backend (%)
+  </label>
+  <input
+    type="number"
+    id="web_backend"
+    name="web_backend"
+    value={editingItem.web_backend}
+    onChange={handleInputChange}
+    min="0"
+    step="any"
+    required
+    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
+      formErrors.web_backend ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
+    }`}
+  />
+  {formErrors.web_backend && (
+    <p className="mt-1 text-sm text-red-600">{formErrors.web_backend}</p>
+  )}
+</div>
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -275,7 +316,7 @@ const Commission = () => {
                   Cancel
                 </button>
                 <button
-                  type="submit" // Use type="submit" to trigger form onSubmit
+                  type="submit"
                   className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
                 >
                   Save Changes

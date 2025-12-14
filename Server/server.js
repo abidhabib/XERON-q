@@ -958,18 +958,7 @@ app.delete('/delete-rejected-users', async (req, res) => {
 });
 
 
-app.get('/fetchCommissionData', (req, res) => {
-    const sql = 'SELECT * FROM commission';
 
-    con.query(sql, (err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch commission data' });
-        }
-
-        res.json({ status: 'success', data: result });
-    });
-});
 // Fetch levels data
 app.get('/fetchLevelsData', (req, res) => {
     const sql = 'SELECT id, level, threshold,salary_amount,salary_day,weekly_recruitment FROM levels ORDER BY level ASC';
@@ -1233,53 +1222,72 @@ app.put('/updateWithdrawData', (req, res) => {
         res.json({ status: 'success', message: 'Level data updated successfully' });
     });
 });
+app.get('/fetchCommissionData', (req, res) => {
+    const sql = 'SELECT * FROM commission';
 
-
-app.put('/updateCommissionData', (req, res) => {
-    const { id, direct_bonus, indirect_bonus } = req.body;
-
-    if (!direct_bonus || !indirect_bonus) {
-        return res.status(400).json({ status: 'error', message: 'Direct Bonus and Indirect Bonus are required' });
-    }
-
-    let updateQuery;
-    let queryParams;
-
-    if (id === 0) {
-        updateQuery = `
-            UPDATE commission
-            SET 
-                direct_bonus = ?,
-                indirect_bonus = ?
-            WHERE id = 0`;
-        queryParams = [direct_bonus, indirect_bonus];
-    } else {
-        updateQuery = `
-            UPDATE commission
-            SET 
-                direct_bonus = ?,
-                indirect_bonus = ?
-            WHERE id = ?`;
-        queryParams = [direct_bonus, indirect_bonus, id];
-    }
-
-
-    con.query(updateQuery, queryParams, (err, result) => {
+    con.query(sql, (err, result) => {
         if (err) {
-            console.error('Error updating commission data:', err);
-            return res.status(500).json({ status: 'error', error: 'Failed to update commission data' });
+            console.error(err);
+            return res.status(500).json({ status: 'error', error: 'Failed to fetch commission data' });
         }
 
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ status: 'error', message: 'Commission data not found' });
-        }
-
-        res.json({ status: 'success', message: 'Commission data updated successfully' });
+        res.json({ status: 'success', data: result });
     });
 });
+app.put('/updateCommissionData', (req, res) => {
+  const { id, direct_bonus, indirect_bonus, week_backend, web_backend } = req.body;
 
+  // Validate all four fields (adjust validation as needed)
+  if (
+    direct_bonus == null ||
+    indirect_bonus == null ||
+    week_backend == null ||
+    web_backend == null
+  ) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Direct Bonus, Indirect Bonus, Week Backend, and Web Backend are required'
+    });
+  }
 
+  let updateQuery;
+  let queryParams;
+
+  if (id === 0) {
+    updateQuery = `
+      UPDATE commission
+      SET 
+        direct_bonus = ?,
+        indirect_bonus = ?,
+        week_backend = ?,
+        web_backend = ?
+      WHERE id = 0`;
+    queryParams = [direct_bonus, indirect_bonus, week_backend, web_backend];
+  } else {
+    updateQuery = `
+      UPDATE commission
+      SET 
+        direct_bonus = ?,
+        indirect_bonus = ?,
+        week_backend = ?,
+        web_backend = ?
+      WHERE id = ?`;
+    queryParams = [direct_bonus, indirect_bonus, week_backend, web_backend, id];
+  }
+
+  con.query(updateQuery, queryParams, (err, result) => {
+    if (err) {
+      console.error('Error updating commission data:', err);
+      return res.status(500).json({ status: 'error', error: 'Failed to update commission data' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'error', message: 'Commission data not found' });
+    }
+
+    res.json({ status: 'success', message: 'Commission data updated successfully' });
+  });
+});
 
 
 

@@ -1,21 +1,30 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { FaCopy, FaWhatsapp, FaTelegram, FaTwitter, FaFacebook, FaLink } from 'react-icons/fa';
-
 import NavBar from './NavBAr';
 import { UserContext } from './UserContext/UserContext';
-
 import BalanceCard from './new/BalanceCard';
+
+// ✅ Lucide Icons (clean, minimal, consistent)
+import { 
+  Link, 
+  Copy, 
+  Send, 
+  MessageCircle, 
+  MessageSquare, 
+  Share2,
+  CheckCircle
+} from 'lucide-react';
 
 const ReferralProgram = () => {
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const { Userid } = useContext(UserContext);
 
-
   useEffect(() => {
-    const userId = Userid;
-    const link = `https://rovexking.com/signup?ref=${userId}`;
-    setInviteLink(link);
+    if (Userid) {
+      // ✅ Fixed: no extra spaces in URL
+      const link = `https://rovexking.com/signup?ref=${Userid}`;
+      setInviteLink(link);
+    }
   }, [Userid]);
 
   const copyLink = () => {
@@ -25,172 +34,136 @@ const ReferralProgram = () => {
   };
 
   const shareOnPlatform = (platform) => {
-    let shareUrl = '';
     const shareText = "Join this platform using my referral link:";
-    
-    switch(platform) {
-      case 'whatsapp': 
-        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + inviteLink)}`;
+    let shareUrl = '';
+
+    switch (platform) {
+      case 'whatsapp':
+        // ✅ Correct WhatsApp API format
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText + " " + inviteLink)}`;
         break;
-      case 'telegram': 
+      case 'telegram':
         shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
         break;
-      case 'twitter': 
+      case 'twitter':
         shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText + " " + inviteLink)}`;
         break;
-      case 'facebook': 
+      case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(inviteLink)}`;
         break;
-      default: 
+      default:
         return;
     }
-    
     window.open(shareUrl, '_blank');
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="flex flex-col min-h-screen bg-[#111827]">
+      <div className="sticky top-0 z-50 bg-[#111827]">
         <NavBar />
       </div>
 
-      {/* Main Content */}
-     <BalanceCard/>
+      <BalanceCard />
 
-        {/* Referral Content - Maintaining consistent spacing */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            {/* Header */}
-            <div className="p-4 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Invite Friends & Earn
-                </h2>
-                <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                  Active
-                </span>
-              </div>
-              <p className="text-gray-500 text-xs mt-1">
-                Share your link to unlock rewards
-              </p>
+      <div className="px-2 pb-6 pt-2">
+        <div className="bg-[#19202a] rounded-2xl">
+          {/* Header */}
+          <div className="p-4 border-b border-[#26303b]">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">
+                Invite Friends & Earn
+              </h2>
+              <span className="text-[11px] bg-[#1c2a3a] text-[#D4AF37] px-2 py-0.5 rounded-full">
+                Active
+              </span>
             </div>
-            
-            {/* Main Content */}
-            <div className="p-4">
-              {/* Referral Link Section */}
-              <div className="mb-5">
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Your referral link
-                </label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-grow">
-                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded px-3 py-2">
-                      <FaLink className="text-gray-400 mr-2 text-sm" />
-                      <input
-                        type="text"
-                        value={inviteLink}
-                        readOnly
-                        className="bg-transparent text-gray-700 w-full outline-none text-sm truncate"
-                      />
-                    </div>
+            <p className="text-[#D4AF37]/70 text-xs mt-1">
+              Share your link to unlock rewards
+            </p>
+          </div>
+
+          {/* Main Content */}
+          <div className="p-4">
+            {/* Referral Link */}
+            <div className="mb-5">
+              <label className="block text-[11px] font-medium text-[#D4AF37]/80 mb-2">
+                Your referral link
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-grow">
+                  <div className="flex items-center bg-[#1c2a3a] rounded-lg px-3 py-2.5">
+                    <Link className="text-[#D4AF37]/60 mr-2 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={inviteLink}
+                      readOnly
+                      className="bg-transparent text-white w-full outline-none text-sm truncate"
+                    />
                   </div>
-                  <button
-                    onClick={copyLink}
-                    className={`px-3 py-2 rounded text-sm flex items-center justify-center gap-1.5 ${
-                      copied 
-                        ? 'bg-emerald-600 text-white' 
-                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                    } transition-colors whitespace-nowrap`}
-                  >
-                    <FaCopy className="text-xs" />
-                    {copied ? "Copied" : "Copy"}
-                  </button>
                 </div>
+                <button
+                  onClick={copyLink}
+                  className={`px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-all whitespace-nowrap ${
+                    copied
+                      ? 'bg-emerald-500 text-white animate-pulse'
+                      : 'bg-[#D4AF37] text-gray-900 hover:bg-[#e8c04e]'
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy
+                    </>
+                  )}
+                </button>
               </div>
-              
-              {/* Sharing Options */}
-              <div className="mb-6">
-                <h3 className="text-xs font-semibold text-gray-700 mb-2.5">Share via</h3>
-                <div className="grid grid-cols-4 gap-2">
+            </div>
+
+            {/* Share via */}
+            <div className="mb-5">
+              <h3 className="text-[11px] font-medium text-[#D4AF37]/80 mb-2.5">Share via</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: 'whatsapp', icon: <Send className="w-5 h-5 text-emerald-400" />, label: 'WhatsApp' },
+                  { id: 'telegram', icon: <MessageCircle className="w-5 h-5 text-blue-400" />, label: 'Telegram' },
+                  { id: 'twitter', icon: <MessageSquare className="w-5 h-5 text-sky-400" />, label: 'Twitter' },
+                  { id: 'facebook', icon: <Share2 className="w-5 h-5 text-blue-500" />, label: 'Facebook' },
+                ].map((item) => (
                   <button
-                    className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 p-2.5 rounded hover:border-green-300 transition-colors"
-                    onClick={() => shareOnPlatform('whatsapp')}
+                    key={item.id}
+                    className="flex flex-col items-center justify-center gap-1 bg-[#1c2a3a] hover:bg-[#26303b] p-2.5 rounded-lg transition-colors"
+                    onClick={() => shareOnPlatform(item.id)}
                   >
-                    <FaWhatsapp className="text-lg text-green-500" />
-                    <span className="text-xs">WhatsApp</span>
+                    {item.icon}
+                    <span className="text-[11px] text-[#D4AF37]/90">{item.label}</span>
                   </button>
-                  
-                  <button
-                    className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 p-2.5 rounded hover:border-blue-300 transition-colors"
-                    onClick={() => shareOnPlatform('telegram')}
-                  >
-                    <FaTelegram className="text-lg text-blue-500" />
-                    <span className="text-xs">Telegram</span>
-                  </button>
-                  
-                  <button
-                    className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 p-2.5 rounded hover:border-sky-300 transition-colors"
-                    onClick={() => shareOnPlatform('twitter')}
-                  >
-                    <FaTwitter className="text-lg text-sky-500" />
-                    <span className="text-xs">Twitter</span>
-                  </button>
-                  
-                  <button
-                    className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 p-2.5 rounded hover:border-blue-400 transition-colors"
-                    onClick={() => shareOnPlatform('facebook')}
-                  >
-                    <FaFacebook className="text-lg text-blue-700" />
-                    <span className="text-xs">Facebook</span>
-                  </button>
-                </div>
+                ))}
               </div>
-              
-              {/* Benefits */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="bg-blue-50 border border-blue-100 rounded p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-900">Earn 10% commission</p>
-                      <p className="text-xs text-gray-600">From referrals' earnings</p>
-                    </div>
-                  </div>
+            </div>
+
+            {/* Benefits - Minimal Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { color: 'text-emerald-400', bg: 'bg-emerald-900/20', title: '10% Commission', desc: 'From referrals’ earnings' },
+                { color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10', title: 'Unlimited Invites', desc: 'Invite as many as you want' },
+                { color: 'text-amber-400', bg: 'bg-amber-900/20', title: 'Instant Rewards', desc: 'Get bonuses immediately' },
+                { color: 'text-purple-400', bg: 'bg-purple-900/20', title: 'Tier Benefits', desc: 'Unlock higher rewards' },
+              ].map((item, idx) => (
+                <div key={idx} className={`rounded-lg p-3 ${item.bg}`}>
+                  <p className="text-[11px] font-medium text-white">{item.title}</p>
+                  <p className="text-[10px] text-[#D4AF37]/70 mt-0.5">{item.desc}</p>
                 </div>
-                
-                <div className="bg-green-50 border border-green-100 rounded p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-900">Unlimited invites</p>
-                      <p className="text-xs text-gray-600">Invite as many as you want</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-amber-50 border border-amber-100 rounded p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-900">Instant rewards</p>
-                      <p className="text-xs text-gray-600">Get bonuses immediately</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-purple-50 border border-purple-100 rounded p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-900">Tier benefits</p>
-                      <p className="text-xs text-gray-600">Unlock higher rewards</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
+      </div>
+    </div>
   );
 };
 

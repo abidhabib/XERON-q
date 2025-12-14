@@ -21,7 +21,7 @@ const AdminLogin = () => {
                 const decoded = jwtDecode(token);
                 if (decoded.exp * 1000 > Date.now()) {
                     setAdminAuthenticated(true);
-                    navigateTo('/adminpanel');
+                    navigateTo('/admin');
                 }
             } catch (error) {
                 localStorage.removeItem('adminToken');
@@ -64,7 +64,7 @@ const AdminLogin = () => {
                 
                 localStorage.setItem('adminToken', response.data.token);
                 setAdminAuthenticated(true);
-                navigateTo('/adminpanel');
+                navigateTo('/admin');
             } else {
                 setLoginStatus(response.data.message || 'Authentication failed');
                 setShake(true);

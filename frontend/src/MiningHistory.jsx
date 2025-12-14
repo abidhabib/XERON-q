@@ -71,7 +71,7 @@ const MiningHistory = () => {
       <BalanceCard />
 
       {/* Content */}
-      <div className="px-4 py-4 flex-1">
+      <div className="px-2 py-4 flex-1">
         <div className="flex items-center gap-2 mb-5">
           <History className="w-5 h-5 text-[#D4AF37]" />
           <h1 className="text-xl font-semibold text-white">Mining History</h1>

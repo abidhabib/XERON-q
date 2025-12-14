@@ -14,14 +14,11 @@ const Wallet = () => {
 
   return (
     <>
-      <NavBAr />
 
-      {/* ✅ Container with #111827 background — matches WithdrwaHistory */}
       <div className="bg-[#111827] ">
         <BalanceCard />
       </div>
 
-      {/* WithdrwaHistory starts immediately after — same bg */}
       <WithdrwaHistory />
       
       <Toaster />

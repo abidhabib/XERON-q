@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useContext, lazy, Suspense } from 'react';
 import axios from 'axios';
-import {
-
-  FaCheckCircle,
-  FaCoins,
-  FaChartLine,
-  FaHistory,
-  FaExclamationTriangle,
-  FaSpinner
-} from 'react-icons/fa';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
 import BalanceCard from './BalanceCard';
+
+// ✅ Lucide Icons
+import { 
+  Coins, 
+  ChartLine, 
+  History, 
+  AlertTriangle,
+  CheckCircle,
+  RefreshCw,
+  Calendar
+} from 'lucide-react';
 
 const NavBar = lazy(() => import('../NavBAr'));
 
@@ -21,7 +23,6 @@ const SalaryCollection = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [collecting, setCollecting] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const { Userid } = useContext(UserContext);
@@ -31,14 +32,13 @@ const SalaryCollection = () => {
   const fetchSalaryStatus = async () => {
     setError('');
     try {
-      const response = await axios.get(`${API_BASE_URL}/salary-status`, {
-        withCredentials: true
-      });
+      const response = await axios.get(`${API_BASE_URL}/salary-status`, { withCredentials: true });
       setSalaryData(response.data.data);
     } catch (err) {
-      console.error("Error fetching salary status:", err);
-      setError(err.response?.data?.error || err.message || 'Failed to load salary data');
+      setError(err.response?.data?.error || 'Failed to load salary data');
       setSalaryData(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,32 +47,18 @@ const SalaryCollection = () => {
     setHistoryLoading(true);
     setError('');
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/salary-history`, {
-        withCredentials: true
-      });
+      const response = await axios.get(`${API_BASE_URL}/api/salary-history`, { withCredentials: true });
       setHistory(response.data.history);
     } catch (err) {
-      console.error("Error fetching salary history:", err);
-      setError(err.response?.data?.error || err.message || 'Failed to load salary history');
+      setError(err.response?.data?.error || 'Failed to load history');
     } finally {
       setHistoryLoading(false);
     }
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await fetchSalaryStatus();
-      setLoading(false);
-    };
-    loadData();
+    fetchSalaryStatus();
   }, [Userid]);
-
-  useEffect(() => {
-    if (activeTab === 'history' && history.length === 0) {
-      fetchSalaryHistory();
-    }
-  }, [activeTab, history.length]);
 
   const collectSalary = async () => {
     if (!salaryData?.isEligible) return;
@@ -80,9 +66,7 @@ const SalaryCollection = () => {
       setCollecting(true);
       setError('');
       setSuccess('');
-      const response = await axios.post(`${API_BASE_URL}/collect-salary`, {}, {
-        withCredentials: true
-      });
+      const response = await axios.post(`${API_BASE_URL}/collect-salary`, {}, { withCredentials: true });
       setSuccess(response.data.message);
       setSalaryData(prev => ({
         ...prev,
@@ -91,8 +75,7 @@ const SalaryCollection = () => {
         reason: "Collection completed for this week"
       }));
     } catch (err) {
-      console.error("Error collecting salary:", err);
-      setError(err.response?.data?.error || err.message || 'Failed to collect salary');
+      setError(err.response?.data?.error || 'Failed to collect salary');
     } finally {
       setCollecting(false);
     }
@@ -100,306 +83,203 @@ const SalaryCollection = () => {
 
   const getProgressPercentage = () => {
     if (!salaryData || salaryData.sameLevelRequirement === 0) return 0;
-    const percent = (salaryData.newMembersThisWeek / salaryData.sameLevelRequirement) * 100;
-    return Math.min(percent, 100);
+    return Math.min((salaryData.newMembersThisWeek / salaryData.sameLevelRequirement) * 100, 100);
   };
 
-  const getProgressColor = () => {
-    const percentage = getProgressPercentage();
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 50) return 'bg-yellow-400';
-    return 'bg-red-400';
-  };
-
-  const CircularProgress = ({ percentage }) => {
-    const radius = 60;
-    const stroke = 8;
-    const normalizedRadius = radius - stroke / 2;
-    const circumference = normalizedRadius * 2 * Math.PI;
-    const offset = circumference - (percentage / 100) * circumference;
-
-    return (
-      <div className="relative">
-        <svg height={radius * 2} width={radius * 2}>
-          <circle
-            stroke="#e5e7eb"
-            fill="transparent"
-            strokeWidth={stroke}
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-          />
-          <circle
-            stroke="#19202a"
-            fill="transparent"
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-bold text-gray-800">
-            {percentage.toFixed(0)}%
-          </span>
-        </div>
-      </div>
-    );
-  };
+  // ✅ Simplified, elegant progress circle (no SVG borders)
+  const CircularProgress = ({ percentage }) => (
+    <div className="relative w-24 h-24 flex items-center justify-center">
+      <div className="absolute w-full h-full rounded-full bg-[#1c2a3a]"></div>
+      <div 
+        className="absolute w-full h-full rounded-full"
+        style={{
+          background: `conic-gradient(from 0deg, #D4AF37 ${percentage}%, #1c2a3a ${percentage}%)`,
+          clipPath: 'inset(15% round 50%)'
+        }}
+      ></div>
+      <span className="text-white font-semibold text-sm z-10">{Math.round(percentage)}%</span>
+    </div>
+  );
 
   const currDayName = new Date().toLocaleString('en-US', { weekday: 'long' });
 
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <Suspense fallback={
-          <div className="h-14 bg-[#19202a] flex items-center justify-center">
-            <FaSpinner className="animate-spin text-white text-lg" />
-          </div>
-        }>
-          <NavBar />
-        </Suspense>
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#111827] items-center justify-center">
+        <div className="text-[#D4AF37] animate-pulse">
+          <RefreshCw className="w-8 h-8 animate-spin" />
+        </div>
+        <p className="mt-3 text-[#D4AF37]/70 text-sm">Loading salary dashboard...</p>
       </div>
+    );
+  }
 
-      <BalanceCard/>
-        {loading && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80">
-            <FaSpinner className="animate-spin text-2xl text-indigo-600 mb-3" />
-            <p className="text-sm font-medium text-gray-700">Loading dashboard...</p>
-          </div>
-        )}
-
-        {/* Content */}
-        {!loading && salaryData && (
-          <div className="px-3 py-4 flex-1">
-            <div className="max-w-md mx-auto w-full">
-              {/* Header Card */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h1 className="text-lg font-bold text-gray-900 flex items-center">
-                    <FaCoins className="mr-2 text-yellow-500" />
-                    Weekly Salary
-                  </h1>
-                  <div className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
-                    {salaryData.currentLevel}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Current Day</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {currDayName}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Salary Day</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {salaryData.dayName}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex border-b border-gray-200 mb-4">
-                <button
-                  className={`px-3 py-2 text-xs font-medium flex items-center ${
-                    activeTab === 'dashboard'
-                      ? 'text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  onClick={() => setActiveTab('dashboard')}
-                >
-                  <FaChartLine className="mr-1.5 text-xs" />
-                  Dashboard
-                </button>
-                <button
-                  className={`px-3 py-2 text-xs font-medium flex items-center ${
-                    activeTab === 'history'
-                      ? 'text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  onClick={() => setActiveTab('history')}
-                >
-                  <FaHistory className="mr-1.5 text-xs" />
-                  History
-                </button>
-              </div>
-
-              {/* Dashboard Tab */}
-              {activeTab === 'dashboard' && (
-                <div className="space-y-4">
-                  {/* Progress Card */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-sm font-bold text-gray-800">
-                        Weekly Progress
-                      </h2>
-                      <div className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
-                        {getProgressPercentage().toFixed(0)}% Complete
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0">
-                        <CircularProgress percentage={getProgressPercentage()} />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="mb-2">
-                          <div className="flex justify-between text-xs text-gray-600 mb-1">
-                            <span>Recruits</span>
-                            <span>{salaryData.newMembersThisWeek}/{salaryData.sameLevelRequirement}</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${getProgressColor()}`}
-                              style={{ width: `${getProgressPercentage()}%` }}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          <div className="bg-indigo-50 p-2 rounded">
-                            <p className="text-xs text-indigo-600">Salary Amount</p>
-                            <p className="text-sm font-bold text-gray-900">
-                              ${RemoveTrailingZeros(salaryData.salaryAmount)}
-                            </p>
-                          </div>
-                          <div className="bg-blue-50 p-2 rounded">
-                            <p className="text-xs text-blue-600">Required Join</p>
-                            <p className="text-sm font-bold text-gray-900">
-                              {salaryData.sameLevelRequirement}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Collect Card */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold text-gray-800">Salary Collection</h3>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        salaryData.isEligible
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {salaryData.isEligible ? 'Eligible' : 'Not Eligible'}
-                      </div>
-                    </div>
-                    
-                    <p className="text-xs text-gray-600 mb-4">
-                      {salaryData.reason}
-                    </p>
-                    
-                    <button
-                      onClick={collectSalary}
-                      disabled={!salaryData.isEligible || collecting}
-                      className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm flex items-center justify-center ${
-                        salaryData.isEligible && !collecting
-                          ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      {collecting ? (
-                        <>
-                          <FaSpinner className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <FaCoins className="mr-2" />
-                          Collect ${RemoveTrailingZeros(salaryData.salaryAmount)}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* History Tab */}
-              {activeTab === 'history' && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
-                    <FaHistory className="mr-2 text-indigo-600" />
-                    Payment History
-                  </h2>
-                  
-                  {historyLoading ? (
-                    <div className="flex justify-center items-center h-24">
-                      <FaSpinner className="animate-spin text-lg text-indigo-600" />
-                    </div>
-                  ) : history.length > 0 ? (
-                    <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-                      {history.map((payment, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-100"
-                        >
-                          <div className="flex items-center">
-                            <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
-                              <FaCoins className="text-sm" />
-                            </div>
-                            <div className="ml-3">
-                              <p className="text-sm font-bold text-gray-800">
-                                ${RemoveTrailingZeros(payment.amount)}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Stage {payment.level}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500">{payment.date}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <FaHistory className="mx-auto text-2xl text-gray-300 mb-2" />
-                      <p className="text-sm">No payment history</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+  return (
+    <div className="flex flex-col min-h-screen bg-[#111827]">
      
 
-      {/* Error Toast */}
-      {error && (
-        <div className="fixed bottom-3 left-3 right-3 z-50 px-3 py-2 rounded-lg shadow-lg bg-red-100 text-red-700 text-sm flex items-center">
-          <FaExclamationTriangle className="mr-2 flex-shrink-0" />
-          <span className="flex-1 truncate">{error}</span>
+      <BalanceCard />
+
+      <div className="px-2 pb-6 pt-2">
+        {/* Header */}
+        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Coins className="text-[#D4AF37]" />
+              Weekly Salary
+            </h1>
+            <span className="text-[11px] bg-[#1c2a3a] text-[#D4AF37] px-2 py-0.5 rounded-full">
+              {salaryData?.currentLevel}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[#1c2a3a] p-3 rounded-xl">
+              <p className="text-[#D4AF37]/70 text-[11px] mb-1">Current Day</p>
+              <p className="text-white text-sm font-medium">{currDayName}</p>
+            </div>
+            <div className="bg-[#1c2a3a] p-3 rounded-xl">
+              <p className="text-[#D4AF37]/70 text-[11px] mb-1">Salary Day</p>
+              <p className="text-white text-sm font-medium">{salaryData?.dayName}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-sm font-semibold text-white">Weekly Progress</h2>
+            <span className="text-[11px] text-[#D4AF37] bg-[#1c2a3a] px-2 py-0.5 rounded-full">
+              {getProgressPercentage().toFixed(0)}% Complete
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <CircularProgress percentage={getProgressPercentage()} />
+            <div className="flex-1">
+              <div className="text-[11px] text-[#D4AF37]/70 mb-1">
+                {salaryData?.newMembersThisWeek} / {salaryData?.sameLevelRequirement} recruits
+              </div>
+              <div className="h-1.5 bg-[#1c2a3a] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-amber-400"
+                  style={{ width: `${getProgressPercentage()}%` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="bg-[#1c2a3a] p-2.5 rounded-xl">
+                  <p className="text-[11px] text-[#D4AF37]/70">Salary</p>
+                  <p className="text-white font-semibold text-sm">
+                    ${RemoveTrailingZeros(salaryData?.salaryAmount)}
+                  </p>
+                </div>
+                <div className="bg-[#1c2a3a] p-2.5 rounded-xl">
+                  <p className="text-[11px] text-[#D4AF37]/70">Required</p>
+                  <p className="text-white font-semibold text-sm">
+                    {salaryData?.sameLevelRequirement}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Collect */}
+        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-white">Salary Collection</h3>
+            <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+              salaryData?.isEligible 
+                ? 'bg-emerald-900/30 text-emerald-400' 
+                : 'bg-amber-900/30 text-amber-400'
+            }`}>
+              {salaryData?.isEligible ? 'Eligible' : 'Not Eligible'}
+            </span>
+          </div>
+          
+          <p className="text-[#D4AF37]/70 text-sm mb-4">
+            {salaryData?.reason}
+          </p>
+          
           <button
-            onClick={() => setError('')}
-            className="ml-2 text-red-700 hover:text-red-800"
+            onClick={collectSalary}
+            disabled={!salaryData?.isEligible || collecting}
+            className={`w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center transition-all ${
+              salaryData?.isEligible && !collecting
+                ? 'bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900 shadow-[0_2px_6px_rgba(212,175,55,0.2)] hover:from-[#e8c04e] hover:to-[#d4af37]'
+                : 'bg-[#1c2a3a] text-[#D4AF37]/50 cursor-not-allowed'
+            }`}
           >
-            ×
+            {collecting ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Coins className="w-4 h-4 mr-2" />
+                Collect ${RemoveTrailingZeros(salaryData?.salaryAmount)}
+              </>
+            )}
           </button>
+        </div>
+
+        {/* View History */}
+        <button
+          onClick={fetchSalaryHistory}
+          disabled={historyLoading}
+          className="w-full py-3 bg-[#19202a] hover:bg-[#1c2a3a] rounded-xl text-[#D4AF37] font-medium transition-colors flex items-center justify-center gap-2"
+        >
+          {historyLoading ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <History className="w-4 h-4" />
+          )}
+          View Full History
+        </button>
+
+        {/* History List (if loaded) */}
+        {history.length > 0 && (
+          <div className="mt-4 space-y-3 max-h-[40vh] overflow-y-auto">
+            {history.map((payment, index) => (
+              <div key={index} className="bg-[#19202a] rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-[#1c2a3a] rounded-lg">
+                      <Coins className="w-4 h-4 text-[#D4AF37]" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">
+                        ${RemoveTrailingZeros(payment.amount)}
+                      </p>
+                      <p className="text-[#D4AF37]/70 text-[11px]">Stage {payment.level}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#D4AF37]/70 text-[11px]">{payment.date}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Toasts - Themed */}
+      {error && (
+        <div className="fixed bottom-4 left-4 right-4 z-50 p-3 rounded-xl bg-rose-900/30 border border-rose-800/30 text-rose-400 text-sm flex items-center">
+          <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError('')} className="ml-2">×</button>
         </div>
       )}
 
-      {/* Success Toast */}
       {success && (
-        <div className="fixed top-3 left-3 right-3 z-50 px-3 py-2 rounded-lg shadow-lg bg-green-100 text-green-700 text-sm flex items-center">
-          <FaCheckCircle className="mr-2 flex-shrink-0" />
-          <span className="flex-1 truncate">{success}</span>
-          <button
-            onClick={() => setSuccess('')}
-            className="ml-2 text-green-700 hover:text-green-800"
-          >
-            ×
-          </button>
+        <div className="fixed top-4 left-4 right-4 z-50 p-3 rounded-xl bg-emerald-900/30 border border-emerald-800/30 text-emerald-400 text-sm flex items-center">
+          <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="flex-1">{success}</span>
+          <button onClick={() => setSuccess('')} className="ml-2">×</button>
         </div>
       )}
     </div>

@@ -1,15 +1,18 @@
 import { useState, useEffect, lazy, Suspense, useContext } from 'react';
 import axios from 'axios';
-import {
-  FaCoins,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaHistory,
-  FaSpinner,
-  
-} from 'react-icons/fa';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
+
+// ✅ Lucide Icons (clean, modern)
+import { 
+  Coins, 
+  History, 
+  AlertTriangle,
+  CheckCircle,
+  RotateCw,
+  Calendar
+} from 'lucide-react';
+import BalanceCard from './BalanceCard';
 
 const NavBar = lazy(() => import('../NavBAr'));
 
@@ -25,7 +28,6 @@ const MonthlySalaryDashboard = () => {
   });
   const [history, setHistory] = useState([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('progress');
   const { NewName, currBalance } = useContext(UserContext);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -44,7 +46,6 @@ const MonthlySalaryDashboard = () => {
         throw new Error(response.data.message || 'Failed to fetch salary status');
       }
     } catch (err) {
-      console.error("Error fetching monthly salary status:", err);
       setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
       setIsLoading(false);
@@ -54,7 +55,6 @@ const MonthlySalaryDashboard = () => {
   const fetchSalaryHistory = async () => {
     if (history.length > 0) return;
     setIsHistoryLoading(true);
-    setHistory([]);
     try {
       const response = await axios.get(
         `${API_BASE_URL}/api/monthly-salary/history`,
@@ -62,11 +62,9 @@ const MonthlySalaryDashboard = () => {
       );
       if (response.data.status === 'success') {
         setHistory(response.data.history);
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch history');
       }
     } catch (err) {
-      console.error("Error fetching salary history:", err);
+      console.error("Error fetching history:", err);
     } finally {
       setIsHistoryLoading(false);
     }
@@ -83,17 +81,12 @@ const MonthlySalaryDashboard = () => {
         { withCredentials: true }
       );
       if (response.data.status === 'success') {
-        setCollectionResult({
-          isOpen: true,
-          type: 'success',
-          message: response.data.message
-        });
+        setCollectionResult({ isOpen: true, type: 'success', message: response.data.message });
         await fetchSalaryStatus();
       } else {
         throw new Error(response.data.message || 'Failed to collect salary');
       }
     } catch (err) {
-      console.error("Error collecting salary:", err);
       setCollectionResult({
         isOpen: true,
         type: 'error',
@@ -109,335 +102,236 @@ const MonthlySalaryDashboard = () => {
     return Math.min(100, (salaryData.recruitsThisMonth / salaryData.requiredJoins) * 100);
   };
 
-  const getProgressColor = () => {
+  // ✅ Luxury Gold Progress Circle (no borders, conic gradient)
+  const CircularProgress = () => {
     const percentage = getProgressPercentage();
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 75) return 'bg-blue-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const formatYearMonth = (yearMonthStr) => {
-    if (!yearMonthStr || yearMonthStr.length !== 6) return 'Invalid Date';
-    const year = yearMonthStr.substring(0, 4);
-    const monthIndex = parseInt(yearMonthStr.substring(4, 6), 10) - 1;
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    return monthIndex >= 0 && monthIndex < 12
-      ? `${monthNames[monthIndex]} ${year}`
-      : 'Invalid Date';
-  };
-
-  const CircularProgress = ({ percentage, size = 120 }) => {
-    const strokeWidth = 12;
-    const radius = (size - strokeWidth) / 2;
-    const circumference = radius * 2 * Math.PI;
-    const offset = circumference - (percentage / 100) * circumference;
     return (
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg className="w-full h-full" viewBox={`0 0 ${size} ${size}`}>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#e5e7eb"
-            strokeWidth={strokeWidth}
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#19202a"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold text-gray-800">
-            {salaryData?.recruitsThisMonth || 0}/{salaryData?.requiredJoins || 0}
+      <div className="relative w-28 h-28 flex items-center justify-center">
+        <div className="absolute w-full h-full rounded-full bg-[#1c2a3a]"></div>
+        <div 
+          className="absolute w-full h-full rounded-full"
+          style={{
+            background: `conic-gradient(from 0deg, #D4AF37 ${percentage}%, #1c2a3a ${percentage}%)`,
+            clipPath: 'inset(12% round 50%)'
+          }}
+        ></div>
+        <div className="text-center z-10">
+          <span className="text-white font-bold text-sm block">
+            {salaryData?.recruitsThisMonth || 0}
           </span>
-          <span className="text-xs text-gray-500 mt-1">Recruits</span>
+          <span className="text-[#D4AF37]/70 text-[10px]">/{salaryData?.requiredJoins || 0}</span>
         </div>
       </div>
     );
+  };
+
+  const formatYearMonth = (yearMonthStr) => {
+    if (!yearMonthStr || yearMonthStr.length !== 6) return '—';
+    const year = yearMonthStr.substring(0, 4);
+    const monthIndex = parseInt(yearMonthStr.substring(4, 6), 10) - 1;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return monthIndex >= 0 && monthIndex < 12 ? `${monthNames[monthIndex]} ${year}` : '—';
   };
 
   useEffect(() => {
     fetchSalaryStatus();
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'history' && history.length === 0) {
-       fetchSalaryHistory();
-    }
-  }, [activeTab, history.length]);
+  // ✅ Render loading as full-screen luxury loader
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#111827] items-center justify-center">
+        <RotateCw className="w-8 h-8 text-[#D4AF37] animate-spin" />
+        <p className="mt-3 text-[#D4AF37]/70 text-sm">Loading monthly salary...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <Suspense fallback={
-          <div className="h-14 bg-[#19202a] flex items-center justify-center">
-            <FaSpinner className="animate-spin text-white text-lg" />
-          </div>
-        }>
-          <NavBar />
-        </Suspense>
-      </div>
+    <div className="flex flex-col min-h-screen bg-[#111827]">
+      
+      <BalanceCard />
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 pt-14">
-    
+      <div className="px-2 pb-6 pt-2 flex-1">
+        {/* Header */}
+        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Coins className="text-[#D4AF37]" />
+              Monthly Salary
+            </h1>
+            <span className="text-[11px] bg-[#1c2a3a] text-[#D4AF37] px-2 py-0.5 rounded-full">
+              {salaryData?.currentLevel}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[#1c2a3a] p-3 rounded-xl">
+              <p className="text-[#D4AF37]/70 text-[11px] mb-1">Current Month</p>
+              <p className="text-white text-sm font-medium">
+                {salaryData?.currentMonthName || '—'}
+              </p>
+            </div>
+            <div className="bg-[#1c2a3a] p-3 rounded-xl">
+              <p className="text-[#D4AF37]/70 text-[11px] mb-1">Salary Date</p>
+              <p className="text-white text-sm font-medium">
+                {salaryData?.designatedSalaryDay || '—'}
+              </p>
+            </div>
+          </div>
+        </div>
 
-        {/* Notification Toast */}
-        {collectionResult.isOpen && (
-          <div className={`fixed top-3 left-3 right-3 z-50 px-3 py-2 rounded-lg shadow text-white text-sm flex items-center ${
-            collectionResult.type === 'success'
-              ? 'bg-green-500'
-              : 'bg-red-500'
-          }`}>
-            {collectionResult.type === 'success' ? (
-              <FaCheckCircle className="mr-2 flex-shrink-0" />
+        {/* Progress */}
+        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-sm font-semibold text-white">Monthly Progress</h2>
+            <span className="text-[11px] text-[#D4AF37] bg-[#1c2a3a] px-2 py-0.5 rounded-full">
+              {getProgressPercentage().toFixed(0)}% Complete
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <CircularProgress />
+            <div className="flex-1">
+              <div className="h-1.5 bg-[#1c2a3a] rounded-full overflow-hidden mb-3">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-amber-400"
+                  style={{ width: `${getProgressPercentage()}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#1c2a3a] p-2.5 rounded-xl">
+                  <p className="text-[11px] text-[#D4AF37]/70">Salary</p>
+                  <p className="text-white font-semibold text-sm">
+                    ${RemoveTrailingZeros(salaryData?.levelSalary)}
+                  </p>
+                </div>
+                <div className="bg-[#1c2a3a] p-2.5 rounded-xl">
+                  <p className="text-[11px] text-[#D4AF37]/70">Required</p>
+                  <p className="text-white font-semibold text-sm">
+                    {salaryData?.requiredJoins}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Collect */}
+        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-white">Salary Collection</h3>
+            <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+              salaryData?.isEligible 
+                ? 'bg-emerald-900/30 text-emerald-400' 
+                : 'bg-amber-900/30 text-amber-400'
+            }`}>
+              {salaryData?.isEligible ? 'Eligible' : 'Not Eligible'}
+            </span>
+          </div>
+          
+          <p className="text-[#D4AF37]/70 text-sm mb-4">
+            {salaryData?.reason}
+          </p>
+          
+          <button
+            onClick={handleCollectSalary}
+            disabled={!salaryData?.isEligible || isCollecting}
+            className={`w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center transition-all ${
+              salaryData?.isEligible && !isCollecting
+                ? 'bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900 shadow-[0_2px_6px_rgba(212,175,55,0.2)] hover:from-[#e8c04e] hover:to-[#d4af37]'
+                : 'bg-[#1c2a3a] text-[#D4AF37]/50 cursor-not-allowed'
+            }`}
+          >
+            {isCollecting ? (
+              <>
+                <RotateCw className="w-4 h-4 animate-spin mr-2" />
+                Processing...
+              </>
             ) : (
-              <FaExclamationTriangle className="mr-2 flex-shrink-0" />
+              <>
+                <Coins className="w-4 h-4 mr-2" />
+                Collect Salary
+              </>
             )}
-            <span className="flex-1 truncate">{collectionResult.message}</span>
-            <button
-              onClick={() => setCollectionResult({ isOpen: false, type: '', message: '' })}
-              className="ml-2"
-            >
-              ×
-            </button>
+          </button>
+        </div>
+
+        {/* View History */}
+        <button
+          onClick={fetchSalaryHistory}
+          disabled={isHistoryLoading}
+          className="w-full py-3 bg-[#19202a] hover:bg-[#1c2a3a] rounded-xl text-[#D4AF37] font-medium transition-colors flex items-center justify-center gap-2"
+        >
+          {isHistoryLoading ? (
+            <RotateCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <History className="w-4 h-4" />
+          )}
+          View Full History
+        </button>
+
+        {/* History List */}
+        {history.length > 0 && (
+          <div className="mt-4 space-y-3 max-h-[40vh] overflow-y-auto">
+            {history.map((payment) => (
+              <div key={payment.id} className="bg-[#19202a] rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-[#1c2a3a] rounded-lg">
+                      <Coins className="w-4 h-4 text-[#D4AF37]" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">
+                        ${RemoveTrailingZeros(payment.amount)}
+                      </p>
+                      <p className="text-[#D4AF37]/70 text-[11px]">Stage {payment.level}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#D4AF37]/70 text-[11px]">
+                      {new Date(payment.payment_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Content */}
-        <div className="px-3 py-4 flex-1">
-          <div className="max-w-md mx-auto w-full">
-            {/* Header Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h1 className="text-lg font-bold text-gray-900 flex items-center">
-                  <FaCoins className="mr-2 text-yellow-500" />
-                  Monthly Salary
-                </h1>
-                <div className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
-                  {salaryData?.currentLevel}
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Current Month</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {salaryData?.currentMonthName || 'Loading...'}
-                  </p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Salary Date</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {salaryData?.designatedSalaryDay || 'Loading...'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 mb-4">
-              <button
-                className={`px-3 py-2 text-xs font-medium ${
-                  activeTab === 'progress'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('progress')}
-              >
-                Progress
-              </button>
-              <button
-                className={`px-3 py-2 text-xs font-medium flex items-center ${
-                  activeTab === 'history'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('history')}
-              >
-                <FaHistory className="mr-1.5 text-xs" />
-                History
-              </button>
-            </div>
-
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex justify-center items-center h-32">
-                <FaSpinner className="animate-spin text-xl text-indigo-600" />
-              </div>
-            )}
-
-            {/* Error State */}
-            {!isLoading && error && (
-              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-                <div className="flex items-center">
-                  <FaExclamationTriangle className="text-red-500 mr-2" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Main Content - Tabbed */}
-            {!isLoading && !error && salaryData && (
-              <>
-                {/* Progress Tab */}
-                {activeTab === 'progress' && (
-                  <div className="space-y-4">
-                    {/* Progress Card */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-sm font-bold text-gray-800">Monthly Progress</h2>
-                        <div className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
-                          {getProgressPercentage().toFixed(0)}% Complete
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0">
-                          <CircularProgress percentage={getProgressPercentage()} />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="mb-3">
-                            <div className="flex justify-between text-xs text-gray-600 mb-1">
-                              <span>Recruits</span>
-                              <span>{salaryData.recruitsThisMonth}/{salaryData.requiredJoins}</span>
-                            </div>
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${getProgressColor()}`}
-                                style={{ width: `${getProgressPercentage()}%` }}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-indigo-50 p-2 rounded">
-                              <p className="text-xs text-indigo-600">Salary Amount</p>
-                              <p className="text-sm font-bold text-gray-900">
-                                ${salaryData.levelSalary}
-                              </p>
-                            </div>
-                            <div className="bg-blue-50 p-2 rounded">
-                              <p className="text-xs text-blue-600">Required Join</p>
-                              <p className="text-sm font-bold text-gray-900">
-                                {salaryData.requiredJoins}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Collect Card */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-bold text-gray-800">Salary Collection</h3>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          salaryData.isEligible
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          {salaryData.isEligible ? 'Eligible' : 'Not Eligible'}
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-gray-600 mb-4">
-                        {salaryData.reason}
-                      </p>
-                      
-                      <button
-                        onClick={handleCollectSalary}
-                        disabled={!salaryData.isEligible || isCollecting}
-                        className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm flex items-center justify-center ${
-                          salaryData.isEligible && !isCollecting
-                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {isCollecting ? (
-                          <>
-                            <FaSpinner className="animate-spin mr-2" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <FaCoins className="mr-2" />
-                            Collect Salary
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* History Tab */}
-                {activeTab === 'history' && (
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
-                      <FaHistory className="mr-2 text-indigo-600" />
-                      Payment History
-                    </h2>
-                    
-                    {isHistoryLoading ? (
-                      <div className="flex justify-center items-center h-24">
-                        <FaSpinner className="animate-spin text-lg text-indigo-600" />
-                      </div>
-                    ) : history.length > 0 ? (
-                      <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-                        {history.map((payment) => (
-                          <div
-                            key={payment.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-100"
-                          >
-                            <div className="flex items-center">
-                              <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
-                                <FaCoins className="text-sm" />
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm font-bold text-gray-800">
-                                  ${parseFloat(payment.amount).toFixed(2)}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  Stage {payment.level}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-gray-500">
-                                {new Date(payment.payment_date).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 text-gray-500">
-                        <FaHistory className="mx-auto text-xl text-gray-300 mb-2" />
-                        <p className="text-sm">No payment history</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+        {/* Error Banner */}
+        {error && (
+          <div className="mt-4 p-3 bg-rose-900/20 border border-rose-800/30 rounded-xl flex items-center">
+            <AlertTriangle className="w-4 h-4 text-rose-400 mr-2 flex-shrink-0" />
+            <p className="text-rose-400 text-sm">{error}</p>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Luxury Toasts */}
+      {collectionResult.isOpen && (
+        <div 
+          className={`fixed top-3 left-3 right-3 z-50 p-3 rounded-xl text-sm flex items-center ${
+            collectionResult.type === 'success'
+              ? 'bg-emerald-900/30 border border-emerald-800/30 text-emerald-400'
+              : 'bg-rose-900/30 border border-rose-800/30 text-rose-400'
+          }`}
+        >
+          {collectionResult.type === 'success' ? (
+            <CheckCircle className="w-4 h-4 mr-2" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 mr-2" />
+          )}
+          <span className="flex-1">{collectionResult.message}</span>
+          <button 
+            onClick={() => setCollectionResult({ isOpen: false, type: '', message: '' })} 
+            className="ml-2 opacity-80 hover:opacity-100"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 };
