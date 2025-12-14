@@ -81,55 +81,58 @@ export const Login = () => {
     }
 return (
     <>
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-lg shadow-sm p-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                Welcome 
-            </h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-900">
+        <img src="./logo.png" alt="" srcset="" width={150} className='mb-4' />
+        <div className="w-full max-w-md  bg-[#19202a] rounded-lg shadow-sm p-6">
+      <h1 className="text-2xl meddon-regular text-[#fcc845]  mb-6 text-center">
+  Welcome
+</h1>
+
+
             
             <form className="space-y-4" onSubmit={handleSubmit}>
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-[#fcc845] mb-1">
                         Email
                     </label>
                     <input
                         type="email"
                         value={values.email}
                         onChange={(e) => setValues({ ...values, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border text-[#fcc845] rounded-md focus:outline-none focus:ring-2 focus:ring-[#fcc845]"
                         required
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-[#fcc845] mb-1">
                         Password
                     </label>
                     <input
                         type="password"
                         value={values.password}
                         onChange={(e) => setValues({ ...values, password: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[#f9c23d] rounded-md focus:outline-none focus:ring-2 focus:ring-text-[#fcc845]"
                         required
                     />
                 </div>
 
                 <div className="text-center text-sm">
-                    <button
+                    {/* <button
                         type="button"
                         onClick={() => setShowModal(true)}
                         className="text-blue-600 hover:text-blue-500 font-medium"
                     >
                         Forgot Password?
-                    </button>
+                    </button> */}
                 </div>
 
                 <button
                     type="submit"
                     disabled={loading}
-                    className={`w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-2 text-sm rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed ${
+                    className={`w-full bg-[#fcc845] hover:from-blue-700 hover:to-indigo-800 text-dark py-2 text-sm rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed ${
                         loading ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                 >

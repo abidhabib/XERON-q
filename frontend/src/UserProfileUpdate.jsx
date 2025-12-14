@@ -4,13 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { UserContext } from './UserContext/UserContext';
 import { FiUser, FiPhone, FiLock, FiCamera, FiCheck } from 'react-icons/fi';
 import NavBar from './NavBAr';
-import { AiOutlineVerified } from "react-icons/ai";
-import { FiHome, FiMail as FiMailNav, FiUsers } from "react-icons/fi";
-import NotificationBell from './NotificationBell';
 import BalanceCard from './new/BalanceCard';
 
 const UserProfileUpdate = () => {
-  const { userData, fetchUserData, NewName, currBalance, backend_wallet } = useContext(UserContext);
+  const { userData, fetchUserData, } = useContext(UserContext);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -24,40 +21,7 @@ const UserProfileUpdate = () => {
   const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
 
-  const menuItems = [
-    { 
-      name: "Home", 
-      link: "/wallet", 
-      icon: <FiHome className="w-4 h-4" />,
-      label: "Dashboard Home"
-    },
-    { 
-      name: "Alerts", 
-      link: "/alerts", 
-      icon: <NotificationBell iconClass="w-4 h-4" />,
-      label: "View Notifications"
-    },
-    { 
-      name: "Contact", 
-      link: "/contact", 
-      icon: <FiMailNav className="w-4 h-4" />,
-      label: "Contact Support"
-    },
-    { 
-      name: "Team", 
-      link: "/team", 
-      icon: <FiUsers className="w-4 h-4" />,
-      label: "View Team"
-    }
-  ];
 
-  // Calculate progress (backend_wallet / 3)
-  const progress = backend_wallet ? Math.min(Math.round((backend_wallet / 3) * 100), 100) : 0;
-
-  // Format currency properly
-  const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toFixed(2);
-  };
 
   useEffect(() => {
     if (!userData) {
@@ -67,7 +31,6 @@ const UserProfileUpdate = () => {
       setPhoneNumber(userData.phoneNumber || '');
       setLoading(false);
       
-      // Set profile picture preview if exists
       if (userData.profile_picture) {
         setProfilePicturePreview(`${import.meta.env.VITE_API_BASE_URL}/${userData.profile_picture}`);
       }
@@ -188,7 +151,6 @@ const UserProfileUpdate = () => {
         <div className="fixed top-0 left-0 right-0 z-50">
           <NavBar />
         </div>
-        <div className="flex flex-col flex-1 pt-16">
           <div className="flex items-center justify-center flex-1">
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
@@ -196,7 +158,6 @@ const UserProfileUpdate = () => {
             </div>
           </div>
         </div>
-      </div>
     );
   }
 
@@ -206,7 +167,6 @@ const UserProfileUpdate = () => {
         <NavBar />
       </div>
 
-      <div className="flex flex-col flex-1 pt-16">
         <BalanceCard />
         <div className="px-3 py-4 flex-1">
           <div className="max-w-md mx-auto w-full">
@@ -356,7 +316,6 @@ const UserProfileUpdate = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useContext, lazy, Suspense } from 'react';
 import axios from 'axios';
 import {
-  FaCalendarAlt,
-  FaUserPlus,
+
   FaCheckCircle,
   FaCoins,
   FaChartLine,
   FaHistory,
   FaExclamationTriangle,
-  FaVrCardboard,
   FaSpinner
 } from 'react-icons/fa';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
+import BalanceCard from './BalanceCard';
 
 const NavBar = lazy(() => import('../NavBAr'));
 
@@ -25,7 +24,7 @@ const SalaryCollection = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const { Userid, NewName, currBalance } = useContext(UserContext);
+  const { Userid } = useContext(UserContext);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -166,10 +165,7 @@ const SalaryCollection = () => {
         </Suspense>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col flex-1 pt-14">
-      
-        {/* Loading Overlay */}
+      <BalanceCard/>
         {loading && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80">
             <FaSpinner className="animate-spin text-2xl text-indigo-600 mb-3" />
@@ -377,7 +373,7 @@ const SalaryCollection = () => {
             </div>
           </div>
         )}
-      </div>
+     
 
       {/* Error Toast */}
       {error && (

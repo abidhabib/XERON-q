@@ -1,53 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { FaCopy, FaWhatsapp, FaTelegram, FaTwitter, FaFacebook, FaLink } from 'react-icons/fa';
-import { FiHome, FiMail, FiUsers } from "react-icons/fi";
-import { AiOutlineVerified } from "react-icons/ai";
+
 import NavBar from './NavBAr';
 import { UserContext } from './UserContext/UserContext';
-import NotificationBell from './NotificationBell';
-import { useNavigate } from 'react-router-dom';
+
 import BalanceCard from './new/BalanceCard';
 
 const ReferralProgram = () => {
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const { Userid, NewName, currBalance, backend_wallet } = useContext(UserContext);
-  const navigate = useNavigate();
+  const { Userid } = useContext(UserContext);
 
-  const menuItems = [
-    { 
-      name: "Home", 
-      link: "/wallet", 
-      icon: <FiHome className="w-5 h-5" />,
-      label: "Dashboard Home"
-    },
-    { 
-      name: "Alerts", 
-      link: "/alerts", 
-      icon: <NotificationBell iconClass="w-5 h-5" />,
-      label: "View Notifications"
-    },
-    { 
-      name: "Contact", 
-      link: "/contact", 
-      icon: <FiMail className="w-5 h-5" />,
-      label: "Contact Support"
-    },
-    { 
-      name: "Team", 
-      link: "/team", 
-      icon: <FiUsers className="w-5 h-5" />,
-      label: "View Team"
-    }
-  ];
-
-  // Calculate progress (backend_wallet / 3)
-  const progress = backend_wallet ? Math.min(Math.round((backend_wallet / 3) * 100), 100) : 0;
-
-  // Format currency properly
-  const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toFixed(2);
-  };
 
   useEffect(() => {
     const userId = Userid;
@@ -93,7 +56,6 @@ const ReferralProgram = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 pt-16">
      <BalanceCard/>
 
         {/* Referral Content - Maintaining consistent spacing */}
@@ -229,7 +191,6 @@ const ReferralProgram = () => {
             </div>
           </div>
         </div>
-      </div>
   );
 };
 

@@ -2048,7 +2048,7 @@ app.post('/collect-coin', async (req, res) => {
 
     const userId = req.session.userId;
 
-    const connection = con.promise(); // ✅ Only use .promise()
+    const connection = con.promise();
 
     try {
         await connection.query('START TRANSACTION'); // ✅ start transaction

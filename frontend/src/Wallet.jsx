@@ -3,39 +3,29 @@ import { UserContext } from './UserContext/UserContext';
 import NavBAr from './NavBAr';
 import { Toaster } from 'react-hot-toast';
 import { WithdrwaHistory } from './MyWithdrwal';
-import { useNavigate } from 'react-router-dom';
 import BalanceCard from './new/BalanceCard';
 
 const Wallet = () => {
-  const { userData, fetchUserData } = useContext(UserContext);
-  const navigate = useNavigate();
+  const { fetchUserData } = useContext(UserContext);
 
   useEffect(() => {
     fetchUserData();
   }, []);
 
-  const toWithdraw = () => { 
-    navigate('/cashout');
-  };
-
   return (
+    <>
+      <NavBAr />
 
-<>
-
-    <NavBAr />
-        
-
-      <div className="flex flex-col flex-1 pt-16">
-
-          <BalanceCard />
+      {/* ✅ Container with #111827 background — matches WithdrwaHistory */}
+      <div className="bg-[#111827] ">
+        <BalanceCard />
       </div>
-            <WithdrwaHistory />
 
+      {/* WithdrwaHistory starts immediately after — same bg */}
+      <WithdrwaHistory />
+      
       <Toaster />
-
-</>
-
-
+    </>
   );
 };
 

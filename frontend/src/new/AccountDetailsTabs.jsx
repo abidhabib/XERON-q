@@ -136,13 +136,9 @@ const CryptoAddressForm = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Navbar with proper spacing */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <NavBar />
-      </div>
+   
 
       {/* Main Content with padding to prevent overlap */}
-      <div className="flex flex-col flex-1 pt-16">
         <div className="max-w-md w-full mx-auto px-4 py-6">
             <div className="flex items-center gap-3 mb-5">
               <div className="bg-amber-100 p-2 rounded-lg">
@@ -279,7 +275,6 @@ const CryptoAddressForm = () => {
                 <span>AES-256 encrypted</span>
               </div>
             </div>
-          </div>
         </div>
       </div>
   );

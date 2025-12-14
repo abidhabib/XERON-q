@@ -77,8 +77,9 @@ const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { userData, logout } = useContext(UserContext);
   const { showToast, ToastContainer } = useToast();
-  const navigate = useNavigate();
-
+const goHome = () => {
+    navigate("/wallet-page");
+  }
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const handleLogout = () => {
@@ -86,12 +87,12 @@ const NavBar = () => {
     navigate('/');
     showToast('Logged out successfully', 'success');
   };
-
+const navigate = useNavigate();
   const menuItems = [
+        { icon: <SiRobotframework />, label: 'Work', action: () => navigate("/work") },
     { icon: <BiHomeSmile />, label: 'Home', action: () => navigate("/wallet-page") },
     { icon: <AiOutlineUsergroupAdd />, label: 'Team', action: () => navigate("/team") },
     { icon: <RiFileCopyLine />, label: 'Invite', action: () => navigate('/ReferralProgram') },
-    { icon: <SiRobotframework />, label: 'Work', action: () => navigate("/tasks") },
     { icon: <FiBriefcase />, label: 'W/Salary', action: () => navigate("/week-salary") },
     { icon: <FiBriefcase />, label: 'M/Salary', action: () => navigate("/salaryofMonth") },
     { icon: <AiOutlineSetting />, label: 'Settings', action: () => navigate("/setting") },
@@ -105,17 +106,17 @@ const NavBar = () => {
         {/* Hamburger Menu */}
         <button 
           onClick={toggleMenu}
-          className="flex flex-col justify-center items-center w-9 h-8 focus:outline-none"
+          className="flex flex-col justify-center items-center w-7 h-7 focus:outline-none"
           aria-label="Toggle menu"
         >
-          <span className={`block w-6 h-0.5 bg-white rounded transition-all duration-300 ease-in-out ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-          <span className={`block w-6 h-0.5 bg-white rounded my-1 transition-all duration-300 ease-in-out ${isOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-          <span className={`block w-6 h-0.5 bg-white rounded transition-all duration-300 ease-in-out ${isOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+          <span className={`block w-3 h-0.5 bg-white rounded transition-all duration-300 ease-in-out ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+          <span className={`block w-3 h-0.5 bg-white rounded my-1 transition-all duration-300 ease-in-out ${isOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+          <span className={`block w-3 h-0.5 bg-white rounded transition-all duration-300 ease-in-out ${isOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
         </button>
 
         {/* Logo */}
         <div className="flex items-center justify-center">
-          <img src='logo.png' className="w-[120px]" alt="Logo" />
+          <img  src='logo.png' className="w-[135px]" alt="Logo" onClick={goHome} />
         </div>
 
         {/* Spacer for flex alignment */}
@@ -140,9 +141,9 @@ const NavBar = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-16 left-0 right-0 z-50 bg-[#19202a] shadow-xl rounded-b-2xl"
+              className="fixed top-16 mt-3 left-0 right-0 z-50 bg-[#19202a] shadow-xl rounded-b-2xl"
             >
-              <div className="grid grid-cols-4 gap-4 py-10">
+              <div className="grid grid-cols-4 gap-4 py-8 px-6">
                 {menuItems.map((item, index) => (
                   <button
                     key={index}
@@ -154,12 +155,12 @@ const NavBar = () => {
                       item.isLogout ? 'text-red-400' : 'text-white hover:bg-white/10'
                     }`}
                   >
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full mb-1 border ${
+                    <div className={`bg-white/8 bg-gradient-to-b from-white/8 to-white/5 border border-white/10 rounded-xl p-2 flex items-center justify-center w-10 h-10 ${
                       item.isLogout ? 'border-red-500/20' : 'border-white/20'
                     }`}>
                       {item.icon}
                     </div>
-                    <span className="text-xs">{item.label}</span>
+                    <span className="text-sm mt-2">{item.label}</span>
                   </button>
                 ))}
               </div>

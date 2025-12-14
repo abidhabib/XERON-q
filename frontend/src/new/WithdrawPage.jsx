@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import NavBAr from '../NavBAr';
 import { FiHome, FiMail, FiUsers } from "react-icons/fi";
-import { AiOutlineVerified } from "react-icons/ai";
 import NotificationBell from '../NotificationBell';
+import BalanceCard from './BalanceCard';
 
 const Toast = ({ message, type, onClose }) => {
   const iconMap = {
@@ -53,7 +53,7 @@ const SuccessModal = ({ onClose }) => (
 );
 
 const WithdrawPage = () => {
-  const { Userid, userData, fetchUserData, team, level, currBalance, NewName, backend_wallet } = useContext(UserContext);
+  const { Userid, userData, fetchUserData, team, level, currBalance,   } = useContext(UserContext);
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -63,40 +63,6 @@ const WithdrawPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
 
-  const menuItems = [
-    { 
-      name: "Home", 
-      link: "/wallet", 
-      icon: <FiHome className="w-4 h-4" />,
-      label: "Dashboard Home"
-    },
-    { 
-      name: "Alerts", 
-      link: "/alerts", 
-      icon: <NotificationBell iconClass="w-4 h-4" />,
-      label: "View Notifications"
-    },
-    { 
-      name: "Contact", 
-      link: "/contact", 
-      icon: <FiMail className="w-4 h-4" />,
-      label: "Contact Support"
-    },
-    { 
-      name: "Team", 
-      link: "/team", 
-      icon: <FiUsers className="w-4 h-4" />,
-      label: "View Team"
-    }
-  ];
-
-  // Calculate progress (backend_wallet / 3)
-  const progress = backend_wallet ? Math.min(Math.round((backend_wallet / 3) * 100), 100) : 0;
-
-  // Format currency properly
-  const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toFixed(2);
-  };
 
   const showToast = (message, type = 'info', duration = 4000) => {
     const id = Date.now();
@@ -236,54 +202,11 @@ const WithdrawPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <NavBAr />
-      </div>
+
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 pt-16">
-      {/* Mini Dashboard - Tightened version */}
-<div className="py-4 bg-[#19202a] shadow">
-  <div className="flex items-center px-3 mb-2.5">
-    <p className="text-white uppercase flex items-center text-sm font-medium">
-      {NewName || 'User'} 
-      <span className="text-green-500 ml-1">
-        <AiOutlineVerified className="w-4 h-4" />
-      </span>
-    </p>
-  </div>
-
-  <div className="flex justify-between items-center px-3 mb-3.5">
-    <div>
-      <p className="text-xs text-gray-400 mb-0.5">Available Balance</p>
-      <p className="text-white text-xl font-bold">
-        ${formatCurrency(currBalance)}
-      </p>
-    </div>
-    <div className="px-2.5 py-1 font-bold text-green-400 bg-transparent border border-green-400 rounded-full text-xs">
-      Progress {progress}%
-    </div>
-  </div>
-
-  <div className="px-3 pb-1.5">
-    <div className="grid grid-cols-4 gap-1.5">
-      {menuItems.map((item, index) => (
-        <button
-          key={index}
-          onClick={() => navigate(item.link)}
-          className="flex flex-col items-center p-1.5 text-white hover:bg-white/10 rounded transition-colors"
-          aria-label={item.label}
-        >
-          <div className="border border-white/20 rounded-full p-2 mb-0.5 flex items-center justify-center bg-white/5">
-            {item.icon}
-          </div>
-          <span className="text-xs text-center">{item.name}</span>
-        </button>
-      ))}
-    </div>
-  </div>
-</div>
+      <div className="flex flex-col flex-1 ">
+      <BalanceCard />
 
         {/* Toast Notifications */}
         <div className="fixed top-3 right-3 z-50 space-y-1.5">
@@ -301,18 +224,7 @@ const WithdrawPage = () => {
   <div className="max-w-md mx-auto w-full">
     {/* Account Info Card */}
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Available Balance</p>
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-gray-400" />
-            <span className="text-xl font-bold text-gray-900">
-              ${RemoveTrailingZeros(currBalance)}
-            </span>
-          </div>
-        </div>
-       
-      </div>
+      
 
       {accountDetails && (
         <div className="bg-gray-50 p-3 rounded-lg">

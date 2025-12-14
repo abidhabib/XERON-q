@@ -5,6 +5,7 @@ import { useContext, useEffect, useState } from 'react';
 import { UserContext } from './UserContext/UserContext';
 import { ToastProvider } from './ToastContext';
 import { jwtDecode } from 'jwt-decode';
+
 // User Components
 import {Login} from './Login';
 import Signup from './Signup';
@@ -51,10 +52,13 @@ import AdminProfileManager from './Dashboard/AdminCard/AdminProfileManager';
 import AdminLayout from './Dashboard/AdminLayout';
 import { SidebarProvider } from './Dashboard/SidebarContext';
 
+// Import UserLayout
+import UserLayout from './UserLayout';
+import MiningHistory from './MiningHistory';
+
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
   const { isRejected, Userid, setAdminAuthenticated, currBalance, approved, adminAuthenticated, isAuthenticated, fetchUserData } = useContext(UserContext);
-  // ❌ REMOVED: const Navigate = useContext(UserContext);
 
   useEffect(() => {
     const registerServiceWorker = async () => {
@@ -65,7 +69,6 @@ function App() {
       try {
         const registration = await navigator.serviceWorker.register("/service-worker.js");
 
-        // --- Detailed State Monitoring ---
         const sw = registration.installing || registration.waiting || registration.active;
         if (sw) {
             sw.addEventListener('statechange', (e) => {
@@ -74,12 +77,10 @@ function App() {
             });
         }
 
-        // --- Check navigator.serviceWorker.ready ---
         const readyRegistration = await navigator.serviceWorker.ready;
         console.log('✅ [APP DEBUG] navigator.serviceWorker.ready RESOLVED!', { scope: readyRegistration.scope });
 
       } catch (error) {
-        // Provide specific hints based on common errors
         if (error.message && error.message.includes('404')) {
             console.error(" ❌ [APP ERROR] Service Worker registration failed: service-worker.js not found (404). Ensure the file exists at the root of your public directory.");
         }
@@ -87,7 +88,7 @@ function App() {
     };
 
     registerServiceWorker();
-  }, []); // Empty dependency array: run once on mount
+  }, []);
 
   usePushNotifications();
 
@@ -123,104 +124,108 @@ function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
-              <SidebarProvider> 
+        <SidebarProvider> 
+          <Routes>
+            {/* Admin Auth Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
 
-        <Routes>
+            <Route path="/admin" element={
+              adminAuthenticated ? <AdminLayout><Widgets /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/users" element={
+              adminAuthenticated ? <AdminLayout><ApprovedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/easypaisa" element={
+              adminAuthenticated ? <AdminLayout><EasyPaisa /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/rejecteduser" element={
+              adminAuthenticated ? <AdminLayout><RejectedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/todayApproved" element={
+              adminAuthenticated ? <AdminLayout><TodayApproved /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/withdrwa" element={
+              adminAuthenticated ? <AdminLayout><WithdrwaReques /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/ApprovedWithdrwa" element={
+              adminAuthenticated ? <AdminLayout><ApprovedWithdraw /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/products" element={
+              adminAuthenticated ? <AdminLayout><Product /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/pending" element={
+              adminAuthenticated ? <AdminLayout><PendingUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/accountsetting" element={
+              adminAuthenticated ? <AdminLayout><AccountSetting /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/rejectwithdrwa" element={
+              adminAuthenticated ? <AdminLayout><RejectWithdraw /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/w_salary" element={
+              adminAuthenticated ? <AdminLayout><Level /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/commission" element={
+              adminAuthenticated ? <AdminLayout><Commission /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/withdrawalLimits" element={
+              adminAuthenticated ? <AdminLayout><WithdrawLimits /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/bonussettingforusers" element={
+              adminAuthenticated ? <AdminLayout><Bonus /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/accounts" element={
+              adminAuthenticated ? <AdminLayout><Bep20Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/initialSettings" element={
+              adminAuthenticated ? <AdminLayout><Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/SubAdminsManagement" element={
+              adminAuthenticated ? <AdminLayout><SubAdminsManagement /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/finduser" element={
+              adminAuthenticated ? <AdminLayout><FindUser /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/sendNotification" element={
+              adminAuthenticated ? <AdminLayout><PushNotificationManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/monthlyLevels" element={
+              adminAuthenticated ? <AdminLayout><MonthlyLevelsManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
+            <Route path="/admin-profile-manager" element={
+              adminAuthenticated ? <AdminLayout><AdminProfileManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } />
 
-{/* Admin Auth Routes */}
+            {/* Public Routes */}
+            <Route path='/' element={<Login />} />
+            <Route path='/signup' element={<Signup />} />
+            <Route path='/Payment' element={<Payment Userid={Userid} isRejected={isRejected} />} />
 
-<Route path="/admin/login" element={<AdminLogin />} />
+            {/* Protected User Routes with Navbar */}
+            <Route element={isAuthenticated ? <UserLayout /> : <Navigate to="/" replace />}>
+              <Route path='/waiting' element={<Waiting />} />
+              <Route path='/cashout' element={approved === 1 ? <WithdrawPage /> : <Navigate to="/work" replace />} />
+              <Route path='/ReferralProgram' element={approved === 1 ? <ReferralProgram /> : <Navigate to="/work" replace />} />
+              <Route path='/UserWalletSettings' element={approved === 1 ? <AccountDetailsTabs /> : <Navigate to="/work" replace />} />
+              <Route path="/wallet-page" element={approved === 1 ? <About /> : <Navigate to="/work" replace />} />
+              <Route path="/setting" element={approved === 1 ? <UserProfileUpdate /> : <Navigate to="/work" replace />} />
+              <Route path="/work" element={approved === 1 ? <DailyTasks Userid={Userid} currBalance={currBalance} /> : <Navigate to="/" replace />} />
+              <Route path="/wallet" element={approved === 1 ? <Wallet /> : <Navigate to="/work" replace />} />
+              <Route path='/team' element={approved === 1 ? <Team /> : <Navigate to="/work" replace />} />
+              <Route path='/week-salary' element={approved === 1 ? <SalaryCollection /> : <Navigate to="/work" replace />} />
+              <Route path='/alerts' element={approved === 1 ? <Notifications /> : <Navigate to="/work" replace />} />
+              <Route path='/SalaryofMonth' element={approved === 1 ? <MonthlySalaryDashboard /> : <Navigate to="/work" replace />} />
+              <Route path='/admin-profile/:token' element={approved === 1 ? <ProfileCard /> : <Navigate to="/work" replace />} />
+              <Route path='/mining-history' element={approved === 1 ? <MiningHistory /> : <Navigate to="/work" replace />} />
 
-<Route path="/adminpanel" element={
-  adminAuthenticated ? <AdminLayout><Widgets /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/users" element={
-  adminAuthenticated ? <AdminLayout><ApprovedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/easypaisa" element={
-  adminAuthenticated ? <AdminLayout><EasyPaisa /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/rejecteduser" element={
-  adminAuthenticated ? <AdminLayout><RejectedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/todayApproved" element={
-  adminAuthenticated ? <AdminLayout><TodayApproved /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/withdrwa" element={
-  adminAuthenticated ? <AdminLayout><WithdrwaReques /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/ApprovedWithdrwa" element={
-  adminAuthenticated ? <AdminLayout><ApprovedWithdraw /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/products" element={
-  adminAuthenticated ? <AdminLayout><Product /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/pending" element={
-  adminAuthenticated ? <AdminLayout><PendingUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/accountsetting" element={
-  adminAuthenticated ? <AdminLayout><AccountSetting /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/rejectwithdrwa" element={
-  adminAuthenticated ? <AdminLayout><RejectWithdraw /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/w_salary" element={
-  adminAuthenticated ? <AdminLayout><Level /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/commission" element={
-  adminAuthenticated ? <AdminLayout><Commission /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/withdrawalLimits" element={
-  adminAuthenticated ? <AdminLayout><WithdrawLimits /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/bonussettingforusers" element={
-  adminAuthenticated ? <AdminLayout><Bonus /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/accounts" element={
-  adminAuthenticated ? <AdminLayout><Bep20Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/initialSettings" element={
-  adminAuthenticated ? <AdminLayout><Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/SubAdminsManagement" element={
-  adminAuthenticated ? <AdminLayout><SubAdminsManagement /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/finduser" element={
-  adminAuthenticated ? <AdminLayout><FindUser /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/sendNotification" element={
-  adminAuthenticated ? <AdminLayout><PushNotificationManager /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/monthlyLevels" element={
-  adminAuthenticated ? <AdminLayout><MonthlyLevelsManager /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
-<Route path="/admin-profile-manager" element={
-  adminAuthenticated ? <AdminLayout><AdminProfileManager /></AdminLayout> : <Navigate to="/admin/login" replace />
-} />
 
-          {/* User Routes - Protected by JWT */}
-          <Route path='/' element={<Login />} />
-          <Route path='/signup' element={<Signup />} />
-          <Route path='/Payment' element={<Payment Userid={Userid} isRejected={isRejected} />} />
-          <Route path='/waiting' element={isAuthenticated ? <Waiting /> : <Login />} />
-          <Route path='/cashout' element={approved === 1 && isAuthenticated ? <WithdrawPage /> : <Login />} />
-          <Route path='/ReferralProgram' element={approved === 1 && isAuthenticated ? <ReferralProgram /> : <Login />} />
-          <Route path='/UserWalletSettings' element={approved === 1 && isAuthenticated ? <AccountDetailsTabs /> : <Login />} />
-          <Route path="/wallet-page" element={approved === 1 && isAuthenticated ? <About /> : <Login />} />
-          <Route path="/setting" element={approved === 1 && isAuthenticated ? <UserProfileUpdate /> : <Login />} />
-          <Route path="/tasks" element={approved === 1 && isAuthenticated ? <DailyTasks Userid={Userid} currBalance={currBalance} /> : <Login />} />
-          <Route path="/wallet" element={approved === 1 && isAuthenticated ? <Wallet /> : <Login />} />
-          <Route path='/team' element={approved === 1 && isAuthenticated ? <Team /> : <Login />} />
-          <Route path='/week-salary' element={approved === 1 && isAuthenticated ? <SalaryCollection /> : <Login />} />
-          <Route path='/alerts' element={approved === 1 && isAuthenticated ? <Notifications /> : <Login />} />
-          <Route path='/SalaryofMonth' element={approved === 1 && isAuthenticated ? <MonthlySalaryDashboard /> : <Login />} />
-          <Route path='/admin-profile/:token' element={approved === 1 && isAuthenticated ? <ProfileCard /> : <Login />} />
+                  
 
-        </Routes>
-                       </SidebarProvider>
+            </Route>
 
+          </Routes>
+        </SidebarProvider>
       </BrowserRouter>
-     
     </ToastProvider>
   );
 }

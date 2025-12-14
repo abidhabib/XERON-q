@@ -50,7 +50,7 @@ export const Sidebar = () => {
     {
       group: "Dashboard",
       items: [
-        { path: "/adminpanel", icon: <HiOutlineViewGrid />, label: "Dashboard" },
+        { path: "/admin", icon: <HiOutlineViewGrid />, label: "Dashboard" },
       ],
     },
     {
