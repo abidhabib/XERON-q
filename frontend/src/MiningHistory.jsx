@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import  { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
 // Lucide Icons
@@ -111,7 +111,7 @@ const MiningHistory = () => {
                       </div>
                       <div>
                         <p className="text-white font-medium text-sm capitalize">
-                          {isCollect ? 'Coins collected' : 'Coins exchanged'}
+                          {isCollect ? 'Rovex collected' : 'Rovex  Exchanged'}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Calendar className="w-3.5 h-3.5 text-[#D4AF37]/70" />

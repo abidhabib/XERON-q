@@ -9,7 +9,8 @@ import {
   Mail,
   CheckCheck,
   Crown,
-  Shield
+  Shield,
+  Receipt
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { RemoveTrailingZeros } from '../../utils/utils';
@@ -57,7 +58,7 @@ function BalanceCard() {
       isAction: isOnWalletPage,
       actionIcon: <Send size={20} className="text-[#D4AF37]" />
     },
-    { name: 'Salary', link: '/contact', icon: <Mail size={20} className="text-[#D4AF37]" />, label: 'Contact Support' },
+    { name: 'Salary', link: '/week-salary', icon: <Receipt size={20} className="text-[#D4AF37]" />, label: 'Contact Support' },
     { name: 'Team', link: '/team', icon: <Users size={20} className="text-[#D4AF37]" />, label: 'View Team' },
     { 
       name: 'Alert', 

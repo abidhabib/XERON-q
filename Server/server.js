@@ -1981,7 +1981,7 @@ app.post('/exchange-coin', async (req, res) => {
         }
 
         // Calculate USD amount
-        const usdAmount = coins * currentValue;
+        const usdAmount = coins / currentValue;
 
         // Update user balance and reset coins
         await connection.query(
@@ -2022,7 +2022,7 @@ app.get('/user-data', async (req, res) => {
 
     try {
         const [results] = await con.promise().query(
-            `SELECT backend_wallet, coin as winstuk_coin, balance, last_collect_date FROM users WHERE id = ?`,
+            `SELECT backend_wallet, coin , balance, last_collect_date FROM users WHERE id = ?`,
             [req.session.userId]
         );
 
@@ -2110,7 +2110,7 @@ console.log(coinValue);
         // 6. Insert into history
         await connection.query(
             `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'collect', ?, ?)`,
-            [userId, collectAmount, collectAmount * coinValue]
+            [userId, collectAmount, collectAmount / coinValue]
         );
 
         // 7. Get updated user data

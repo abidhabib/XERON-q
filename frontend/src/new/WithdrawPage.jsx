@@ -213,7 +213,7 @@ const WithdrawPage = () => {
             <div className="bg-[#19202a] rounded-2xl p-4 ">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-amber-400/70 uppercase tracking-wide">
-                  {accountDetails.address_type} Wallet
+                Your <span className='text-green-500'>Active</span>  {accountDetails.address_type} Wallet Address
                 </span>
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
               </div>
