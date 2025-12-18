@@ -13,7 +13,7 @@ export const updateBalancesAndWallet = async (userId, depth = 0) => {
         const referrerId = referrerResult[0]?.refer_by;
 
         if (referrerId) {
-            // Fetch ALL commission fields: existing + new
+            // Fetch commission rates for current depth
             const commissionResult = await queryAsync(`
                 SELECT 
                     direct_bonus, 
@@ -31,24 +31,22 @@ export const updateBalancesAndWallet = async (userId, depth = 0) => {
                 web_backend = 0
             } = commissionResult[0] || {};
 
-            const feeResult = await queryAsync(`
+            // ✅ FETCH joining_fee FROM `settings` TABLE (NOT `joining_fee` table)
+            const settingsResult = await queryAsync(`
                 SELECT joining_fee
-                FROM joining_fee
+                FROM settings
                 WHERE id = 1
             `);
-            const joiningFee = feeResult[0]?.joining_fee || 0;
+            const joiningFee = parseFloat(settingsResult[0]?.joining_fee) || 0;
 
-            // Existing bonus amounts
+            // Compute bonus amounts
             const directBonusAmount = (direct_bonus * joiningFee) / 100;
             const indirectBonusAmount = (indirect_bonus * joiningFee) / 100;
-
-            // NEW: Week and Web credit amounts
             const weekCreditAmount = (week_backend * joiningFee) / 100;
             const webCreditAmount = (web_backend * joiningFee) / 100;
-
-            // Total credits to add to `all_credits`
             const totalCredits = directBonusAmount + indirectBonusAmount + weekCreditAmount + webCreditAmount;
 
+            // Update referrer's wallets
             await queryAsync(`
                 UPDATE users
                 SET 
@@ -67,7 +65,7 @@ export const updateBalancesAndWallet = async (userId, depth = 0) => {
                 referrerId
             ]);
 
-            // Recurse to next referrer level
+            // Recurse upward
             await updateBalancesAndWallet(referrerId, depth + 1);
         }
     } catch (error) {

@@ -973,7 +973,7 @@ app.get('/fetchLevelsData', (req, res) => {
     });
 });
 
-app.put('/updateLevelData', (req, res) => {
+app.put('/updateSalaryData', (req, res) => {
     const { id, threshold, salary_amount, salary_day, weekly_recruitment } = req.body;
 
     // Validate input
@@ -1881,67 +1881,107 @@ app.get('/user/:id', (req, res) => {
     });
 });
 
-// GET endpoint - Get coin value
-app.get('/get-coin-value', async (req, res) => {
-    const connection = con.promise(); 
-    try {
-        const [result] = await connection.query(
-            'SELECT value FROM coin_value WHERE id = 1'
-        );
-        
-        if (result.length === 0) {
-            return res.status(404).json({ error: 'Coin value not found' });
-        }
-        
-        res.json({ value: result[0].value });
-    } catch (error) {
-        console.error('Error fetching coin value:', error);
-        res.status(500).json({ error: 'Failed to fetch coin value' });
+// GET /settings — Fetch all settings in one call
+app.get('/settings', async (req, res) => {
+  try {
+    const [rows] = await con.promise().query(
+      `SELECT 
+        joining_fee AS fee,
+        initial_percent AS percentage,
+        offer,
+        coin_value AS coinValue,
+        week_salary_person_require AS weekSalaryPersonRequire,
+        month_salary_person_require AS monthSalaryPersonRequire
+       FROM settings WHERE id = 1`
+    );
+
+    if (rows.length === 0) {
+      // Initialize default row if not exists
+      await con.promise().query(
+        `INSERT INTO settings (id, joining_fee, initial_percent, offer, coin_value, week_salary_person_require, month_salary_person_require) 
+         VALUES (1, 0, 0, '', 0.0, 0.0, 0.0)
+         ON DUPLICATE KEY UPDATE id = 1`
+      );
+      return res.json({
+        fee: "0",
+        percentage: "0",
+        offer: "",
+        coinValue: "0.0",
+        weekSalaryPersonRequire: "0.0",
+        monthSalaryPersonRequire: "0.0"
+      });
     }
+
+    const settings = rows[0];
+    // Ensure all values are strings for frontend consistency
+    res.json({
+      fee: settings.fee?.toString() || "0",
+      percentage: settings.percentage?.toString() || "0",
+      offer: settings.offer || "",
+      coinValue: settings.coinValue?.toString() || "0.0",
+      weekSalaryPersonRequire: settings.weekSalaryPersonRequire?.toString() || "0.0",
+      monthSalaryPersonRequire: settings.monthSalaryPersonRequire?.toString() || "0.0"
+    });
+  } catch (error) {
+    console.error('GET /settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
 });
 
-// POST endpoint - Update coin value with validation
-app.post('/update-coin-value', async (req, res) => {
-    const { value } = req.body;
-    const connection = con.promise();
-    
-    // Validate input
-    if (value === undefined || value === null) {
-        return res.status(400).json({ error: 'Value is required' });
+// POST /settings — Update one or more fields
+app.post('/settings', async (req, res) => {
+  const {
+    fee,
+    percentage,
+    offer,
+    coinValue,
+    weekSalaryPersonRequire,
+    monthSalaryPersonRequire
+  } = req.body;
+
+  // Basic presence validation
+  if (
+    fee == null ||
+    percentage == null ||
+    offer == null ||
+    coinValue == null ||
+    weekSalaryPersonRequire == null ||
+    monthSalaryPersonRequire == null
+  ) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    const [result] = await con.promise().query(
+      `UPDATE settings SET 
+        joining_fee = ?,
+        initial_percent = ?,
+        offer = ?,
+        coin_value = ?,
+        week_salary_person_require = ?,
+        month_salary_person_require = ?
+       WHERE id = 1`,
+      [
+        parseFloat(fee) || 0,
+        parseInt(percentage) || 0,
+        offer,
+        parseFloat(coinValue) || 0.0,
+        parseFloat(weekSalaryPersonRequire) || 0.0,
+        parseFloat(monthSalaryPersonRequire) || 0.0
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Settings row not found' });
     }
-    
-    // Validate that value is a number
-    const numericValue = parseFloat(value);
-    if (isNaN(numericValue)) {
-        return res.status(400).json({ error: 'Value must be a valid number' });
-    }
-    
-    // Ensure value is not negative (optional, based on your business logic)
-    if (numericValue < 0) {
-        return res.status(400).json({ error: 'Value cannot be negative' });
-    }
-    
-    try {
-        const [result] = await connection.query(
-            'UPDATE coin_value SET value = ? WHERE id = 1',
-            [numericValue]
-        );
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Coin value record not found' });
-        }
-        
-        res.json({ 
-            success: true, 
-            message: 'Coin value updated successfully',
-            value: numericValue
-        });
-    } catch (error) {
-        console.error('Error updating coin value:', error);
-        res.status(500).json({ error: 'Failed to update coin value' });
-    }
+
+    res.json({ success: true, message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('POST /settings error:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
 });
-// Fixed /exchange-coin endpoint
+
 app.post('/exchange-coin', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -1951,17 +1991,21 @@ app.post('/exchange-coin', async (req, res) => {
     try {
         await connection.query('START TRANSACTION');
 
-        // Get current coin value
+        // ✅ Get current coin value from `settings` table
         const [valueResult] = await connection.query(
-            `SELECT value FROM coin_value WHERE id = 1`
+            `SELECT coin_value AS value FROM settings WHERE id = 1`
         );
         
         if (!valueResult.length) {
             await connection.query('ROLLBACK');
-            return res.status(404).json({ error: 'Coin value not found' });
+            return res.status(404).json({ error: 'Coin value not configured' });
         }
         
-        const currentValue = valueResult[0].value;
+        const currentValue = parseFloat(valueResult[0].value);
+        if (currentValue <= 0) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'Invalid coin value' });
+        }
 
         // Get user coins with lock
         const [user] = await connection.query(
@@ -1974,7 +2018,7 @@ app.post('/exchange-coin', async (req, res) => {
             return res.status(400).json({ error: 'User not found' });
         }
 
-        const coins = user[0].coin;
+        const coins = parseFloat(user[0].coin) || 0;
         if (coins <= 0) {
             await connection.query('ROLLBACK');
             return res.status(400).json({ error: 'No coins to exchange' });
@@ -1986,7 +2030,7 @@ app.post('/exchange-coin', async (req, res) => {
         // Update user balance and reset coins
         await connection.query(
             `UPDATE users SET balance = balance + ?, coin = 0 WHERE id = ?`,
-            [usdAmount, userId] // Use usdAmount, not coins for balance update
+            [usdAmount, userId]
         );
 
         // Insert into history
@@ -2015,7 +2059,6 @@ app.post('/exchange-coin', async (req, res) => {
         res.status(500).json({ error: 'Exchange failed' });
     }
 });
-
 // Fixed /user-data endpoint to match frontend expectations
 app.get('/user-data', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -2055,11 +2098,10 @@ app.post('/collect-coin', async (req, res) => {
     }
 
     const userId = req.session.userId;
-
     const connection = con.promise();
 
     try {
-        await connection.query('START TRANSACTION'); // ✅ start transaction
+        await connection.query('START TRANSACTION');
 
         // 1. Fetch user data with lock
         const [userRows] = await connection.query(
@@ -2074,7 +2116,7 @@ app.post('/collect-coin', async (req, res) => {
 
         const user = userRows[0];
 
-        // 2. Get current database date
+        // 2. Get current date
         const [currentDateRows] = await connection.query(
             `SELECT CURRENT_DATE() AS today`
         );
@@ -2085,35 +2127,49 @@ app.post('/collect-coin', async (req, res) => {
             return res.status(400).json({ error: 'Already collected today' });
         }
 
-        if (user.backend_wallet <= 0) {
+        const backendWallet = parseFloat(user.backend_wallet) || 0;
+        if (backendWallet <= 0) {
             await connection.query('ROLLBACK');
             return res.status(400).json({ error: 'Insufficient funds' });
         }
 
-        // 3. Calculate
-        const collectAmount = user.backend_wallet * 0.1;
-        const newWallet = user.backend_wallet - collectAmount;
+        // 3. Calculate collect amount (10% of backend wallet)
+        const collectAmount = backendWallet * 0.1;
+        const newWallet = backendWallet - collectAmount;
 
-        // 4. Get current winstuk value
+        // ✅ Get current coin value from `settings`
         const [valueResult] = await connection.query(
-            `SELECT value FROM coin_value WHERE id = 1`
+            `SELECT coin_value AS value FROM settings WHERE id = 1`
         );
-        const coinValue = valueResult[0].value;
-console.log(coinValue);
+        
+        if (!valueResult.length) {
+            await connection.query('ROLLBACK');
+            return res.status(500).json({ error: 'Coin value not configured' });
+        }
 
-        // 5. Update user
+        const coinValue = parseFloat(valueResult[0].value);
+        if (coinValue <= 0) {
+            await connection.query('ROLLBACK');
+            return res.status(400).json({ error: 'Invalid coin value' });
+        }
+
+        // 4. Update user
         await connection.query(
-            `UPDATE users SET backend_wallet = ?, coin = coin + ?, last_collect_date = CURDATE() WHERE id = ?`,
+            `UPDATE users SET 
+                backend_wallet = ?, 
+                coin = coin + ?, 
+                last_collect_date = CURDATE() 
+             WHERE id = ?`,
             [newWallet, collectAmount, userId]
         );
 
-        // 6. Insert into history
+        // 5. Insert into history
         await connection.query(
             `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'collect', ?, ?)`,
             [userId, collectAmount, collectAmount / coinValue]
         );
 
-        // 7. Get updated user data
+        // 6. Get updated user data
         const [updatedUserRows] = await connection.query(
             `SELECT backend_wallet, coin, last_collect_date FROM users WHERE id = ?`,
             [userId]
@@ -2129,7 +2185,7 @@ console.log(coinValue);
             coin: updatedUser.coin,
             collected_amount: collectAmount,
             current_value: coinValue,
-            last_collect_date: updatedUser.last_collect_date, // timestamp ke saath
+            last_collect_date: updatedUser.last_collect_date
         });
     } catch (error) {
         await connection.query('ROLLBACK');
@@ -2140,63 +2196,6 @@ console.log(coinValue);
 
 
 
-app.get('/get-offer', (req, res) => {
-    const sql = 'SELECT offer FROM offer WHERE id = ?';
-
-    const accountId = 1;
-
-    con.query(sql, [accountId], (err, result) => {
-        if (err) {
-            console.error('Error fetching offer:', err);
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching the offer.' });
-        }
-
-        if (result.length > 0) {
-            const offerValue = result[0].offer;
-            res.status(200).json({ success: true, offer: offerValue });
-        } else {
-            res.status(404).json({ success: false, message: 'No offer found for the given account ID.' });
-        }
-    });
-});
-
-
-app.get('/get-fee', (req, res) => {
-    // Query to get the joining_fee
-    const feeSql = 'SELECT joining_fee FROM joining_fee WHERE id = ?';
-    const accountId = 1;
-
-    con.query(feeSql, [accountId], (feeErr, feeResult) => {
-        if (feeErr) {
-            console.error('Error fetching fee:', feeErr);
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching the fee.' });
-        }
-
-        if (feeResult.length > 0) {
-            const feeValue = feeResult[0].joining_fee;
-
-            // Now, query the usd_rate table to get the rate
-            const rateSql = 'SELECT rate FROM usd_rate LIMIT 1'; // Assuming there's only one row
-            con.query(rateSql, (rateErr, rateResult) => {
-                if (rateErr) {
-                    console.error('Error fetching rate:', rateErr);
-                    return res.status(500).json({ success: false, message: 'An error occurred while fetching the rate.' });
-                }
-
-                if (rateResult.length > 0) {
-                    const rate = rateResult[0].rate;
-                    const feeInPkr = feeValue; // Multiply fee by rate
-
-                    res.status(200).json({ success: true, fee: feeInPkr });
-                } else {
-                    res.status(404).json({ success: false, message: 'No rate found in the usd_rate table.' });
-                }
-            });
-        } else {
-            res.status(404).json({ success: false, message: 'No fee found for the given account ID.' });
-        }
-    });
-});
 // Create subadmins table if not exists
 const createSubAdminsTable = `
 CREATE TABLE IF NOT EXISTS subadmins (
@@ -2347,70 +2346,11 @@ app.delete('/subadmins/:id', (req, res) => {
     });
 });
 
-app.get('/get-percentage', (req, res) => {
-    const sql = 'SELECT initial_percent FROM initial_fee WHERE id = 1';
-    con.query(sql, (err, result) => {
-        if (err) {
-            console.error('Error fetching fee:', err);
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching the fee.' });
-        }
-        else {
-            if (result.length > 0) {
-                const feeValue = result[0].initial_percent;
-                res.status(200).json({ success: true, initial_percent: feeValue });
-            } else {
-                res.status(404).json({ success: false, message: 'No fee found for the given account ID.' });
-            }
-        }
-    })
-
-
-});
 
 
 
-app.post('/update-fee', (req, res) => {
-    const { newFeeValue } = req.body;
-
-    const accountId = 1;
-
-    const updateSql = 'UPDATE joining_fee SET joining_fee = ? WHERE id = ?';
-
-    con.query(updateSql, [newFeeValue, accountId], (err, result) => {
-        if (err) {
-            console.error('Error updating fee:', err);
-            return res.status(500).json({ success: false, message: 'An error occurred while updating the fee.' });
-        }
-
-        if (result.affectedRows > 0) {
-            res.status(200).json({ success: true, message: 'Fee updated successfully.' });
-        } else {
-            res.status(404).json({ success: false, message: 'No fee found for the given account ID.' });
-        }
-    });
-});
 
 
-app.post('/update-percentage', (req, res) => {
-    const { newFeeValue } = req.body;
-
-    const accountId = 1;
-
-    const updateSql = 'UPDATE initial_fee   SET initial_percent = ? WHERE id = 1';
-
-    con.query(updateSql, [newFeeValue, accountId], (err, result) => {
-        if (err) {
-            console.error('Error updating fee:', err);
-            return res.status(500).json({ success: false, message: 'An error occurred while updating the fee.' });
-        }
-
-        if (result.affectedRows > 0) {
-            res.status(200).json({ success: true, message: 'Fee updated successfully.' });
-        } else {
-            res.status(404).json({ success: false, message: 'No fee found for the given account ID.' });
-        }
-    });
-});
 app.get('/pending-users', (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.perPage) || 10;

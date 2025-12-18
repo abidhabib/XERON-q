@@ -22,6 +22,20 @@ export const approveUser = async (req, res) => {
             WHERE id = ?
         `, [userId]);
 
+        // ✅ Fetch settings once
+        const [settings] = await queryAsync(`
+            SELECT joining_fee, initial_percent 
+            FROM settings 
+            WHERE id = 1
+        `);
+
+        const joining_fee = parseFloat(settings?.joining_fee) || 0;
+        const initial_percent = parseFloat(settings?.initial_percent) || 0;
+
+        // ✅ Compute bonus amount in JS (cleaner and safer)
+        const referralBonus = (joining_fee * initial_percent) / 100;
+
+        // ✅ Apply approval and bonus
         await queryAsync(`
             UPDATE users 
             SET 
@@ -30,16 +44,13 @@ export const approveUser = async (req, res) => {
                 rejected = 0,
                 blocked = 0,
                 approved_at = CURRENT_TIMESTAMP,
-                backend_wallet = backend_wallet + (
-                    SELECT joining_fee * (SELECT initial_percent FROM initial_fee WHERE id = 1) / 100
-                    FROM joining_fee
-                    WHERE id = 1
-                )
+                backend_wallet = backend_wallet + ?
             WHERE id = ?
-        `, [userId]);
+        `, [referralBonus, userId]);
 
         await updateBalancesAndWallet(userId);
 
+        // --- Referrer Logic (unchanged below) ---
         const referrerResult = await queryAsync(`
             SELECT refer_by
             FROM users
@@ -60,10 +71,9 @@ export const approveUser = async (req, res) => {
             await queryAsync(`
                 UPDATE users
                 SET today_team = today_team + 1,
-                    team = ? -- This is the total approved count
+                    team = ?
                 WHERE id = ?
             `, [approvedCount, referrerId]);
-
 
             const currentWeek = moment().format('YYYYWW');
             await queryAsync(`
@@ -72,9 +82,7 @@ export const approveUser = async (req, res) => {
                 ON DUPLICATE KEY UPDATE new_members = new_members + 1
             `, [referrerId, currentWeek]);
 
-
-            const currentYearMonth = moment().format('YYYYMM'); 
-
+            const currentYearMonth = moment().format('YYYYMM');
             await queryAsync(`
                 INSERT INTO monthly_recruits (user_id, \`year_month\`, new_members)
                 VALUES (?, ?, 1)
@@ -84,7 +92,7 @@ export const approveUser = async (req, res) => {
             const monthlyLevelsResult = await queryAsync(`
                 SELECT month_level, required_joins
                 FROM monthly_levels
-                ORDER BY required_joins DESC -- Order descending to find the highest applicable level first
+                ORDER BY required_joins DESC
             `);
 
             let newMonthlyLevel = 0;
@@ -101,21 +109,15 @@ export const approveUser = async (req, res) => {
                 WHERE id = ?
             `, [newMonthlyLevel, referrerId]);
 
-
-            
             const [referrerDetails] = await queryAsync(`SELECT name, monthly_salary_level FROM users WHERE id = ?`, [referrerId]);
             const oldMonthlyLevel = referrerDetails?.monthly_salary_level || 0;
 
             if (newMonthlyLevel > oldMonthlyLevel) {
-                 const monthlyUpgradeMessage = `Congratulations ${referrerDetails.name}! Based on your total team size (${approvedCount} approved referrals), you've achieved Monthly Level ${newMonthlyLevel}.`;
-                 await queryAsync(insertNotificationQuery, [referrerId, monthlyUpgradeMessage]);
+                const monthlyUpgradeMessage = `Congratulations ${referrerDetails.name}! Based on your total team size (${approvedCount} approved referrals), you've achieved Monthly Level ${newMonthlyLevel}.`;
+                await queryAsync(insertNotificationQuery, [referrerId, monthlyUpgradeMessage]);
             }
-            
 
-            const notificationMessage = `🎉 New referral approved!
-            User: ${userDetails.name} (${userDetails.email})
-            has joined under your referral.
-            Your total team count is now ${approvedCount}.`;
+            const notificationMessage = `🎉 New referral approved!\nUser: ${userDetails.name} (${userDetails.email})\nhas joined under your referral.\nYour total team count is now ${approvedCount}.`;
 
             await queryAsync(insertNotificationQuery, [referrerId, notificationMessage]);
         }

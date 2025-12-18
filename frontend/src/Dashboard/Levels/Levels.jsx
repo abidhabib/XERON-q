@@ -124,7 +124,7 @@ const handleUpdate = useCallback((item) => {
 weekly_recruitment: Number(salaryData.weekly_recruitment)
 };
         const response = await axios.put(
-            `${import.meta.env.VITE_API_BASE_URL}/updateLevelData`, 
+            `${import.meta.env.VITE_API_BASE_URL}/updateSalaryData`, 
             payload,
             { timeout: 15000 }
         );
@@ -149,8 +149,7 @@ weekly_recruitment: Number(salaryData.weekly_recruitment)
         }
     };
 
-    // Memoized table row component
-// Update the TableRow component to show weekly recruitment requirement
+
 const TableRow = ({ item }) => (
     <tr className="hover:bg-gray-50 transition-colors">
         <td className="px-6 py-4 whitespace-nowrap">

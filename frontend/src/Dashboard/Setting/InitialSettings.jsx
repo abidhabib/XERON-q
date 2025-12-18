@@ -9,7 +9,7 @@ import {
 } from 'react-icons/hi';
 import { FaSpinner } from 'react-icons/fa';
 
-// Configuration Pattern - Centralize settings configuration
+// ✅ Updated SETTINGS_CONFIG with 2 new fields
 const SETTINGS_CONFIG = {
   fee: {
     title: "Joining Fee",
@@ -55,10 +55,38 @@ const SETTINGS_CONFIG = {
     focusRing: "focus:ring-purple-200",
     type: "number",
     step: "0.01"
+  },
+  // 🔹 NEW: Week Salary
+  weekSalaryPersonRequire: {
+    title: "Week Salary Per Person",
+    subtitle: "Required weekly salary per person (in USD)",
+    icon: HiCurrencyDollar,
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-600",
+    bgColor: "bg-blue-600",
+    hoverBg: "hover:bg-blue-700",
+    focusRing: "focus:ring-blue-200",
+    type: "number",
+    step: "0.01",
+    placeholder: "e.g. 500.00"
+  },
+  // 🔹 NEW: Month Salary
+  monthSalaryPersonRequire: {
+    title: "Month Salary Per Person",
+    subtitle: "Required monthly salary per person (in USD)",
+    icon: HiCurrencyDollar,
+    iconBg: "bg-cyan-100",
+    iconColor: "text-cyan-600",
+    bgColor: "bg-cyan-600",
+    hoverBg: "hover:bg-cyan-700",
+    focusRing: "focus:ring-cyan-200",
+    type: "number",
+    step: "0.01",
+    placeholder: "e.g. 2000.00"
   }
 };
 
-// Component Pattern - Reusable Setting Card
+// Reusable SettingCard (unchanged)
 const SettingCard = ({ 
   config, 
   value, 
@@ -129,7 +157,7 @@ const SettingCard = ({
   );
 };
 
-// Loading State Pattern
+// Loading & Error states (unchanged)
 const LoadingState = () => (
   <div className="flex justify-center items-center h-64">
     <div className="text-center">
@@ -139,7 +167,6 @@ const LoadingState = () => (
   </div>
 );
 
-// Error State Pattern
 const ErrorState = ({ onRetry }) => (
   <div className="flex flex-col items-center justify-center h-64 bg-red-50 rounded-lg p-6">
     <div className="text-red-500 mb-4">
@@ -158,7 +185,6 @@ const ErrorState = ({ onRetry }) => (
   </div>
 );
 
-// Success Toast Pattern
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -176,64 +202,34 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
+// ✅ Main Settings Component
 const Settings = () => {
   const [settings, setSettings] = useState({
     fee: "",
-    usdRate: 0.0,
+    percentage: "",
     offer: "",
-    percentage: 0,
-    coinValue: ""
+    coinValue: "",
+    weekSalaryPersonRequire: "",
+    monthSalaryPersonRequire: ""
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // API Layer Pattern - Centralize API calls
-// In your Settings component, update the api.updateSetting function:
-const api = {
+  // ✅ Unified API layer
+  const api = {
     fetchSettings: async () => {
-        try {
-            const [
-                feeRes, 
-                offerRes, 
-                percentageRes,
-                coinValueRes
-            ] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_BASE_URL}/get-fee`),
-                axios.get(`${import.meta.env.VITE_API_BASE_URL}/get-offer`),
-                axios.get(`${import.meta.env.VITE_API_BASE_URL}/get-percentage`),
-                axios.get(`${import.meta.env.VITE_API_BASE_URL}/get-coin-value`)
-            ]);
-
-            return {
-                fee: feeRes.data.fee,
-                offer: offerRes.data.offer,
-                percentage: percentageRes.data.initial_percent,
-                coinValue: coinValueRes.data.value
-            };
-        } catch (err) {
-            throw new Error('Failed to fetch settings');
-        }
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/settings`);
+      return res.data;
     },
-    
     updateSetting: async (type, value) => {
-        const endpointMap = {
-            fee: '/update-fee',
-            offer: '/update-offer',
-            percentage: '/update-percentage',
-            coinValue: '/update-coin-value'
-        };
-        
-        // Validate value before sending
-        if (value === undefined || value === null || value === '') {
-            throw new Error('Value cannot be empty');
-        }
-        
-        const payload = { value: value }; // Changed from newFeeValue to value for consistency
-        await axios.post(`${import.meta.env.VITE_API_BASE_URL}${endpointMap[type]}`, payload);
+      // Fetch current to avoid overwriting other fields
+      const current = await api.fetchSettings();
+      const payload = { ...current, [type]: value };
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/settings`, payload);
     }
-};
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -244,9 +240,16 @@ const api = {
       setLoading(true);
       setError(null);
       const data = await api.fetchSettings();
-      setSettings(data);
+      setSettings({
+        fee: data.fee?.toString() || "",
+        percentage: data.percentage?.toString() || "",
+        offer: data.offer || "",
+        coinValue: data.coinValue?.toString() || "",
+        weekSalaryPersonRequire: data.weekSalaryPersonRequire?.toString() || "",
+        monthSalaryPersonRequire: data.monthSalaryPersonRequire?.toString() || ""
+      });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load settings');
       showToast('Failed to load settings', 'error');
     } finally {
       setLoading(false);
@@ -259,7 +262,6 @@ const api = {
 
   const handleUpdate = async (type) => {
     setUpdating(prev => ({ ...prev, [type]: true }));
-    
     try {
       await api.updateSetting(type, settings[type]);
       showToast(`${SETTINGS_CONFIG[type].title} updated successfully!`, 'success');
@@ -279,10 +281,8 @@ const api = {
     setToast(null);
   };
 
-  // Layout Pattern - Responsive Grid
   return (
-    <div className=" min-h-screen bg-gray-50">
-      
+    <div className="min-h-screen bg-gray-50">
       <div className="p-4">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">System Settings</h1>

@@ -129,6 +129,7 @@ const MiningTask = () => {
   const [isMining, setIsMining] = useState(false);
   const [collectAvailable, setCollectAvailable] = useState(true);
   const [toasts, setToasts] = useState([]);
+console.log('userData.coin:', userData.coin);
 
   // ✅ Bottom sheet states
   const [collectSuccessSheet, setCollectSuccessSheet] = useState(false);
@@ -205,7 +206,6 @@ const MiningTask = () => {
     }
     setExchangeSheetOpen(true);
   };
-
   const confirmExchange = async () => {
     setExchangeSheetOpen(false);
     setLoading(prev => ({ ...prev, exchange: true }));
@@ -226,7 +226,28 @@ const MiningTask = () => {
   return (
     <div className="min-h-screen bg-[#111827]">
       <BalanceCard />
-
+{/* Rovex Coin Display */}
+<div className="px-2 mt-4">
+  <div className="bg-[#19202a] rounded-2xl px-4 py-4  border-[#26303b] backdrop-blur-sm">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className="p-2 bg-[#1c2a3a] rounded-xl">
+          <Coins className="w-5 h-5 text-[#D4AF37]" />
+        </div>
+        <div>
+          <p className="text-[#D4AF37]/60 text-xs font-medium">Your Rovex Coins</p>
+          <p className="text-white text-xl font-semibold mt-0.5">
+            {RemoveTrailingZeros(userData.coin ?? 0)}
+          </p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-[#D4AF37]/60 text-xs">Rovex</p>
+        <p className="text-[#D4AF37] text-sm font-medium mt-0.5">Coin</p>
+      </div>
+    </div>
+  </div>
+</div>
       {/* Toasts - Top Right */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
@@ -243,7 +264,7 @@ const MiningTask = () => {
         <div className="space-y-6 pt-8">
           <MiningAnimation isMining={isMining} />
 
-          <div className="bg-[#19202a] rounded-2xl p-4 space-y-4 mx-4">
+          <div className="bg-[#19202a] rounded-2xl p-4 space-y-4 mx-2">
             <div className="text-center">
               <p className="text-[#D4AF37]/70 text-sm mb-2">
                 Daily coin collection · 24h cooldown
@@ -276,15 +297,16 @@ const MiningTask = () => {
                 isSell={false}
               />
             </div>
-          </div>
-
-          <button
+             <button
             onClick={() => navigate('/mining-history')}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-[#19202a] hover:bg-[#1c2a3a] rounded-xl text-[#D4AF37] font-medium transition-colors mx-4"
+            className="w-full flex items-center  mt-5 justify-center gap-2 py-3 bg-[#2a2a2a] hover:bg-[#1c2a3a] rounded-xl text-[#D4AF37] font-medium transition-colors m-2"
           >
             <History className="w-4 h-4" />
             <span>See Full History</span>
           </button>
+          </div>
+
+         
         </div>
       </div>
 
