@@ -199,112 +199,6 @@ console.log(rows);
   }
 });
 
-app.post('/collect-salary', async (req, res) => {
-    const userId = req.session.userId;
-    
-    const currentWeek = parseInt(moment().format('YYYYWW'));
-    const today = moment().day();
-    console.log(userId+"ddddd"+today);
-
-    try {
-        await con.promise().query('START TRANSACTION');
-
-        const [user] = await con.promise().query(`
-            SELECT u.id, u.level, u.balance AS wallet,
-                   u.salary_collection_week, l.salary_amount, l.salary_day, l.weekly_recruitment
-            FROM users u
-            JOIN levels l ON u.level = l.level
-            WHERE u.id = ?
-            FOR UPDATE
-        `, [userId]);
-
-        if (!user.length) {
-            await con.promise().query('ROLLBACK');
-            return res.status(404).json({ status: 'error', error: 'User not found' });
-        }
-
-        const userData = user[0];
-
-        if (today !== userData.salary_day) {
-            await con.promise().query('ROLLBACK');
-            return res.status(400).json({ 
-                status: 'error', 
-                error: `Today is not your salary day (${getDayName(userData.salary_day)})`
-            });
-        }
-
-        if (userData.salary_collection_week === currentWeek) {
-            await con.promise().query('ROLLBACK');
-            return res.status(400).json({ 
-                status: 'error', 
-                error: 'Already collected this week'
-            });
-        }
-
-        const [recruits] = await con.promise().query(`
-            SELECT new_members 
-            FROM weekly_recruits 
-            WHERE user_id = ? AND week_id = ?
-        `, [userId, currentWeek]);
-
-        const newMembers = recruits[0]?.new_members || 0;
-
-        const [lastPayment] = await con.promise().query(`
-            SELECT level 
-            FROM salary_payments 
-            WHERE user_id = ?
-            ORDER BY created_at DESC 
-            LIMIT 1
-        `, [userId]);
-
-        const isFirstAtLevel = !lastPayment.length || lastPayment[0].level !== userData.level;
-
-        if (!isFirstAtLevel && newMembers < userData.weekly_recruitment) {
-            await con.promise().query('ROLLBACK');
-            return res.status(400).json({ 
-                status: 'error', 
-                error: `Need ${userData.weekly_recruitment - newMembers} more recruits`
-            });
-        }
-
-        const newWallet = parseFloat(userData.wallet) + parseFloat(userData.salary_amount);
-
-        await con.promise().query(`
-            UPDATE users 
-            SET 
-                balance = ?,
-                salary_collection_week = ?,
-                last_salary_collected_at = NOW(),
-                total_salary = total_salary + ?
-            WHERE id = ?
-        `, [newWallet, currentWeek, userData.salary_amount, userId]);
-
-        await con.promise().query(`
-            INSERT INTO salary_payments 
-            (user_id, level, amount, payment_week)
-            VALUES (?, ?, ?, ?)
-        `, [userId, userData.level, userData.salary_amount, currentWeek]);
-
-        const message = `Salary collected: $${userData.salary_amount} for Level ${userData.level}`;
-       await con.promise().query(`
-    INSERT INTO notifications (user_id, msg, is_read, created_at)
-    VALUES (?, ?, 0, NOW())
-`, [userId, message]);
-
-
-        await con.promise().query('COMMIT');
-
-        res.json({
-            status: 'success',
-            message: 'Salary collected successfully',
-            newBalance: newWallet
-        });
-    } catch (error) {
-        await con.promise().query('ROLLBACK');
-        console.error('Salary collection error:', error);
-        res.status(500).json({ status: 'error', error: 'Collection failed' });
-    }
-});
 
 
 
@@ -959,31 +853,34 @@ app.delete('/delete-rejected-users', async (req, res) => {
 
 
 
-// Fetch levels data
 app.get('/fetchLevelsData', (req, res) => {
-    const sql = 'SELECT id, level, threshold,salary_amount,salary_day,weekly_recruitment FROM levels ORDER BY level ASC';
+    const sql = `
+        SELECT id, level, threshold
+        FROM levels
+        ORDER BY level ASC
+    `;
 
     con.query(sql, (err, result) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch levels data' });
+            return res.status(500).json({
+                status: 'error',
+                error: 'Failed to fetch levels data'
+            });
         }
 
         res.json({ status: 'success', data: result });
     });
 });
 
-app.put('/updateSalaryData', (req, res) => {
-    const { id, threshold, salary_amount, salary_day, weekly_recruitment } = req.body;
+app.put('/upDateLevelData', (req, res) => {
+    const { id, threshold } = req.body;
 
     // Validate input
     const errors = [];
     if (!id) errors.push('ID is required');
     if (threshold === undefined) errors.push('Threshold is required');
-    if (salary_amount === undefined) errors.push('Salary amount is required');
-    if (salary_day === undefined) errors.push('Salary day is required');
-    if (weekly_recruitment === undefined) errors.push('Weekly recruitment is required');
-    
+
     if (errors.length > 0) {
         return res.status(400).json({
             status: 'error',
@@ -991,41 +888,21 @@ app.put('/updateSalaryData', (req, res) => {
         });
     }
 
-    // Convert and validate
     const thresholdValue = Number(threshold);
-    const salaryAmount = Number(salary_amount);
-    const salaryDay = Number(salary_day);
-    const weeklyRecruitment = Number(weekly_recruitment);
-    
-    if (isNaN(thresholdValue)) errors.push('Invalid threshold value');
-    if (isNaN(salaryAmount)) errors.push('Invalid salary amount');
-    if (isNaN(salaryDay) || salaryDay < 0 || salaryDay > 6) {
-        errors.push('Salary day must be 0-6');
-    }
-    if (isNaN(weeklyRecruitment) || weeklyRecruitment < 0) {
-        errors.push('Weekly recruitment must be non-negative');
-    }
-    
-    if (errors.length > 0) {
+    if (isNaN(thresholdValue) || thresholdValue < 0) {
         return res.status(400).json({
             status: 'error',
-            message: errors.join(', ')
+            message: 'Invalid threshold value'
         });
     }
 
     const updateQuery = `
-        UPDATE levels 
-        SET 
-            threshold = ?,
-            salary_amount = ?,
-            salary_day = ?,
-            weekly_recruitment = ?
+        UPDATE levels
+        SET threshold = ?
         WHERE id = ?
     `;
-    
-    const values = [thresholdValue, salaryAmount, salaryDay, weeklyRecruitment, id];
-    
-    con.query(updateQuery, values, (err, result) => {
+
+    con.query(updateQuery, [thresholdValue, id], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({
@@ -1044,18 +921,15 @@ app.put('/updateSalaryData', (req, res) => {
 
         res.json({
             status: 'success',
-            message: 'Level data updated successfully',
-            data: { 
-                id, 
-                threshold: thresholdValue, 
-                salary_amount: salaryAmount, 
-                salary_day: salaryDay,
-                weekly_recruitment: weeklyRecruitment
+            message: 'Level threshold updated successfully',
+            data: {
+                id,
+                threshold: thresholdValue
             }
         });
     });
 });
- 
+
 app.get('/fetchLimitsData', (req, res) => {
     const sql = 'SELECT * FROM withdraw_limit';
 
