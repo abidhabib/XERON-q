@@ -1,6 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { UserContext } from './UserContext/UserContext';
-import NavBAr from './NavBAr';
 import BalanceCard from './new/BalanceCard';
 
 // Lucide-style icons (clean, consistent)
@@ -44,10 +43,7 @@ const Team = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#111827]">
-      {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#111827]">
-        <NavBAr />
-      </div>
+    
 
       <BalanceCard />
 
