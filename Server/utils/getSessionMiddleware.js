@@ -7,3 +7,4 @@ const getUserIdFromSession = (req, res) => {
 };
 
 export default getUserIdFromSession;
+

@@ -1,285 +1,200 @@
-import React, { useState, useEffect, useContext, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
 import BalanceCard from './BalanceCard';
-
-// ✅ Lucide Icons
 import { 
   Coins, 
-  ChartLine, 
-  History, 
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-  Calendar
+  Users,
+  Calendar,
+  Lock,
+  Trophy
 } from 'lucide-react';
 
-const NavBar = lazy(() => import('../NavBAr'));
-
 const SalaryCollection = () => {
-  const [salaryData, setSalaryData] = useState(null);
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [collecting, setCollecting] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const { Userid } = useContext(UserContext);
+  const API = import.meta.env.VITE_API_BASE_URL;
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-  const fetchSalaryStatus = async () => {
-    setError('');
+  const fetchStatus = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/salary-status`, { withCredentials: true });
-      setSalaryData(response.data.data);
+      const res = await axios.get(`${API}/api/salary/status`, { withCredentials: true });
+      setStatus(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load salary data');
-      setSalaryData(null);
+      setError('Failed to load eligibility status');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSalaryHistory = async () => {
-    if (history.length > 0) return;
-    setHistoryLoading(true);
-    setError('');
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/salary-history`, { withCredentials: true });
-      setHistory(response.data.history);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load history');
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchSalaryStatus();
+    if (Userid) fetchStatus();
   }, [Userid]);
 
-  const collectSalary = async () => {
-    if (!salaryData?.isEligible) return;
+  const handleCollect = async () => {
+    if (!status?.eligible) return;
+    setCollecting(true);
+    setError('');
     try {
-      setCollecting(true);
-      setError('');
-      setSuccess('');
-      const response = await axios.post(`${API_BASE_URL}/collect-salary`, {}, { withCredentials: true });
-      setSuccess(response.data.message);
-      setSalaryData(prev => ({
-        ...prev,
-        wallet: response.data.newBalance,
-        isEligible: false,
-        reason: "Collection completed for this week"
-      }));
+      await axios.post(`${API}/api/salary/collect`, {}, { withCredentials: true });
+      setSuccess('Salary collected successfully!');
+      fetchStatus(); // Refresh to clear eligible flag for this week
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to collect salary');
+      setError(err.response?.data?.error || 'Collection failed');
     } finally {
       setCollecting(false);
     }
   };
 
-  const getProgressPercentage = () => {
-    if (!salaryData || salaryData.sameLevelRequirement === 0) return 0;
-    return Math.min((salaryData.newMembersThisWeek / salaryData.sameLevelRequirement) * 100, 100);
-  };
-
-  // ✅ Simplified, elegant progress circle (no SVG borders)
-  const CircularProgress = ({ percentage }) => (
-    <div className="relative w-24 h-24 flex items-center justify-center">
-      <div className="absolute w-full h-full rounded-full bg-[#1c2a3a]"></div>
-      <div 
-        className="absolute w-full h-full rounded-full"
-        style={{
-          background: `conic-gradient(from 0deg, #D4AF37 ${percentage}%, #1c2a3a ${percentage}%)`,
-          clipPath: 'inset(15% round 50%)'
-        }}
-      ></div>
-      <span className="text-white font-semibold text-sm z-10">{Math.round(percentage)}%</span>
-    </div>
-  );
-
-  const currDayName = new Date().toLocaleString('en-US', { weekday: 'long' });
-
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#111827] items-center justify-center">
-        <div className="text-[#D4AF37] animate-pulse">
-          <RefreshCw className="w-8 h-8 animate-spin" />
-        </div>
-        <p className="mt-3 text-[#D4AF37]/70 text-sm">Loading salary dashboard...</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <RefreshCw className="animate-spin text-amber-500 w-8 h-8" />
       </div>
     );
   }
 
+  // ✅ SHOW: Permanently Eligible but Already Collected This Week
+  if (status?.permanentlyEligible && !status.eligible && status.weekCredits === 0) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-900">
+        <BalanceCard />
+        <div className="flex-1 flex items-  justify-center">
+          <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="text-emerald-400 w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Salary Collected</h2>
+            <p className="text-gray-400 mb-4">
+              You’ve already collected your weekly salary.
+            </p>
+            <button
+              onClick={fetchStatus}
+              className="w-full py-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl text-white flex items-center justify-center gap-2 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Status
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ SHOW: Not Yet Eligible (Never unlocked)
+  if (!status?.permanentlyEligible) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-900 p-4">
+        <BalanceCard />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="text-amber-500 w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Unlock Weekly Salary</h2>
+            <p className="text-gray-400 mb-4">
+              Recruit <span className="text-amber-400 font-medium">{status?.requiredRecruits || 0}</span> members in a single week to unlock lifetime salary.
+            </p>
+            
+            {status?.recruitsThisWeek !== undefined && (
+              <div className="bg-gray-700 rounded-xl p-4 mb-4">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-400">Recruits This Week</span>
+                  <span className="text-amber-400 font-medium">
+                    {status.recruitsThisWeek}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Required</span>
+                  <span className="text-white font-medium">
+                    {status.requiredRecruits || 0}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-600 rounded-full mt-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-amber-500 rounded-full"
+                    style={{ 
+                      width: `${status.requiredRecruits ? Math.min(100, (status.recruitsThisWeek / status.requiredRecruits) * 100) : 0}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={fetchStatus}
+              className="w-full py-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl text-white flex items-center justify-center gap-2 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Status
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ SHOW: Eligible (Permanently unlocked + has credits + not collected this week)
   return (
-    <div className="flex flex-col min-h-screen bg-[#111827]">
-     
-
+    <div className="flex flex-col min-h-screen bg-gray-900">
       <BalanceCard />
-
-      <div className="px-2 pb-6 pt-2">
-        {/* Header */}
-        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Coins className="text-[#D4AF37]" />
-              Weekly Salary
-            </h1>
-            <span className="text-[11px] bg-[#1c2a3a] text-[#D4AF37] px-2 py-0.5 rounded-full">
-              {salaryData?.currentLevel}
-            </span>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1c2a3a] p-3 rounded-xl">
-              <p className="text-[#D4AF37]/70 text-[11px] mb-1">Current Day</p>
-              <p className="text-white text-sm font-medium">{currDayName}</p>
+      <div className="p-4 flex-1">
+        <div className="bg-gray-800 rounded-2xl p-5 mb-4">
+          <div className="text-center mb-4">
+            <div className="w-20 h-20 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Trophy className="text-emerald-400 w-10 h-10" />
             </div>
-            <div className="bg-[#1c2a3a] p-3 rounded-xl">
-              <p className="text-[#D4AF37]/70 text-[11px] mb-1">Salary Day</p>
-              <p className="text-white text-sm font-medium">{salaryData?.dayName}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-sm font-semibold text-white">Weekly Progress</h2>
-            <span className="text-[11px] text-[#D4AF37] bg-[#1c2a3a] px-2 py-0.5 rounded-full">
-              {getProgressPercentage().toFixed(0)}% Complete
-            </span>
+            <h2 className="text-xl font-bold text-white">Weekly Salary Ready!</h2>
+            <p className="text-emerald-400 font-semibold text-lg mt-1">
+              ${RemoveTrailingZeros(status.weekCredits)}
+            </p>
+            <p className="text-gray-400 text-sm mt-2">Lifetime eligibility unlocked ✅</p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <CircularProgress percentage={getProgressPercentage()} />
-            <div className="flex-1">
-              <div className="text-[11px] text-[#D4AF37]/70 mb-1">
-                {salaryData?.newMembersThisWeek} / {salaryData?.sameLevelRequirement} recruits
-              </div>
-              <div className="h-1.5 bg-[#1c2a3a] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-amber-400"
-                  style={{ width: `${getProgressPercentage()}%` }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div className="bg-[#1c2a3a] p-2.5 rounded-xl">
-                  <p className="text-[11px] text-[#D4AF37]/70">Salary</p>
-                  <p className="text-white font-semibold text-sm">
-                    ${RemoveTrailingZeros(salaryData?.salaryAmount)}
-                  </p>
-                </div>
-                <div className="bg-[#1c2a3a] p-2.5 rounded-xl">
-                  <p className="text-[11px] text-[#D4AF37]/70">Required</p>
-                  <p className="text-white font-semibold text-sm">
-                    {salaryData?.sameLevelRequirement}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Collect */}
-        <div className="bg-[#19202a] rounded-2xl p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-white">Salary Collection</h3>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full ${
-              salaryData?.isEligible 
-                ? 'bg-emerald-900/30 text-emerald-400' 
-                : 'bg-amber-900/30 text-amber-400'
-            }`}>
-              {salaryData?.isEligible ? 'Eligible' : 'Not Eligible'}
-            </span>
-          </div>
-          
-          <p className="text-[#D4AF37]/70 text-sm mb-4">
-            {salaryData?.reason}
-          </p>
-          
           <button
-            onClick={collectSalary}
-            disabled={!salaryData?.isEligible || collecting}
-            className={`w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center transition-all ${
-              salaryData?.isEligible && !collecting
-                ? 'bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900 shadow-[0_2px_6px_rgba(212,175,55,0.2)] hover:from-[#e8c04e] hover:to-[#d4af37]'
-                : 'bg-[#1c2a3a] text-[#D4AF37]/50 cursor-not-allowed'
+            onClick={handleCollect}
+            disabled={collecting}
+            className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+              collecting 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-gray-900 hover:from-emerald-400 hover:to-emerald-500'
             }`}
           >
             {collecting ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                <RefreshCw className="animate-spin w-4 h-4" />
                 Processing...
               </>
             ) : (
               <>
-                <Coins className="w-4 h-4 mr-2" />
-                Collect ${RemoveTrailingZeros(salaryData?.salaryAmount)}
+                <Coins className="w-4 h-4" />
+                Collect Salary
               </>
             )}
           </button>
         </div>
-
-        {/* View History */}
-        <button
-          onClick={fetchSalaryHistory}
-          disabled={historyLoading}
-          className="w-full py-3 bg-[#19202a] hover:bg-[#1c2a3a] rounded-xl text-[#D4AF37] font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          {historyLoading ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <History className="w-4 h-4" />
-          )}
-          View Full History
-        </button>
-
-        {/* History List (if loaded) */}
-        {history.length > 0 && (
-          <div className="mt-4 space-y-3 max-h-[40vh] overflow-y-auto">
-            {history.map((payment, index) => (
-              <div key={index} className="bg-[#19202a] rounded-xl p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#1c2a3a] rounded-lg">
-                      <Coins className="w-4 h-4 text-[#D4AF37]" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium text-sm">
-                        ${RemoveTrailingZeros(payment.amount)}
-                      </p>
-                      <p className="text-[#D4AF37]/70 text-[11px]">Stage {payment.level}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[#D4AF37]/70 text-[11px]">{payment.date}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Toasts - Themed */}
+      {/* Toasts */}
       {error && (
-        <div className="fixed bottom-4 left-4 right-4 z-50 p-3 rounded-xl bg-rose-900/30 border border-rose-800/30 text-rose-400 text-sm flex items-center">
-          <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError('')} className="ml-2">×</button>
+        <div className="fixed bottom-4 left-4 right-4 p-3 bg-rose-900/50 text-rose-300 rounded-lg flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5" />
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="ml-auto">×</button>
         </div>
       )}
-
       {success && (
-        <div className="fixed top-4 left-4 right-4 z-50 p-3 rounded-xl bg-emerald-900/30 border border-emerald-800/30 text-emerald-400 text-sm flex items-center">
-          <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span className="flex-1">{success}</span>
-          <button onClick={() => setSuccess('')} className="ml-2">×</button>
+        <div className="fixed top-4 left-4 right-4 p-3 bg-emerald-900/50 text-emerald-300 rounded-lg flex items-center gap-2">
+          <CheckCircle className="w-5 h-5" />
+          <span>{success}</span>
+          <button onClick={() => setSuccess('')} className="ml-auto">×</button>
         </div>
       )}
     </div>

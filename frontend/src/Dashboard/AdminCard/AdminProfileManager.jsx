@@ -58,7 +58,7 @@ const AdminProfileManager = () => {
   const fetchAdminProfile = async () => {
     setApiErrors(prev => ({ ...prev, fetch: null }));
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminTokens');
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
       if (!token) {
@@ -156,7 +156,7 @@ const AdminProfileManager = () => {
     
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminTokens');
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
       const response = await fetch(`${apiBaseUrl}/api/admin/profile`, {
@@ -187,7 +187,7 @@ const AdminProfileManager = () => {
     setGeneratedLink(null);
     setCopySuccess('');
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminTokens');
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
       const response = await fetch(`${apiBaseUrl}/api/admin/generate-public-link`, {
@@ -226,7 +226,7 @@ const AdminProfileManager = () => {
   const saveProfile = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminTokens');
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
       let imageUrl = profileData.profileImageUrl;

@@ -38,7 +38,7 @@ export const Sidebar = () => {
 
   const logout = () => {
     localStorage.removeItem("adminAuth");
-    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminTokens");
     setAdminAuthenticated(false);
     navigate("/admin/login", { replace: true });
   };

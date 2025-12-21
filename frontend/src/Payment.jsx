@@ -31,28 +31,26 @@ const {isRejected} = useContext(UserContext);
       .catch(() => navigate('/'))
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (!uid) return;
-    
-    axios.get(`${import.meta.env.VITE_API_BASE_URL}/bep20active`)
+useEffect(() => {
+  if (!uid) return;
+  
+  axios.get(`${import.meta.env.VITE_API_BASE_URL}/bep20active`)
     .then(response => {
       if (response.data.success) {
-        setAccount(response.data.account); // account = { address, qrCode }
-        return axios.get(`${import.meta.env.VITE_API_BASE_URL}/get-fee`);
+        setAccount(response.data.account);
+        return axios.get(`${import.meta.env.VITE_API_BASE_URL}/settings`);
       }
       throw new Error('Failed to fetch account details');
     })
-    
-      .then(feeResponse => {
-        if (feeResponse.data.success) {
-          setUsdFee(parseInt(feeResponse.data.fee));
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-  }, [uid]);
+    .then(feeResponse => {
+      // Remove the success check, just access fee directly
+      // Assuming the settings endpoint always returns the fee property
+      setUsdFee(parseInt(feeResponse.data.fee));
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}, [uid]);
 console.log(usdFee);
 
 

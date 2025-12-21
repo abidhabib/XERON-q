@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path'
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import moment from 'moment';
 import con from './config/db.js';
 import './cron/index.js';
 import userRoutes from './routes/userRoutes.js';
@@ -26,7 +25,6 @@ import getBep20Account from './routes/AdminWalletAddress.js';
 import getBep20Addresses from './routes/AllAdminWallet.js';
 import getAllAdmins from './routes/getAllAdmin.js';
 import getToadyApprovedUsers from './routes/GetToadyApprovedUsers.js';
-import getUserSalaryStatus  from './routes/GetUserSalaryStatusRoute.js';
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
 import getPendingForApproveUsers from './routes/PendingForApproveUser.js';
 import  getUserTaskStatus  from './routes/getUserTaskStatus.js';
@@ -36,7 +34,7 @@ import FindReferrer from './routes/FindReferrer.js';
 import monthlyLevelsRoutes from './routes/monthlyLevels.js'; // Adjust path as needed
 import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as needed
 import adminProfileCardRoutes from './routes/adminProfileCardRoutes.js';
-
+import salaryRoutes from './routes/salaryRoutes.js';
 
 import https from 'https';
 
@@ -95,7 +93,6 @@ app.get('/getUserIdFromSession', getUserIdFromSession);
 app.use('/', MonthData);
 app.use('/',registerUser);
 app.use('/',getUserWallet);
-app.use('/',getUserSalaryStatus);
 app.use('/',getUserData);
 app.use('/',getBep20Account);
 app.use('/',getBep20Addresses);
@@ -111,7 +108,7 @@ app.use('/api/monthly-salary', monthlySalaryRoutes);
 app.use('/api', adminProfileCardRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.urlencoded({ extended: true }));
-
+app.use('/api', salaryRoutes);
 
 
 
@@ -146,58 +143,6 @@ app.get('/', (req, res) => {
 
 
 
-
-
-
-app.get('/api/salary-history', async (req, res) => {
-  const userId = req.session.userId; // This should be set by your authenticateUser middleware
-
-  if (!userId) {
-      console.error('User ID not found in session for salary history request.');
-      return res.status(401).json({ status: 'error', message: 'Unauthorized: User ID missing.' });
-  }
-
-  try {
-
-    const [rows] = await con.promise().query(
-      'SELECT id, user_id, level, amount, payment_week, created_at FROM salary_payments WHERE user_id = ? ORDER BY created_at DESC',
-      [userId]
-    );
-console.log(rows);
-
-    // --- 3. Format the Data (Optional, but good practice) ---
-    const formattedHistory = rows.map(row => ({
-      id: row.id,
-      userId: row.user_id,
-      level: row.level,
-      amount: row.amount, // Keep as string to preserve decimal places if needed, or parseFloat(row.amount).toFixed(2)
-      paymentWeek: row.payment_week,
-      // Format the date for easier frontend consumption if needed
-      paymentDate: row.created_at.toISOString().split('T')[0], // YYYY-MM-DD
-      paymentDateTime: row.created_at.toISOString(), // Full ISO string
-      // You could add more formatting here, like extracting date/time parts
-      date: row.created_at.toLocaleDateString('en-US'), // Example: 7/30/2025
-      time: row.created_at.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) // Example: 7:44 PM
-    }));
-
-    // --- 4. Send Success Response ---
-    res.json({
-      status: 'success',
-      message: 'Salary history fetched successfully.',
-      history: formattedHistory
-      // Optionally include count: formattedHistory.length
-    });
-
-  } catch (error) {
-    // --- 5. Handle Errors ---
-    console.error('Error fetching salary history for user ID:', userId, error);
-    res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while fetching salary history. Please try again later.'
-      // Avoid sending raw error messages to frontend in production
-    });
-  }
-});
 
 
 

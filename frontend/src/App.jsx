@@ -94,21 +94,21 @@ function App() {
 
   
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminTokens');
     if (token) {
       try {
         const decoded = jwtDecode(token);
         if (decoded.exp * 1000 > Date.now()) {
           setAdminAuthenticated(true);
         } else {
-          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminTokens');
         }
       } catch (error) {
-        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminTokens');
       }
     }
-    if (localStorage.getItem('adminAuth')) {
-      localStorage.removeItem('adminAuth');
+    if (localStorage.getItem('adminsAuth')) {
+      localStorage.removeItem('adminsAuth');
     }
     fetchUserData().finally(() => setIsLoading(false)); 
   }, []); 

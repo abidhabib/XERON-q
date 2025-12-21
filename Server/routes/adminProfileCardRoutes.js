@@ -2,7 +2,6 @@
 import express from 'express';
 import AdminProfileCardController from '../controllers/adminProfileCardController.js';
 import multer from 'multer';
-import getUserIdFromSession from '../utils/getSessionMiddleware.js';
 import fs from 'fs';
 import path from 'path';
 const router = express.Router();
@@ -16,7 +15,7 @@ const storage = multer.diskStorage({
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req, file, cb) => { 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, 'admin-' + uniqueSuffix + path.extname(file.originalname));
   }

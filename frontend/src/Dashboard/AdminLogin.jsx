@@ -15,7 +15,7 @@ const AdminLogin = () => {
     const [shake, setShake] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('adminToken');
+        const token = localStorage.getItem('adminTokens');
         if (token) {
             try {
                 const decoded = jwtDecode(token);
@@ -24,7 +24,7 @@ const AdminLogin = () => {
                     navigateTo('/admin');
                 }
             } catch (error) {
-                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminTokens');
             }
         }
     }, []);
@@ -62,7 +62,7 @@ const AdminLogin = () => {
                     throw new Error('Invalid admin credentials');
                 }
                 
-                localStorage.setItem('adminToken', response.data.token);
+                localStorage.setItem('adminTokens', response.data.token);
                 setAdminAuthenticated(true);
                 navigateTo('/admin');
             } else {

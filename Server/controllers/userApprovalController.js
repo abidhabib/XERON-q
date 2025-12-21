@@ -1,3 +1,4 @@
+// controllers/UserController.js (or wherever approveUser lives)
 import { updateBalancesAndWallet } from '../utils/updateBalancesAndWallet.js';
 import { queryAsync } from '../utils/queryAsync.js';
 import moment from 'moment';
@@ -22,20 +23,24 @@ export const approveUser = async (req, res) => {
             WHERE id = ?
         `, [userId]);
 
-        // ✅ Fetch settings once
+        // ✅ Fetch all needed settings in one query
         const [settings] = await queryAsync(`
-            SELECT joining_fee, initial_percent 
+            SELECT 
+                joining_fee, 
+                initial_percent,
+                week_salary_person_require
             FROM settings 
             WHERE id = 1
         `);
 
         const joining_fee = parseFloat(settings?.joining_fee) || 0;
         const initial_percent = parseFloat(settings?.initial_percent) || 0;
+        const requiredForSalary = parseInt(settings?.week_salary_person_require) || 0;
 
-        // ✅ Compute bonus amount in JS (cleaner and safer)
+        // ✅ Compute welcome bonus for the new user
         const referralBonus = (joining_fee * initial_percent) / 100;
 
-        // ✅ Apply approval and bonus
+        // ✅ Approve user and give welcome bonus
         await queryAsync(`
             UPDATE users 
             SET 
@@ -50,7 +55,7 @@ export const approveUser = async (req, res) => {
 
         await updateBalancesAndWallet(userId);
 
-        // --- Referrer Logic (unchanged below) ---
+        // --- Referrer Logic ---
         const referrerResult = await queryAsync(`
             SELECT refer_by
             FROM users
@@ -60,6 +65,7 @@ export const approveUser = async (req, res) => {
         const referrerId = referrerResult[0]?.refer_by;
 
         if (referrerId) {
+            // Update total approved count
             const approvedCountResult = await queryAsync(`
                 SELECT COUNT(*) AS approved_count
                 FROM users
@@ -75,6 +81,7 @@ export const approveUser = async (req, res) => {
                 WHERE id = ?
             `, [approvedCount, referrerId]);
 
+            // Weekly recruits (for salary unlock)
             const currentWeek = moment().format('YYYYWW');
             await queryAsync(`
                 INSERT INTO weekly_recruits (user_id, week_id, new_members)
@@ -82,6 +89,33 @@ export const approveUser = async (req, res) => {
                 ON DUPLICATE KEY UPDATE new_members = new_members + 1
             `, [referrerId, currentWeek]);
 
+            // ✅ PERMANENT SALARY ELIGIBILITY UNLOCK
+            if (requiredForSalary > 0) {
+                const [weekRecruitResult] = await queryAsync(`
+                    SELECT new_members 
+                    FROM weekly_recruits 
+                    WHERE user_id = ? AND week_id = ?
+                `, [referrerId, currentWeek]);
+
+                const currentWeekRecruits = weekRecruitResult?.new_members || 0;
+
+                if (currentWeekRecruits >= requiredForSalary) {
+                    // Unlock permanently (only if not already unlocked)
+                    await queryAsync(`
+                        UPDATE users 
+                        SET salary_eligibility_unlocked = 1 
+                        WHERE id = ? AND salary_eligibility_unlocked = 0
+                    `, [referrerId]);
+
+                    // Notify only on first achievement of threshold
+                    if (currentWeekRecruits === requiredForSalary) {
+                        const unlockMessage = `🌟 Congratulations! You’ve unlocked lifetime weekly salary by recruiting ${requiredForSalary}+ members this week.`;
+                        await queryAsync(insertNotificationQuery, [referrerId, unlockMessage]);
+                    }
+                }
+            }
+
+            // Monthly recruits (for other features)
             const currentYearMonth = moment().format('YYYYMM');
             await queryAsync(`
                 INSERT INTO monthly_recruits (user_id, \`year_month\`, new_members)
@@ -89,6 +123,7 @@ export const approveUser = async (req, res) => {
                 ON DUPLICATE KEY UPDATE new_members = new_members + 1
             `, [referrerId, currentYearMonth]);
 
+            // Update monthly level
             const monthlyLevelsResult = await queryAsync(`
                 SELECT month_level, required_joins
                 FROM monthly_levels
@@ -117,8 +152,8 @@ export const approveUser = async (req, res) => {
                 await queryAsync(insertNotificationQuery, [referrerId, monthlyUpgradeMessage]);
             }
 
+            // General referral notification
             const notificationMessage = `🎉 New referral approved!\nUser: ${userDetails.name} (${userDetails.email})\nhas joined under your referral.\nYour total team count is now ${approvedCount}.`;
-
             await queryAsync(insertNotificationQuery, [referrerId, notificationMessage]);
         }
 
