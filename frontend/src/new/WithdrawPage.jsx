@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from '../UserContext/UserContext';
 import {
@@ -9,11 +9,14 @@ import {
   DollarSign,
   ShieldCheck,
   X,
-  Clock
+  Clock,
+  Home,
+  Plus
 } from 'lucide-react';
 import BalanceCard from './BalanceCard';
+import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
 
-// --- Toast (Golden Luxury Style) ---
+// --- Toast Component (unchanged) ---
 const Toast = ({ message, type, onClose }) => {
   const iconMap = {
     success: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
@@ -38,7 +41,7 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-// --- Success Modal (Golden Luxury) ---
+// --- Success Modal (unchanged) ---
 const SuccessModal = ({ onClose }) => (
   <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div className="bg-[#19202a] rounded-2xl p-5 w-full max-w-xs border border-[#26303b] shadow-2xl">
@@ -59,6 +62,19 @@ const SuccessModal = ({ onClose }) => (
   </div>
 );
 
+// --- ActionCard Component ---
+const ActionCard = ({ to, icon: Icon, title }) => (
+  <Link
+    to={to}
+    className="bg-[#19202a] rounded-xl p-3.5 transition-all duration-200 hover:bg-[#1c2a3a] active:scale-[0.98] flex items-center gap-3 w-full"
+  >
+    <div className="w-10 h-10 rounded-lg bg-[#1c2a3a] flex items-center justify-center">
+      <Icon className="w-5 h-5 text-[#D4AF37]" />
+    </div>
+    <span className="text-white font-medium text-sm">{title}</span>
+  </Link>
+);
+
 // --- Main Component ---
 const WithdrawPage = () => {
   const { Userid, userData, fetchUserData, team, level, currBalance } = useContext(UserContext);
@@ -66,10 +82,13 @@ const WithdrawPage = () => {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [withdrawLimits, setWithdrawLimits] = useState([]);
-  const [accountDetails, setAccountDetails] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
+  const [availableWallets, setAvailableWallets] = useState([]); // [['bep20', '0x...'], ...]
+  const [selectedChain, setSelectedChain] = useState('');       // 'bep20'
+
+  const API = import.meta.env.VITE_API_BASE_URL;
 
   const showToast = (message, type = 'info', duration = 4000) => {
     const id = Date.now();
@@ -81,47 +100,56 @@ const WithdrawPage = () => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
-  // Fetch data
+  // ✅ Fetch data with proper dependencies
   useEffect(() => {
+    if (!Userid) return;
+
     const fetchData = async () => {
       try {
-        const [limitsRes, accountRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}/fetchLimitsData`),
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}/getUserAccount/${Userid}`, { withCredentials: true })
+        const [limitsRes, walletsRes] = await Promise.all([
+          axios.get(`${API}/fetchLimitsData`),
+          axios.get(`${API}/api/wallets/${Userid}`)
         ]);
 
         if (limitsRes.data.status === 'success') {
           setWithdrawLimits(limitsRes.data.data);
         }
-        if (accountRes.data.status === 'success') {
-          setAccountDetails(accountRes.data.userAccount);
+
+        if (walletsRes.data.success) {
+          const walletEntries = Object.entries(walletsRes.data.wallets || {});
+          setAvailableWallets(walletEntries);
+          
+          // Auto-select first wallet only if none selected yet
+          if (walletEntries.length > 0 && !selectedChain) {
+            setSelectedChain(walletEntries[0][0]);
+          }
         }
       } catch (error) {
-        showToast('Please update your wallet details in Settings!', 'error');
-        navigate('/userwalletsettings');
+        showToast('Unable to load withdrawal data. Please retry.', 'error');
       }
     };
 
-    if (Userid) fetchData();
-  }, [Userid, level]);
+    fetchData();
+  }, [Userid, API]); // ✅ Removed 'level' and 'selectedChain' to prevent infinite loop
 
-  // Validate wallet
+  // ✅ Handle empty wallets
   useEffect(() => {
-    if (accountDetails && (!accountDetails.coin_address?.trim())) {
-      showToast('Please complete your crypto wallet details', 'error');
-      navigate('/UserWalletSettings');
+    if (availableWallets.length === 0) {
+      setSelectedChain('');
+    } else if (!selectedChain && availableWallets.length > 0) {
+      setSelectedChain(availableWallets[0][0]);
     }
-  }, [accountDetails, navigate]);
+  }, [availableWallets, selectedChain]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const now = Date.now();
 
-    if (submitting || !accountDetails || (now - lastSubmissionTime < 5000)) return;
+    if (submitting || (now - lastSubmissionTime < 5000)) return;
 
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      showToast('Enter a valid withdrawal amount', 'error');
+      showToast('Enter a valid amount', 'error');
       return;
     }
 
@@ -136,27 +164,35 @@ const WithdrawPage = () => {
       return;
     }
 
+    if (!selectedChain) {
+      showToast('Please select a withdrawal network', 'error');
+      return;
+    }
+
+    const selectedAddress = availableWallets.find(([chain]) => chain === selectedChain)?.[1];
+    if (!selectedAddress) {
+      showToast('Invalid wallet address', 'error');
+      return;
+    }
+
     setSubmitting(true);
     setLastSubmissionTime(now);
 
     try {
       const payload = {
         amount: numericAmount,
-        accountNumber: accountDetails.coin_address,
-        bankName: accountDetails.address_type,
+        chain: selectedChain,
+        address: selectedAddress,
         totalWithdrawn: userData.total_withdrawal,
         team
       };
 
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/withdraw`,
-        payload,
-        { withCredentials: true }
-      );
+      const { data } = await axios.post(`${API}/withdraw`, payload, { withCredentials: true });
 
       if (data.status === 'success') {
         setShowSuccessModal(true);
         await fetchUserData();
+        setAmount('');
       }
     } catch (error) {
       let message = 'Withdrawal failed. Please try again.';
@@ -171,7 +207,6 @@ const WithdrawPage = () => {
       showToast(message, 'error');
     } finally {
       setSubmitting(false);
-      setAmount('');
     }
   };
 
@@ -182,7 +217,7 @@ const WithdrawPage = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    showToast('Wallet address copied', 'success');
+    showToast('Address copied to clipboard', 'success');
   };
 
   const displayBalance = currBalance ? parseFloat(currBalance).toFixed(2) : '0.00';
@@ -191,6 +226,22 @@ const WithdrawPage = () => {
     <div className="flex flex-col min-h-screen bg-[#111827]">
       <div className="bg-[#111827]">
         <BalanceCard />
+      </div>
+
+      {/* Action Cards */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="grid grid-cols-2 gap-3">
+          <ActionCard
+            to="/userWalletSettings"
+            icon={Home}
+            title="Update Address"
+          />
+          <ActionCard
+            to="/wallet"
+            icon={HiArrowTopRightOnSquare}
+            title="History"
+          />
+        </div>
       </div>
 
       {/* Toasts */}
@@ -208,95 +259,144 @@ const WithdrawPage = () => {
       {/* Main Content */}
       <div className="px-2 py-3 flex-1">
         <div className="max-w-md mx-auto w-full space-y-5">
-          {/* Wallet Info Card */}
-          {accountDetails && (
-            <div className="bg-[#19202a] rounded-2xl p-4 ">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-amber-400/70 uppercase tracking-wide">
-                Your <span className='text-green-500'>Active</span>  {accountDetails.address_type} Wallet Address
-                </span>
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          {/* Wallet Selection */}
+          {availableWallets.length === 0 ? (
+            <div className="bg-[#19202a] rounded-2xl p-4 text-center">
+              <div className="w-12 h-12 bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <ShieldCheck className="text-amber-400 w-6 h-6" />
               </div>
-              <div
-                onClick={() => copyToClipboard(accountDetails.coin_address)}
-                className="group flex items-center gap-2 p-3 bg-[#1c2a3a] rounded-xl cursor-pointer hover:bg-[#202d3d] transition-colors"
+              <h3 className="text-white font-medium mb-1">No Withdrawal Addresses</h3>
+              <p className="text-amber-400/70 text-sm mb-4">
+                Add a wallet address to withdraw funds.
+              </p>
+              <Link
+                to="/userWalletSettings"
+                className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 text-sm font-medium"
               >
-                <p className="font-mono text-sm text-gray-200 break-all flex-1 min-w-0">
-                  {accountDetails.coin_address}
-                </p>
-                <Clipboard className="w-4 h-4 text-amber-400/60 group-hover:text-amber-400 transition-colors" />
-              </div>
+                <Plus className="w-4 h-4" />
+                Add Address
+              </Link>
             </div>
+          ) : (
+            <>
+              {/* Chain Selector */}
+              {availableWallets.length > 1 && (
+                <div className="bg-[#19202a] rounded-2xl p-3">
+                  <label className="block text-amber-400/80 text-sm mb-2">Withdrawal Network</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {availableWallets.map(([chain]) => (
+                      <button
+                        key={chain}
+                        onClick={() => setSelectedChain(chain)}
+                        className={`p-2 rounded-lg text-xs transition-all ${
+                          selectedChain === chain
+                            ? 'bg-[#D4AF37]/20 border border-[#D4AF37] text-white'
+                            : 'bg-[#1c2a3a] text-amber-400/70 hover:bg-[#202d3d]'
+                        }`}
+                      >
+                        {chain.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Address */}
+              <div className="bg-[#19202a] rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-amber-400/70 uppercase tracking-wide">
+                    Your <span className="text-green-500">Active</span> {selectedChain?.toUpperCase()} Address
+                  </span>
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div
+                  onClick={() => copyToClipboard(
+                    availableWallets.find(([chain]) => chain === selectedChain)?.[1] || ''
+                  )}
+                  className="group flex items-center gap-2 p-3 bg-[#1c2a3a] rounded-xl cursor-pointer hover:bg-[#202d3d] transition-colors"
+                >
+                  <p className="font-mono text-sm text-gray-200 break-all flex-1 min-w-0">
+                    {availableWallets.find(([chain]) => chain === selectedChain)?.[1] || '—'}
+                  </p>
+                  <Clipboard className="w-4 h-4 text-amber-400/60 group-hover:text-amber-400 transition-colors" />
+                </div>
+                <p className="text-[#D4AF37]/60 text-xs mt-2">
+                  Ensure this address supports <span className="font-medium">{selectedChain?.toUpperCase()}</span> tokens.
+                </p>
+              </div>
+            </>
           )}
 
           {/* Withdraw Form */}
-          <div className="bg-[#19202a] rounded-2xl p-2">
-            <div className="mb-4">
-              <label className="block text-amber-400/80 text-sm font-medium mb-2">Withdraw Amount</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <DollarSign className="w-4 h-4 text-amber-400/50" />
+          {availableWallets.length > 0 && (
+            <div className="bg-[#19202a] rounded-2xl p-2">
+              <div className="mb-4">
+                <label className="block text-amber-400/80 text-sm font-medium mb-2">Withdraw Amount</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <DollarSign className="w-4 h-4 text-amber-400/50" />
+                  </div>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={amount}
+                    onChange={e => {
+                      let value = e.target.value.replace(/[^0-9.]/g, '');
+                      const parts = value.split('.');
+                      if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+                      if (value.startsWith('.')) value = '0' + value;
+                      setAmount(value);
+                    }}
+                    placeholder="0.00"
+                    className="w-full pl-9 pr-12 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-amber-400/30 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    disabled={submitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAmount(displayBalance)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-medium text-amber-400 hover:text-amber-300"
+                    disabled={submitting}
+                  >
+                    MAX
+                  </button>
                 </div>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={e => {
-                    let value = e.target.value.replace(/[^0-9.]/g, '');
-                    const parts = value.split('.');
-                    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
-                    if (value.startsWith('.')) value = '0' + value;
-                    setAmount(value);
-                  }}
-                  placeholder="0.00"
-                  className="w-full pl-9 pr-12 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-amber-400/30 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setAmount(displayBalance)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-medium text-amber-400 hover:text-amber-300"
-                >
-                  MAX
-                </button>
+                <div className="mt-2 flex items-center text-xs text-amber-400/60">
+                  <span className="mx-1">•</span>
+                  <span>Fee: $0</span>
+                </div>
               </div>
 
-              <div className="mt-2 flex items-center text-xs text-amber-400/60">
-                <span>Min: $10</span>
-                <span className="mx-1">•</span>
-                <span>Fee: $0</span>
+              {/* Processing Info */}
+              <div className="flex items-start gap-2.5 p-3 bg-[#1c2a3a] rounded-xl mb-5">
+                <Clock className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white text-sm font-medium">Processing Time</p>
+                  <p className="text-amber-400/70 text-xs mt-0.5">Withdrawals processed within 24 hours</p>
+                </div>
               </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !selectedChain || !amount}
+                className={`w-full py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  submitting
+                    ? 'bg-[#1c2a3a] text-amber-400/50 cursor-not-allowed'
+                    : selectedChain && amount
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-gray-900 shadow-[0_4px_12px_rgba(212,175,55,0.15)] hover:from-amber-600 hover:to-amber-700'
+                      : 'bg-[#1c2a3a] text-amber-400/40 cursor-not-allowed'
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Withdraw Funds'
+                )}
+              </button>
             </div>
-
-            {/* Processing Info */}
-            <div className="flex items-start gap-2.5 p-3 bg-[#1c2a3a] rounded-xl mb-5">
-              <Clock className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-white text-sm font-medium">Processing Time</p>
-                <p className="text-amber-400/70 text-xs mt-0.5">Withdrawals processed within 24 hours</p>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !accountDetails}
-              className={`w-full py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                submitting
-                  ? 'bg-[#f8c23c] text-amber-400/50 cursor-not-allowed'
-                  : accountDetails
-                    ? 'bg-[#f8c23c] hover:from-amber-600 hover:to-amber-700 text-gray-900 shadow-[0_4px_12px_rgba(212,175,55,0.15)]'
-                    : 'bg-[#1c2a3a] text-amber-400/40 cursor-not-allowed'
-              }`}
-            >
-              {submitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Withdraw Funds'
-              )}
-            </button>
-          </div>
+          )}
         </div>
       </div>
 

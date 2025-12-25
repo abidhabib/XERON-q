@@ -74,7 +74,8 @@ export const getMonthlySalaryStatus = async (req, res) => {
         salaryAmount: parseFloat(month_salary_amount) || 0,
         applicationStatus: null,
         hasCollectedThisMonth: false,
-        currentWindow: null
+        currentWindow: null,
+        nextCollectionWindowStart: nextWindowStart.toISOString()
       });
     }
 

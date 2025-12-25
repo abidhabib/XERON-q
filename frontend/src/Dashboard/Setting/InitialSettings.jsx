@@ -72,8 +72,21 @@ const SETTINGS_CONFIG = {
   },
   // 🔹 NEW: Month Salary
   monthSalaryPersonRequire: {
-    title: "Month Salary Per Person",
+    title: "Month Person Require",
     subtitle: "Required monthly salary per person (in USD)",
+    icon: HiCurrencyDollar,
+    iconBg: "bg-cyan-100",
+    iconColor: "text-cyan-600",
+    bgColor: "bg-cyan-600",
+    hoverBg: "hover:bg-cyan-700",
+    focusRing: "focus:ring-cyan-200",
+    type: "number",
+    step: "0.01",
+    placeholder: "e.g. 2000.00"
+  },
+    monthSalaryAmount: {
+    title: "Month Salary Amount",
+    subtitle: "monthly salary per person (in USD)",
     icon: HiCurrencyDollar,
     iconBg: "bg-cyan-100",
     iconColor: "text-cyan-600",
@@ -210,7 +223,8 @@ const Settings = () => {
     offer: "",
     coinValue: "",
     weekSalaryPersonRequire: "",
-    monthSalaryPersonRequire: ""
+    monthSalaryPersonRequire: "",
+    monthSalaryAmount: ""
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
@@ -246,7 +260,8 @@ const Settings = () => {
         offer: data.offer || "",
         coinValue: data.coinValue?.toString() || "",
         weekSalaryPersonRequire: data.weekSalaryPersonRequire?.toString() || "",
-        monthSalaryPersonRequire: data.monthSalaryPersonRequire?.toString() || ""
+        monthSalaryPersonRequire: data.monthSalaryPersonRequire?.toString() || "",
+        monthSalaryAmount: data.monthSalaryAmount?.toString() || ""
       });
     } catch (err) {
       setError(err.message || 'Failed to load settings');

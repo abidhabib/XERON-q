@@ -14,7 +14,6 @@ import {
   Trophy,
   Users,
   Calendar,
-  Star,
   AlertTriangle,
   FileText,
   ShieldCheck,
@@ -25,12 +24,11 @@ import {
   Clock,
   Target,
   Award,
-  Download,
-  Eye,
-  EyeOff
+
 } from 'lucide-react';
-import { format, parseISO, isAfter, isBefore, addMonths } from 'date-fns';
 import BalanceCard from './BalanceCard';
+import { useNavigate } from 'react-router-dom';
+import { RemoveTrailingZeros } from '../../utils/utils';
 
 // ✅ Confetti with improved timing
 const useConfetti = () => {
@@ -294,97 +292,7 @@ const CountdownTimer = ({ nextWindowStart }) => {
   );
 };
 
-// ✅ Enhanced Salary Receipt Modal
-const ReceiptModal = ({ payment, onClose }) => {
-  if (!payment) return null;
-  const date = parseISO(`${payment.month.slice(0,4)}-${payment.month.slice(4)}-01`);
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div 
-        className="w-full max-w-md bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-scaleIn"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6 border-b border-white/10">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/10 rounded-lg">
-                <CreditCard className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Salary Receipt</h3>
-                <p className="text-sm text-white/60">Payment confirmation</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-white/60" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-center py-4">
-            <div className="relative">
-              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-emerald-400" />
-              </div>
-              <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center">
-                <Award className="w-4 h-4 text-gray-900" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gray-900/50 rounded-xl p-5 space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-white/60">Payment Date</p>
-                <p className="text-white font-medium">{format(date, 'dd MMM yyyy')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-white/60">For Period</p>
-                <p className="text-white font-medium">{format(date, 'MMMM yyyy')}</p>
-              </div>
-            </div>
-            
-            <div className="h-px bg-white/10" />
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-white/60">Transaction ID</p>
-                <p className="text-white font-mono text-sm">{payment.transactionId || 'SAL-' + Date.now()}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-white/60">Status</p>
-                <div className="flex items-center gap-2 text-emerald-400">
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="font-medium">Confirmed</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="text-center pt-4 border-t border-white/10">
-            <p className="text-sm text-white/60 mb-2">Total Amount</p>
-            <p className="text-4xl font-bold text-emerald-400">${payment.amount.toFixed(2)}</p>
-            <p className="text-sm text-white/60 mt-2">Successfully transferred to your account</p>
-          </div>
-        </div>
-        
-        <div className="p-6 border-t border-white/10">
-          <button
-            onClick={onClose}
-            className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors"
-          >
-            Close Receipt
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const StatCard = ({ icon: Icon, title, value, subtitle, color = "gold", size = "md" }) => {
   const bgColor = color === "emerald" 
@@ -451,7 +359,7 @@ const MonthlySalary = () => {
   const { Userid } = useContext(UserContext);
   const API = import.meta.env.VITE_API_BASE_URL;
   const triggerConfetti = useConfetti();
-
+const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -470,12 +378,8 @@ const MonthlySalary = () => {
     selfie: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [history, setHistory] = useState([]);
   const [hasFetchedHistory, setHasFetchedHistory] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
 
   const countryOptions = [
     { code: '+1', name: 'United States' },
@@ -507,19 +411,6 @@ const MonthlySalary = () => {
     }
   }, [Userid, API]);
 
-  const fetchHistory = async () => {
-    if (!Userid) return;
-    setIsHistoryLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/monthly-salary/history`, { withCredentials: true });
-      setHistory(res.data.history || []);
-      setHasFetchedHistory(true);
-    } catch (err) {
-      setError('Failed to load payment history.');
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  };
 
   const validateForm = () => {
     const errors = {};
@@ -572,10 +463,9 @@ const MonthlySalary = () => {
   const handleCollect = async () => {
     try {
       const res = await axios.post(`${API}/api/monthly-salary/collect`, {}, { withCredentials: true });
-      setSuccess(`🎉 Successfully collected $${res.data.amount}! Funds have been added to your balance.`);
+      setSuccess(`🎉 Successfully collected $${RemoveTrailingZeros(res.data.amount)}! Funds have been added to your balance.`);
       triggerConfetti();
       fetchStatus();
-      if (!hasFetchedHistory) fetchHistory();
     } catch (err) {
       setError(err.response?.data?.error || 'Collection failed. Please try again later.');
     }
@@ -629,7 +519,7 @@ const MonthlySalary = () => {
             <Target className="w-5 h-5 text-[#D4AF37]" />
             <div>
               <p className="font-medium text-white">Your Potential Earnings</p>
-              <p className="text-3xl font-bold text-[#D4AF37]">${status?.salaryAmount?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-[#D4AF37]">${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}</p>
               <p className="text-sm text-white/60">per month upon approval</p>
             </div>
           </div>
@@ -815,29 +705,16 @@ const renderApplicationForm = () => (
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                activeTab === 'overview'
-                  ? 'bg-[#D4AF37] text-gray-900'
-                  : 'bg-white/5 text-white/60 hover:text-white'
-              }`}
+              onClick={() => {navigate('/month-salary-history')}}
+              className='px-4 py-2 rounded-xl font-medium transition-all bg-[#D4AF37] text-gray-900'
             >
-              Overview
+              Show History
             </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                activeTab === 'history'
-                  ? 'bg-[#D4AF37] text-gray-900'
-                  : 'bg-white/5 text-white/60 hover:text-white'
-              }`}
-            >
-              History
-            </button>
+       
           </div>
         </div>
 
-     {activeTab === 'overview' && (
+
   <div className="space-y-4">
     {/* 4 Stat Cards – Tight, Borderless, Golden Minimal */}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -851,7 +728,7 @@ const renderApplicationForm = () => (
       <StatCard
         icon={Trophy}
         title="Salary"
-        value={`$${status?.salaryAmount?.toFixed(2) || '0.00'}`}
+        value={`$${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}`}
         subtitle="monthly"
         size="sm"
       />
@@ -915,81 +792,17 @@ const renderApplicationForm = () => (
         ) : (
           <>
             <Coins className="w-4 h-4" />
-            Collect ${status?.salaryAmount?.toFixed(2) || '0.00'}
+            Collect ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}
           </>
         )}
       </button>
     </div>
 
-    {/* Progress – Ultra Compact */}
-    <div className="bg-[#121826] rounded-xl p-3">
-      <div className="flex justify-between text-[11px] text-[#D4AF37]/70 mb-1.5">
-        <span>Team Progress</span>
-        <span>{status?.currentTeam || 0} / {status?.requiredTeam || 0}</span>
-      </div>
-      <div className="h-1.5 bg-[#161d2a] rounded-full overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-[#D4AF37] to-[#c69c2e]"
-          style={{ width: `${status?.requiredTeam ? Math.min(100, (status.currentTeam / status.requiredTeam) * 100) : 0}%` }}
-        />
-      </div>
-    </div>
+  
   </div>
-)}
 
-{activeTab === 'history' && (
-  <div className="bg-[#121826] rounded-xl">
-    {/* Header – Minimal */}
-    <div className="p-3.5 border-b border-[#1e2535]/30 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <History className="w-4 h-4 text-[#D4AF37]" />
-        <h3 className="text-white font-medium text-sm">Payment History</h3>
-      </div>
-      {isHistoryLoading && <RotateCw className="w-3.5 h-3.5 animate-spin text-[#D4AF37]/60" />}
-    </div>
 
-    {/* Empty State */}
-    {history.length === 0 ? (
-      <div className="p-6 text-center">
-        <div className="w-10 h-10 bg-[#161d2a] rounded-full flex items-center justify-center mx-auto mb-2">
-          <FileText className="w-5 h-5 text-[#D4AF37]/40" />
-        </div>
-        <p className="text-[#D4AF37]/60 text-sm">No payments yet</p>
-      </div>
-    ) : (
-      /* History List – Tight, No Dividers */
-      <div>
-        {history.map((item, index) => (
-          <div
-            key={index}
-            onClick={() => setSelectedPayment(item)}
-            className="p-3.5 hover:bg-[#141b2a] cursor-pointer transition-colors"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-emerald-500/10 rounded-md">
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">
-                    {format(parseISO(`${item.month.slice(0,4)}-${item.month.slice(4)}-01`), 'MMM yyyy')}
-                  </p>
-                  <p className="text-[#D4AF37]/50 text-[10px] mt-0.5">
-                    {item.date ? format(new Date(item.date), 'MMM dd, yyyy') : 'Collected'}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-emerald-400 font-bold text-sm">${item.amount.toFixed(2)}</p>
-                <ChevronRight className="w-4 h-4 text-[#D4AF37]/40 ml-auto mt-1" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+
       </div>
     </div>
   );
@@ -1052,12 +865,6 @@ const renderApplicationForm = () => (
         )}
       </div>
 
-      {selectedPayment && (
-        <ReceiptModal
-          payment={selectedPayment}
-          onClose={() => setSelectedPayment(null)}
-        />
-      )}
     </div>
   );
 };

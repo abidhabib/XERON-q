@@ -45,7 +45,7 @@ const SalaryHistory = () => {
 
       <BalanceCard />
 
-      <div className="p-4 flex-1">
+      <div className="p-2 flex-1">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <RefreshCw className="animate-spin text-amber-500 w-6 h-6" />
@@ -64,7 +64,7 @@ const SalaryHistory = () => {
           </div>
         ) : (
           <div className="space-y-3">
-               <div className="flex items-center px-2 py-3 border-b border-gray-800/50">
+               <div className="flex items-center px-2 py-3  ">
         <button
           onClick={() => navigate(-1)} // or navigate('/salary')
           className="p-2 -ml-1 text-gray-400 hover:text-amber-400 transition-colors"

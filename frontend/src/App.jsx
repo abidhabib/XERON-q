@@ -56,6 +56,7 @@ import UserLayout from './UserLayout';
 import MiningHistory from './MiningHistory';
 import SalaryHistory from './SalaryHistory';
 import MonthlySalaryAdmin from './Dashboard/MonthlySalaryAdmin/MonthlySalaryAdmin';
+import MonthSalaryHistory from './MonthSalaryHistory';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -219,6 +220,8 @@ function App() {
               <Route path='/mining-history' element={approved === 1 ? <MiningHistory /> : <Navigate to="/work" replace />} />
 {/* -----------------------New */}
         <Route path="/salary-history" element={<SalaryHistory />} />
+                <Route path="/month-salary-history" element={<MonthSalaryHistory />} />
+
               <Route path='/week-salary' element={approved === 1 ? <SalaryCollection /> : <Navigate to="/work" replace />} />
 
 

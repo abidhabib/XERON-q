@@ -13,6 +13,8 @@ import {
   Lock,
   Trophy
 } from 'lucide-react';
+import { ArrowBack } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const SalaryCollection = () => {
   const [status, setStatus] = useState(null);
@@ -22,7 +24,7 @@ const SalaryCollection = () => {
   const [collecting, setCollecting] = useState(false);
   const { Userid } = useContext(UserContext);
   const API = import.meta.env.VITE_API_BASE_URL;
-
+  const navigate = useNavigate(); 
   const fetchStatus = async () => {
     try {
       const res = await axios.get(`${API}/api/salary/status`, { withCredentials: true });
@@ -64,9 +66,24 @@ const SalaryCollection = () => {
   // ✅ SHOW: Permanently Eligible but Already Collected This Week
   if (status?.permanentlyEligible && !status.eligible && status.weekCredits === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-900">
+      <div className="flex flex-col min-h-screen bg-gray-900 ">
         <BalanceCard />
-        <div className="mt-5 flex items-center  justify-center">
+          <div className="flex items-center justify-between p-3">
+          <div>
+            <h1 className=" font-bold text-white">Week Salary</h1>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {navigate('/salary-history')}}
+              className='px-4 py-2 rounded-xl font-medium transition-all bg-[#D4AF37] text-gray-900'
+            >
+              Show History
+            </button>
+       
+          </div>
+        </div>
+        <div className=" flex items-center  justify-center p-2">
+          
           <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="text-emerald-400 w-8 h-8" />
@@ -144,7 +161,7 @@ const SalaryCollection = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-900">
       <BalanceCard />
-      <div className="p-4 flex-1">
+      <div className="p-2 flex-1">
         <div className="bg-gray-800 rounded-2xl p-5 mb-4">
           <div className="text-center mb-4">
             <div className="w-20 h-20 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-3">

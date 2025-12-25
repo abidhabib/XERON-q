@@ -8,8 +8,7 @@ import PaymentReceipt from "./new/PaymentReceipt";
 
 // Lucide Icons (only what's used)
 import { CheckCircle, XCircle, Clock, Filter, Calendar, Cross, CrossIcon, X } from 'lucide-react';
-import { CropSquareSharp } from "@mui/icons-material";
-import { BiCross } from "react-icons/bi";
+
 
 export const WithdrwaHistory = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);

@@ -36,7 +36,7 @@ import adminProfileCardRoutes from './routes/adminProfileCardRoutes.js';
 import salaryRoutes from './routes/salaryRoutes.js';
 import adminMonthlySalaryRoutes from './routes/adminMonthlySalary.js';
 import https from 'https';
-
+import GetUserWalletRoute from './routes/GetUserWalletRoute.js'
 
 setupWebPush();
 
@@ -109,7 +109,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', salaryRoutes);
 app.use('/api/admin/monthly-salary', adminMonthlySalaryRoutes);
-
+app.use('/api', GetUserWalletRoute); // ← ADD THIS
 
 const storage = multer.diskStorage({
     destination: './uploads/',
@@ -150,33 +150,6 @@ app.get('/', (req, res) => {
 
 
 
-
-app.put('/updateCryptoAddress', (req, res) => {
-    const { address, addressType, userId } = req.body;
-
-    if (!address || !addressType || !userId) {
-        return res.status(400).json({ success: false, message: 'All fields are required' });
-    }
-
-    const sql = `
-        INSERT INTO users_accounts (user_id, coin_address, address_type)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE 
-            coin_address = VALUES(coin_address),
-            address_type = VALUES(address_type)
-    `;
-
-    const values = [userId, address, addressType];
-
-    con.query(sql, values, (err, result) => {
-        if (err) {
-            console.error('DB error:', err);
-            return res.status(500).json({ success: false, message: 'Database error' });
-        }
-
-        res.json({ success: true, message: 'Crypto address saved/updated successfully' });
-    });
-});
 
 
 
@@ -886,25 +859,7 @@ app.get('/fetchLimitsData', (req, res) => {
         res.json({ status: 'success', data: result });
     });
 });
-app.get('/getUserAccount/:userId', (req, res) => {
-    const user_id = req.params.userId;
-    if (!user_id) {
-        return res.status(400).json({ status: 'error', message: 'User ID is required' });
-    }
-    let fetchQuery = 'SELECT * FROM users_accounts WHERE user_id = ?';
-    let queryParams = [user_id];
-    con.query(fetchQuery, queryParams, (err, result) => {
-        if (err) {
-            console.error('Error fetching user account:', err);
-            return res.status(500).json({ status: 'error', error: 'Failed to fetch user account' });
-        }
-        if (result.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'User account not found' });
-        }
-        res.json({ status: 'success', userAccount: result[0] });
 
-    })
-});
 
 
 app.post('/withdraw', (req, res) => {
@@ -1709,15 +1664,16 @@ app.get('/settings', async (req, res) => {
         offer,
         coin_value AS coinValue,
         week_salary_person_require AS weekSalaryPersonRequire,
-        month_salary_person_require AS monthSalaryPersonRequire
+        month_salary_person_require AS monthSalaryPersonRequire,
+        month_salary_amount AS monthSalaryAmount
        FROM settings WHERE id = 1`
     );
 
     if (rows.length === 0) {
       // Initialize default row if not exists
       await con.promise().query(
-        `INSERT INTO settings (id, joining_fee, initial_percent, offer, coin_value, week_salary_person_require, month_salary_person_require) 
-         VALUES (1, 0, 0, '', 0.0, 0.0, 0.0)
+        `INSERT INTO settings (id, joining_fee, initial_percent, offer, coin_value, week_salary_person_require, month_salary_person_require, month_salary_amount) 
+         VALUES (1, 0, 0, '', 0.0, 0.0, 0.0, 0.0)
          ON DUPLICATE KEY UPDATE id = 1`
       );
       return res.json({
@@ -1726,7 +1682,8 @@ app.get('/settings', async (req, res) => {
         offer: "",
         coinValue: "0.0",
         weekSalaryPersonRequire: "0.0",
-        monthSalaryPersonRequire: "0.0"
+        monthSalaryPersonRequire: "0.0",
+        monthSalaryAmount: "0.0"
       });
     }
 
@@ -1738,7 +1695,8 @@ app.get('/settings', async (req, res) => {
       offer: settings.offer || "",
       coinValue: settings.coinValue?.toString() || "0.0",
       weekSalaryPersonRequire: settings.weekSalaryPersonRequire?.toString() || "0.0",
-      monthSalaryPersonRequire: settings.monthSalaryPersonRequire?.toString() || "0.0"
+      monthSalaryPersonRequire: settings.monthSalaryPersonRequire?.toString() || "0.0",
+        monthSalaryAmount: settings.monthSalaryAmount?.toString() || "0.0"
     });
   } catch (error) {
     console.error('GET /settings error:', error);
@@ -1754,7 +1712,8 @@ app.post('/settings', async (req, res) => {
     offer,
     coinValue,
     weekSalaryPersonRequire,
-    monthSalaryPersonRequire
+    monthSalaryPersonRequire,
+    monthSalaryAmount
   } = req.body;
 
   // Basic presence validation
@@ -1764,7 +1723,8 @@ app.post('/settings', async (req, res) => {
     offer == null ||
     coinValue == null ||
     weekSalaryPersonRequire == null ||
-    monthSalaryPersonRequire == null
+    monthSalaryPersonRequire == null,
+    monthSalaryAmount == null
   ) {
     return res.status(400).json({ error: 'All fields are required' });
   }
@@ -1777,7 +1737,8 @@ app.post('/settings', async (req, res) => {
         offer = ?,
         coin_value = ?,
         week_salary_person_require = ?,
-        month_salary_person_require = ?
+        month_salary_person_require = ?,
+        month_salary_amount = ?
        WHERE id = 1`,
       [
         parseFloat(fee) || 0,
@@ -1785,7 +1746,8 @@ app.post('/settings', async (req, res) => {
         offer,
         parseFloat(coinValue) || 0.0,
         parseFloat(weekSalaryPersonRequire) || 0.0,
-        parseFloat(monthSalaryPersonRequire) || 0.0
+        parseFloat(monthSalaryPersonRequire) || 0.0,
+        parseFloat(monthSalaryAmount) || 0.0
       ]
     );
 
