@@ -81,7 +81,7 @@ export const Login = () => {
     }
 return (
     <>
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-900">
+    <div className="min-h-screen flex flex-col items-center justify-center px-2 py-4 bg-gray-900">
         <img src="./logo.png" alt="" srcset="" width={150} className='mb-4' />
         <div className="w-full max-w-md  bg-[#19202a] rounded-lg shadow-sm p-6">
       <h1 className="text-2xl meddon-regular text-[#fcc845]  mb-6 text-center">

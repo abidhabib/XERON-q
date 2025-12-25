@@ -24,6 +24,7 @@ import {
   HiOutlineFilter,
   HiOutlineBell,
 } from "react-icons/hi";
+import path from "path";
 
 export const Sidebar = () => {
   const { setAdminAuthenticated } = useContext(UserContext);
@@ -78,8 +79,11 @@ export const Sidebar = () => {
         { path: "/sendNotification", icon: <HiOutlineBell />, label: "Send Notification" },
         { path: "/admin-profile-manager", icon: <HiOutlineCog />, label: "Admin Contact Card" },
         { path: "/commission", icon: <HiOutlineCash />, label: "Commission" },
+
+
+        // ___________________________//
+        { path: "/admin/monthly-salary", icon: <HiOutlineViewGrid />, label: "Monthly Salary" },
         { path: "/w_salary", icon: <HiOutlineViewGrid />, label: "Week Salary" },
-        { path: "/monthlyLevels", icon: <HiOutlineViewGrid />, label: "Monthly Salary" },
         { path: "/SubAdminsManagement", icon: <HiOutlineUserGroup />, label: "Sub Admins" },
         { path: "/accounts", icon: <HiDocumentDuplicate />, label: "Admin Wallet" },
         { path: "/initialSettings", icon: <HiOutlineAnnotation />, label: "Fee-Initial-Offer" },

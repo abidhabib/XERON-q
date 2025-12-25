@@ -17,6 +17,7 @@
     "@shadcn/ui": "^0.0.4",
     "axios": "^1.5.1",
     "bootstrap": "^5.3.3",
+    "canvas-confetti": "^1.9.4",
     "date-fns": "^4.1.0",
     "ethers": "^6.15.0",
     "feather-icons": "^4.29.2",

@@ -45,7 +45,6 @@ import PushNotificationManager from './Dashboard/SendNotification/SendNotificati
 import usePushNotifications from './Dashboard/Hooks/usePushNotifications';
 import SalaryCollection from './new/WeekSalary';
 import Notifications from './new/Notifications';
-import MonthlyLevelsManager from './Dashboard/MonthlyLevelsManager./MonthlyLevelsManager';
 import MonthlySalaryDashboard from './new/MonthlySalary';
 import ProfileCard from './new/ProfileCard';
 import AdminProfileManager from './Dashboard/AdminCard/AdminProfileManager';
@@ -55,6 +54,8 @@ import { SidebarProvider } from './Dashboard/SidebarContext';
 // Import UserLayout
 import UserLayout from './UserLayout';
 import MiningHistory from './MiningHistory';
+import SalaryHistory from './SalaryHistory';
+import MonthlySalaryAdmin from './Dashboard/MonthlySalaryAdmin/MonthlySalaryAdmin';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -189,8 +190,8 @@ function App() {
             <Route path="/sendNotification" element={
               adminAuthenticated ? <AdminLayout><PushNotificationManager /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
-            <Route path="/monthlyLevels" element={
-              adminAuthenticated ? <AdminLayout><MonthlyLevelsManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+            <Route path="/admin/monthly-salary" element={
+              adminAuthenticated ? <AdminLayout><MonthlySalaryAdmin /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
             <Route path="/admin-profile-manager" element={
               adminAuthenticated ? <AdminLayout><AdminProfileManager /></AdminLayout> : <Navigate to="/admin/login" replace />
@@ -212,11 +213,13 @@ function App() {
               <Route path="/work" element={approved === 1 ? <DailyTasks Userid={Userid} currBalance={currBalance} /> : <Navigate to="/" replace />} />
               <Route path="/wallet" element={approved === 1 ? <Wallet /> : <Navigate to="/work" replace />} />
               <Route path='/team' element={approved === 1 ? <Team /> : <Navigate to="/work" replace />} />
-              <Route path='/week-salary' element={approved === 1 ? <SalaryCollection /> : <Navigate to="/work" replace />} />
               <Route path='/alerts' element={approved === 1 ? <Notifications /> : <Navigate to="/work" replace />} />
               <Route path='/SalaryofMonth' element={approved === 1 ? <MonthlySalaryDashboard /> : <Navigate to="/work" replace />} />
               <Route path='/admin-profile/:token' element={approved === 1 ? <ProfileCard /> : <Navigate to="/work" replace />} />
               <Route path='/mining-history' element={approved === 1 ? <MiningHistory /> : <Navigate to="/work" replace />} />
+{/* -----------------------New */}
+        <Route path="/salary-history" element={<SalaryHistory />} />
+              <Route path='/week-salary' element={approved === 1 ? <SalaryCollection /> : <Navigate to="/work" replace />} />
 
 
                   

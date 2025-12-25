@@ -89,7 +89,7 @@ function BalanceCard() {
     {level || 1}
   </span>
 </div>        </p>
-        <span className="text-[12px] font-medium text-[#D4AF37]/90">
+        <span className="text-[12px] font-medium text-[#D4AF37]/90 py-1 px-2  bg-[#f8c13c]/10 rounded-full">
           {progress}% Progress
         </span>
       </div>

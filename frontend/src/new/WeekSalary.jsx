@@ -66,7 +66,7 @@ const SalaryCollection = () => {
     return (
       <div className="flex flex-col min-h-screen bg-gray-900">
         <BalanceCard />
-        <div className="flex-1 flex items-  justify-center">
+        <div className="mt-5 flex items-center  justify-center">
           <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="text-emerald-400 w-8 h-8" />
@@ -88,13 +88,13 @@ const SalaryCollection = () => {
     );
   }
 
-  // ✅ SHOW: Not Yet Eligible (Never unlocked)
+  
   if (!status?.permanentlyEligible) {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-900 p-4">
+      <div className="flex flex-col min-h-screen bg-gray-900">
         <BalanceCard />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
+        <div className="flex-1  items-center justify-center">
+          <div className="bg-gray- -2xl mt-5 p-6 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="text-amber-500 w-8 h-8" />
             </div>
@@ -141,7 +141,6 @@ const SalaryCollection = () => {
     );
   }
 
-  // ✅ SHOW: Eligible (Permanently unlocked + has credits + not collected this week)
   return (
     <div className="flex flex-col min-h-screen bg-gray-900">
       <BalanceCard />
@@ -155,7 +154,7 @@ const SalaryCollection = () => {
             <p className="text-emerald-400 font-semibold text-lg mt-1">
               ${RemoveTrailingZeros(status.weekCredits)}
             </p>
-            <p className="text-gray-400 text-sm mt-2">Lifetime eligibility unlocked ✅</p>
+            <p className="text-gray-400 text-sm mt-2">Lifetime eligibility unlocked <CheckCircle/> </p>
           </div>
 
           <button

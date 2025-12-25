@@ -5,7 +5,6 @@ import NavBar from './NavBAr'; // Import your navbar component
 const UserLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar always visible for authenticated users */}
       <div className="sticky top-0 left-0 right-0 z-50">
         <NavBar />
       </div>

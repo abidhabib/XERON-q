@@ -31,11 +31,10 @@ import  getUserTaskStatus  from './routes/getUserTaskStatus.js';
 import  getUserWithdrawalRequests  from './routes/GetUserWithdraw.js';
 import getAllApprovedUsers from './routes/getAllApprovedUsers.js';
 import FindReferrer from './routes/FindReferrer.js';
-import monthlyLevelsRoutes from './routes/monthlyLevels.js'; // Adjust path as needed
 import monthlySalaryRoutes from './routes/monthlySalary.js'; // Adjust path as needed
 import adminProfileCardRoutes from './routes/adminProfileCardRoutes.js';
 import salaryRoutes from './routes/salaryRoutes.js';
-
+import adminMonthlySalaryRoutes from './routes/adminMonthlySalary.js';
 import https from 'https';
 
 
@@ -52,10 +51,7 @@ const __dirname = dirname(__filename);
 
 
 
-function getDayName(dayIndex) {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dayIndex];
-}
+
 app.use(bodyParser.json());
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -64,6 +60,10 @@ app.use(cors({
 
 }));
 app.use('/storage', express.static(join(__dirname, 'uploads')));
+const salaryUploadDir = path.join(process.cwd(), 'uploads', 'salary-apps');
+if (!fs.existsSync(salaryUploadDir)) {
+  fs.mkdirSync(salaryUploadDir, { recursive: true });
+}
 app.use(cookieParser());
 app.use(express.json());
 app.use(session({
@@ -103,13 +103,12 @@ app.use('/',getUserTaskStatus)
 app.use('/',getUserWithdrawalRequests);
 app.use('/',getAllApprovedUsers)
 app.use('/',FindReferrer)
-app.use('/api/monthly-levels', monthlyLevelsRoutes); // Prefix all routes in monthlyLevels.js with /api/monthly-levels
 app.use('/api/monthly-salary', monthlySalaryRoutes);
 app.use('/api', adminProfileCardRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', salaryRoutes);
-
+app.use('/api/admin/monthly-salary', adminMonthlySalaryRoutes);
 
 
 const storage = multer.diskStorage({

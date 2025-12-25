@@ -109,3 +109,51 @@ export const collectSalary = async (req, res) => {
     return res.status(500).json({ error: 'Failed to collect salary' });
   }
 };
+export const getSalaryHistory = async (req, res) => {
+  const userId = req.session?.userId;
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  // Optional: add pagination via ?page=1&limit=10
+  const page = parseInt(req.query.page) || 1;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+  const offset = (page - 1) * limit;
+
+  try {
+    const connection = con.promise();
+
+    const [rows] = await connection.query(`
+      SELECT 
+        amount,
+        payment_week,
+        created_at
+      FROM salary_payments
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, [userId, limit, offset]);
+
+    const [totalCountResult] = await connection.query(`
+      SELECT COUNT(*) AS total FROM salary_payments WHERE user_id = ?
+    `, [userId]);
+
+    const total = totalCountResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json({
+      history: rows.map(row => ({
+        amount: parseFloat(row.amount),
+        week: row.payment_week,
+        date: row.created_at // ISO string
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    });
+  } catch (error) {
+    console.error('getSalaryHistory error:', error);
+    return res.status(500).json({ error: 'Failed to fetch salary history' });
+  }
+};
