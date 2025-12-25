@@ -31,4 +31,3 @@ const UploadField = ({ label, accept, onChange, required }) => {
     </div>
   );
 };
-export default UploadField;
