@@ -57,6 +57,7 @@ import MiningHistory from './MiningHistory';
 import SalaryHistory from './SalaryHistory';
 import MonthlySalaryAdmin from './Dashboard/MonthlySalaryAdmin/MonthlySalaryAdmin';
 import MonthSalaryHistory from './MonthSalaryHistory';
+import ContactPage from './ContactPage';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -202,10 +203,10 @@ function App() {
             <Route path='/' element={<Login />} />
             <Route path='/signup' element={<Signup />} />
             <Route path='/Payment' element={<Payment Userid={Userid} isRejected={isRejected} />} />
+              <Route path='/waiting' element={<Waiting />} />
 
             {/* Protected User Routes with Navbar */}
             <Route element={isAuthenticated ? <UserLayout /> : <Navigate to="/" replace />}>
-              <Route path='/waiting' element={<Waiting />} />
               <Route path='/cashout' element={approved === 1 ? <WithdrawPage /> : <Navigate to="/work" replace />} />
               <Route path='/ReferralProgram' element={approved === 1 ? <ReferralProgram /> : <Navigate to="/work" replace />} />
               <Route path='/UserWalletSettings' element={approved === 1 ? <AccountDetailsTabs /> : <Navigate to="/work" replace />} />
@@ -223,6 +224,7 @@ function App() {
                 <Route path="/month-salary-history" element={<MonthSalaryHistory />} />
 
               <Route path='/week-salary' element={approved === 1 ? <SalaryCollection /> : <Navigate to="/work" replace />} />
+              <Route path='/contact-us' element={approved === 1 ? <ContactPage /> : <Navigate to="/work" replace />} />
 
 
                   

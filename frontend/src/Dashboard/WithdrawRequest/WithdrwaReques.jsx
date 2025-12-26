@@ -244,12 +244,8 @@ const WithdrawRequests = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Address
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Bank
-                      </th>
+                    
+                    
                       <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                         User ID
                       </th>
@@ -277,12 +273,8 @@ const WithdrawRequests = () => {
                             {RemoveTrailingZeros(Number(request.amount))}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-500  font-mono">
-                          {request.account_number}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {request.bank_name}
-                        </td>
+                    
+                      
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center">
                             {request.user_id}

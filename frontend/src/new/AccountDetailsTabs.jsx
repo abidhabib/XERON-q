@@ -75,7 +75,7 @@ const WalletManager = () => {
         <BalanceCard />
       </div>
 
-      <div className="px-3 pb-6 pt-2">
+      <div className="px-2 pb-6 pt-2">
         <div className="space-y-4">
           {Object.entries(CHAINS).map(([chain, config]) => {
             const Icon = config.icon;

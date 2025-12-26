@@ -51,14 +51,14 @@ function BalanceCard() {
   const menuItems = [
     {
       name: 'Wallet',
-      link: isOnWalletPage ? '#' : '/wallet',
+      link: isOnWalletPage ? '#' : '/cashout',
       icon: <Wallet size={20} className="text-[#D4AF37]" />,
       label: 'Dashboard Home',
       onClick: isOnWalletPage ? toWithdraw : null,
       isAction: isOnWalletPage,
       actionIcon: <Send size={20} className="text-[#D4AF37]" />
     },
-    { name: 'Salary', link: '/week-salary', icon: <Receipt size={20} className="text-[#D4AF37]" />, label: 'Contact Support' },
+    { name: 'Salary', link: '/week-salary', icon: <Receipt size={20} className="text-[#D4AF37]" />, label: 'Salary' },
     { name: 'Team', link: '/team', icon: <Users size={20} className="text-[#D4AF37]" />, label: 'View Team' },
     { 
       name: 'Alert', 

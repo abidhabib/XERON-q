@@ -11,7 +11,9 @@ import {
   X,
   Clock,
   Home,
-  Plus
+  Plus,
+  Settings,
+  Info
 } from 'lucide-react';
 import BalanceCard from './BalanceCard';
 import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
@@ -44,7 +46,7 @@ const Toast = ({ message, type, onClose }) => {
 // --- Success Modal (unchanged) ---
 const SuccessModal = ({ onClose }) => (
   <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div className="bg-[#19202a] rounded-2xl p-5 w-full max-w-xs border border-[#26303b] shadow-2xl">
+    <div className="bg-[#19202a] rounded-2xl p-3 w-full max-w-xs  shadow-2xl">
       <div className="text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 mb-3">
           <CheckCircle2 className="text-amber-400 w-6 h-6" />
@@ -66,12 +68,12 @@ const SuccessModal = ({ onClose }) => (
 const ActionCard = ({ to, icon: Icon, title }) => (
   <Link
     to={to}
-    className="bg-[#19202a] rounded-xl p-3.5 transition-all duration-200 hover:bg-[#1c2a3a] active:scale-[0.98] flex items-center gap-3 w-full"
+    className=" p-2 bg-[#19202a] rounded-xl transition-all duration-200  hover:bg-[#1c2a3a] active:scale-[0.98] flex items-center justify-center gap-3 w-full"
   >
-    <div className="w-10 h-10 rounded-lg bg-[#1c2a3a] flex items-center justify-center">
-      <Icon className="w-5 h-5 text-[#D4AF37]" />
+    <div className="w-5 h-5  rounded-lg bg-[#1c2a3a] flex items-center justify-center">
+      <Icon className="w-3 h-3 text-[#D4AF37]" />
     </div>
-    <span className="text-white font-medium text-sm">{title}</span>
+    <span className="text-amber-500 font-medium text-sm underline">{title}</span>
   </Link>
 );
 
@@ -228,21 +230,7 @@ const WithdrawPage = () => {
         <BalanceCard />
       </div>
 
-      {/* Action Cards */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="grid grid-cols-2 gap-3">
-          <ActionCard
-            to="/userWalletSettings"
-            icon={Home}
-            title="Update Address"
-          />
-          <ActionCard
-            to="/wallet"
-            icon={HiArrowTopRightOnSquare}
-            title="History"
-          />
-        </div>
-      </div>
+    
 
       {/* Toasts */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
@@ -258,7 +246,7 @@ const WithdrawPage = () => {
 
       {/* Main Content */}
       <div className="px-2 py-3 flex-1">
-        <div className="max-w-md mx-auto w-full space-y-5">
+        <div className=" mx-auto w-full space-y-5">
           {/* Wallet Selection */}
           {availableWallets.length === 0 ? (
             <div className="bg-[#19202a] rounded-2xl p-4 text-center">
@@ -280,26 +268,71 @@ const WithdrawPage = () => {
           ) : (
             <>
               {/* Chain Selector */}
-              {availableWallets.length > 1 && (
-                <div className="bg-[#19202a] rounded-2xl p-3">
-                  <label className="block text-amber-400/80 text-sm mb-2">Withdrawal Network</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {availableWallets.map(([chain]) => (
-                      <button
-                        key={chain}
-                        onClick={() => setSelectedChain(chain)}
-                        className={`p-2 rounded-lg text-xs transition-all ${
-                          selectedChain === chain
-                            ? 'bg-[#D4AF37]/20 border border-[#D4AF37] text-white'
-                            : 'bg-[#1c2a3a] text-amber-400/70 hover:bg-[#202d3d]'
-                        }`}
-                      >
-                        {chain.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+           {availableWallets.length > 1 && (
+  <div className="bg-[#19202a] rounded-2xl p-3">
+    
+    <label className="block text-amber-400/80 text-sm mb-2">
+      Withdrawal Network
+    </label>
+    <p className="text-[#D4AF37]/50 text-xs mb-3">
+      Select the blockchain network for your withdrawal
+    </p>
+
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {availableWallets.map(([chain]) => {
+        const isSelected = selectedChain === chain;
+        const chainInfo = {
+          bep20: { name: 'BEP20', desc: 'Binance Smart Chain', color: 'from-amber-500/20 to-amber-600/20' },
+          eth:   { name: 'ETH',   desc: 'Ethereum',         color: 'from-blue-500/20 to-indigo-600/20' },
+          btc:   { name: 'BTC',   desc: 'Bitcoin',          color: 'from-amber-700/20 to-amber-800/20' },
+          trc20: { name: 'TRC20', desc: 'TRON Network',     color: 'from-purple-500/20 to-purple-600/20' },
+          sol:   { name: 'SOL',   desc: 'Solana',           color: 'from-violet-500/20 to-violet-600/20' },
+          polygon: { name: 'MATIC', desc: 'Polygon',        color: 'from-green-500/20 to-emerald-600/20' }
+        }[chain] || { name: chain.toUpperCase(), desc: 'Network', color: 'from-gray-500/20 to-gray-600/20' };
+
+        return (
+          <button
+            key={chain}
+            onClick={() => setSelectedChain(chain)}
+            className={`p-2.5 rounded-xl text-left transition-all ${
+              isSelected
+                ? `bg-gradient-to-br ${chainInfo.color} text-white shadow-[0_2px_6px_rgba(212,175,55,0.08)]`
+                : 'bg-[#1c2a3a] text-amber-400/70 hover:bg-[#202d3d]'
+            }`}
+          >
+            <div className="font-medium text-sm">{chainInfo.name}</div>
+            <div className="text-[9px] text-amber-400/50 mt-0.5">{chainInfo.desc}</div>
+          </button>
+        );
+      })}
+    </div>
+
+    <div className="mt-3 p-2.5 bg-[#1c2a3a] rounded-xl">
+      <div className="flex items-start gap-2">
+        <Info className="w-3.5 h-3.5 text-[#D4AF37] mt-0.5 flex-shrink-0" />
+        <p className="text-[#D4AF37]/60 text-xs">
+          Withdrawals are processed within 24 hours. 
+          Ensure your wallet supports the selected network.
+        </p>
+      </div>
+    </div>
+      {/* Action Cards */}
+      <div className="px-2 pt-4 pb-3">
+        <div className="grid grid-cols-2 gap-3">
+          <ActionCard
+            to="/userWalletSettings"
+            icon={Settings}
+            title="Update Address"
+          />
+          <ActionCard
+            to="/wallet"
+            icon={HiArrowTopRightOnSquare}
+            title="History"
+          />
+        </div>
+      </div>
+  </div>
+)}
 
               {/* Selected Address */}
               <div className="bg-[#19202a] rounded-2xl p-4">

@@ -129,7 +129,6 @@ const MiningTask = () => {
   const [isMining, setIsMining] = useState(false);
   const [collectAvailable, setCollectAvailable] = useState(true);
   const [toasts, setToasts] = useState([]);
-console.log('userData.coin:', userData.coin);
 
   // ✅ Bottom sheet states
   const [collectSuccessSheet, setCollectSuccessSheet] = useState(false);
@@ -149,55 +148,45 @@ console.log('userData.coin:', userData.coin);
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
-  // --- API Calls ---
-  const fetchUserData = useCallback(async () => {
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/user-data`);
-      const data = res.data || {};
-      const user = {
-        coin: data.coin ?? 0,
-        balance: data.balance ?? 0,
-        last_collect_date: data.last_collect_date ?? null
-      };
-      setUserData(user);
-
-      if (user.last_collect_date) {
-        const last = new Date(user.last_collect_date);
-        const today = new Date();
-        setCollectAvailable(last.toDateString() !== today.toDateString());
-      } else {
-        setCollectAvailable(true);
-      }
-    } catch (err) {
-      console.error('User data fetch error:', err);
-    }
-  }, []);
-
+ const fetchUserData = useCallback(async () => {
+  try {
+    const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/user-data`);
+    const data = res.data || {};
+    const user = {
+      coin: data.coin ?? 0,
+      balance: data.balance ?? 0,
+      last_collect_date: data.last_collect_date ?? null,
+      isEligibleToCollect: Boolean(data.is_eligible_to_collect) // ✅ NEW
+    };
+    setUserData(user);
+    setCollectAvailable(user.isEligibleToCollect); // ✅ Use server value
+  } catch (err) {
+    console.error('User data fetch error:', err);
+  }
+}, []);
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData, refreshTrigger]);
+const handleCollect = async () => {
+  if (!collectAvailable || loading.collect) return;
 
-  // --- Handlers ---
-  const handleCollect = async () => {
-    if (!collectAvailable || loading.collect) return;
+  setLoading(prev => ({ ...prev, collect: true }));
+  setIsMining(true);
 
-    setLoading(prev => ({ ...prev, collect: true }));
-    setIsMining(true);
-
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/collect-coin`);
-      setRefreshTrigger(p => p + 1);
-      setCollectMessage(res.data?.message || 'Coins collected successfully');
-      setCollectSuccessSheet(true);
-      setCollectAvailable(false);
-    } catch (err) {
-      const msg = err.response?.data?.error || 'Collection failed';
-      showToast(msg, 'error');
-    } finally {
-      setLoading(prev => ({ ...prev, collect: false }));
-      setTimeout(() => setIsMining(false), 2000);
-    }
-  };
+  try {
+    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/collect-coin`);
+    setRefreshTrigger(p => p + 1); // ✅ This will re-fetch and set collectAvailable = false
+    setCollectMessage(res.data?.message || 'Coins collected successfully');
+    setCollectSuccessSheet(true);
+    // ❌ Don't manually set collectAvailable — let fetchUserData handle it
+  } catch (err) {
+    const msg = err.response?.data?.error || 'Collection failed';
+    showToast(msg, 'error');
+  } finally {
+    setLoading(prev => ({ ...prev, collect: false }));
+    setTimeout(() => setIsMining(false), 2000);
+  }
+};
 
   const handleExchangeClick = () => {
     if ((userData.coin ?? 0) <= 0) {

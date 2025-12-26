@@ -12,7 +12,8 @@ import {
   Briefcase,
   LogOut,
   Menu,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 
 // Toast Component (unchanged — already elegant)
@@ -92,7 +93,7 @@ const NavBar = () => {
     { icon: <Home className="w-5 h-5" />, label: 'Home', action: () => navigate("/wallet-page") },
     { icon: <Users className="w-5 h-5" />, label: 'Team', action: () => navigate("/team") },
     { icon: <Copy className="w-5 h-5" />, label: 'Invite', action: () => navigate('/ReferralProgram') },
-    { icon: <Briefcase className="w-5 h-5" />, label: 'W/Salary', action: () => navigate("/week-salary") },
+    { icon: <Mail className="w-5 h-5" />, label: 'Contact', action: () => navigate("/contact-us") },
     { icon: <Briefcase className="w-5 h-5" />, label: 'M/Salary', action: () => navigate("/salaryofMonth") },
     { icon: <Settings className="w-5 h-5" />, label: 'Settings', action: () => navigate("/setting") },
     { icon: <LogOut className="w-5 h-5" />, label: 'Logout', action: handleLogout, isLogout: true }

@@ -6,7 +6,7 @@ import {
   X,
   Info,
   ChevronRight,
-  Check
+  CheckCircle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { UserContext } from '../UserContext/UserContext';
@@ -18,74 +18,66 @@ const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Get from context - FIXED: removed setLocalUnreadCount which doesn't exist
   const { 
     Userid: userId, 
     unreadCount, 
     markNotificationAsRead,
     markAllNotificationsAsRead,
-    fetchGlobalNotifications,
     setUnreadCount 
   } = useContext(UserContext);
 
-  const getNotificationStyle = (msg) => {
-    const lowerMsg = msg.toLowerCase();
-    
-    if (/approved|success|congrat|completed/i.test(lowerMsg)) {
-      return {
-        icon: <Check className="w-4.5 h-4.5 text-emerald-400" />,
-        dot: 'bg-emerald-400',
-        titleColor: 'text-white',
-        timeColor: 'text-[#D4AF37]/70'
-      };
-    } else if (/pending|waiting|processing/i.test(lowerMsg)) {
-      return {
-        icon: <Clock className="w-4.5 h-4.5 text-[#D4AF37]" />,
-        dot: 'bg-[#D4AF37]',
-        titleColor: 'text-white',
-        timeColor: 'text-[#D4AF37]/70'
-      };
-    } else if (/reject|error|fail|declined/i.test(lowerMsg)) {
-      return {
-        icon: <AlertCircle className="w-4.5 h-4.5 text-rose-400" />,
-        dot: 'bg-rose-400',
-        titleColor: 'text-white',
-        timeColor: 'text-[#D4AF37]/70'
-      };
-    } else if (/info|update|notice/i.test(lowerMsg)) {
-      return {
-        icon: <Info className="w-4.5 h-4.5 text-blue-400" />,
-        dot: 'bg-blue-400',
-        titleColor: 'text-white',
-        timeColor: 'text-[#D4AF37]/70'
-      };
+  // ✅ Enhanced message rendering with inline highlights
+  const renderMessage = (msg) => {
+    // Match amount: $123.45 or $1,234.56
+    const amountMatch = msg.match(/\$(\d{1,3}(,\d{3})*(\.\d{2})?)/);
+    // Match "approved"
+    const approvedMatch = /approved/i.test(msg);
+
+    if (!amountMatch && !approvedMatch) {
+      return <span>{msg}</span>;
     }
-    
-    return {
-      icon: <Bell className="w-4.5 h-4.5 text-gray-400" />,
-      dot: 'bg-gray-400',
-      titleColor: 'text-white',
-      timeColor: 'text-[#D4AF37]/70'
-    };
+
+    let highlightedMsg = msg;
+    if (amountMatch) {
+      highlightedMsg = highlightedMsg.replace(
+        amountMatch[0],
+        `<span class="text-[#D4AF37] font-medium">${amountMatch[0]}</span>`
+      );
+    }
+    if (approvedMatch) {
+      highlightedMsg = highlightedMsg.replace(
+        /approved/gi,
+        '<span class="text-emerald-400 font-medium">approved</span>'
+      );
+    }
+
+    return <span dangerouslySetInnerHTML={{ __html: highlightedMsg }} />;
   };
 
-  // Fetch detailed notifications for this page
+  const getNotificationStyle = (msg) => {
+    const lowerMsg = msg.toLowerCase();
+    if (/approved|success|congrat|completed/i.test(lowerMsg)) {
+      return { icon: <CheckCircle className="w-4 h-4 text-emerald-400" />, dot: 'bg-emerald-400' };
+    } else if (/pending|waiting|processing/i.test(lowerMsg)) {
+      return { icon: <Clock className="w-4 h-4 text-[#D4AF37]" />, dot: 'bg-[#D4AF37]' };
+    } else if (/reject|error|fail|declined/i.test(lowerMsg)) {
+      return { icon: <AlertCircle className="w-4 h-4 text-rose-400" />, dot: 'bg-rose-400' };
+    } else if (/info|update|notice/i.test(lowerMsg)) {
+      return { icon: <Info className="w-4 h-4 text-blue-400" />, dot: 'bg-blue-400' };
+    }
+    return { icon: <Bell className="w-4 h-4 text-gray-400" />, dot: 'bg-gray-400' };
+  };
+
   const fetchNotifications = async () => {
     if (!userId) return;
-    
     try {
       setIsLoading(true);
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/${userId}`);
       const data = await response.json();
-      
       if (data?.status === 'success') {
-        const sortedNotifications = (data.data || []).sort((a, b) => 
-          new Date(b.created_at) - new Date(a.created_at)
-        );
+        const sortedNotifications = (data.data || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         setNotifications(sortedNotifications);
-        // Update global count from context
-        const unread = sortedNotifications.filter(n => n.is_read === 0).length || 0;
-        setUnreadCount(unread);
+        setUnreadCount(sortedNotifications.filter(n => n.is_read === 0).length || 0);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -94,28 +86,19 @@ const NotificationsPage = () => {
     }
   };
 
-  // Handle mark as read - using context function
   const handleMarkAsRead = async (id) => {
     try {
-      // Use context function
       await markNotificationAsRead(id);
-      // Update local state
-      setNotifications(prev => prev.map(n => 
-        n.id === id ? { ...n, is_read: 1 } : n
-      ));
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
     } catch (error) {
       console.error('Mark as read error:', error);
     }
   };
 
-  // Handle mark all as read - using context function
   const handleMarkAllAsRead = async () => {
     if (unreadCount === 0 || isLoading) return;
-    
     try {
-      // Use context function
       await markAllNotificationsAsRead(userId);
-      // Update local state
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
     } catch (error) {
       console.error('Mark all as read error:', error);
@@ -132,24 +115,22 @@ const NotificationsPage = () => {
 
   return (
     <div className="min-h-screen bg-[#111827]">
-      {/* Balance Card - No need to pass prop since it uses context */}
-      <div className="pt-0 pb-4">
+      <div className="pt-0 pb-3">
         <BalanceCard />
       </div>
 
-      {/* Notifications Container */}
-      <div className="px-4 py-4">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-5">
-          <div className="flex items-center gap-3">
+      <div className="px-3 py-3">
+        {/* Header - tighter spacing */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-[#19202a] flex items-center justify-center">
-                <Bell className="w-5 h-5 text-[#D4AF37]" />
+              <div className="w-9 h-9 rounded-lg bg-[#19202a] flex items-center justify-center">
+                <Bell className="w-4.5 h-4.5 text-[#D4AF37]" />
               </div>
               {unreadCount > 0 && (
                 <div className="absolute -top-1 -right-1">
-                  <div className="w-5 h-5 bg-gradient-to-br from-rose-500 to-amber-500 rounded-full flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">
+                  <div className="w-4.5 h-4.5 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-gray-900 leading-none">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   </div>
@@ -157,8 +138,8 @@ const NotificationsPage = () => {
               )}
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-white">Notifications</h1>
-              <p className="text-sm text-[#D4AF37]/70">
+              <h1 className="text-lg font-semibold text-white tracking-tight">Notifications</h1>
+              <p className="text-xs text-[#D4AF37]/60 mt-0.5">
                 {notifications.length} total • {unreadCount} unread
               </p>
             </div>
@@ -167,40 +148,38 @@ const NotificationsPage = () => {
           <button
             onClick={handleMarkAllAsRead}
             disabled={unreadCount === 0 || isLoading}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
               unreadCount > 0 && !isLoading
-                ? 'text-[#D4AF37] hover:text-[#e8c04e] hover:bg-[#19202a]'
+                ? 'text-[#D4AF37] hover:text-[#e8c04e] hover:bg-[#1c2a3a]'
                 : 'text-[#D4AF37]/50 cursor-not-allowed'
             }`}
           >
-            <BiSolidCheckboxChecked className="w-4 h-4" />
-            <span>Mark all read</span>
+            <BiSolidCheckboxChecked className="w-3.5 h-3.5" />
+            Mark all read
           </button>
         </div>
 
-        {/* Notifications List */}
+        {/* Notifications List - compact & premium */}
         <div className="space-y-2">
           {isLoading ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="bg-[#19202a] rounded-xl p-4 animate-pulse">
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-[#19202a] rounded-xl p-3 animate-pulse">
                 <div className="flex gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#26303b]"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-[#26303b] rounded w-3/4"></div>
-                    <div className="h-3 bg-[#26303b] rounded w-1/4"></div>
+                  <div className="w-8 h-8 rounded-lg bg-[#26303b]"></div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3.5 bg-[#26303b] rounded w-4/5"></div>
+                    <div className="h-2.5 bg-[#26303b] rounded w-1/3"></div>
                   </div>
                 </div>
               </div>
             ))
           ) : notifications.length === 0 ? (
-            <div className="bg-[#19202a] rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 mx-auto bg-[#1c2a3a] rounded-2xl flex items-center justify-center mb-4">
-                <Bell className="w-7 h-7 text-[#D4AF37]/50" />
+            <div className="bg-[#19202a] rounded-2xl p-6 text-center">
+              <div className="w-12 h-12 mx-auto bg-[#1c2a3a] rounded-xl flex items-center justify-center mb-3">
+                <Bell className="w-5.5 h-5.5 text-[#D4AF37]/40" />
               </div>
-              <h3 className="text-lg font-medium text-white mb-1">All caught up!</h3>
-              <p className="text-[#D4AF37]/70 text-sm">
-                You don't have any notifications right now.
-              </p>
+              <h3 className="text-base font-medium text-white mb-0.5">All caught up</h3>
+              <p className="text-[#D4AF37]/60 text-xs">No new notifications</p>
             </div>
           ) : (
             <AnimatePresence>
@@ -211,43 +190,41 @@ const NotificationsPage = () => {
                 return (
                   <motion.div
                     key={notification.id}
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="bg-[#19202a] rounded-xl"
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="bg-[#19202a] rounded-xl overflow-hidden"
                   >
                     <div className="p-3">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#1c2a3a] flex items-center justify-center">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#1c2a3a] flex items-center justify-center">
                           {style.icon}
                         </div>
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className={`${style.titleColor} text-sm font-medium leading-tight pr-2`}>
-                              {notification.msg}
+                            <p className="text-white text-sm leading-relaxed">
+                              {renderMessage(notification.msg)}
                             </p>
                             {isUnread && (
                               <button
                                 onClick={() => handleMarkAsRead(notification.id)}
-                                className="flex-shrink-0 text-[#D4AF37]/60 hover:text-[#D4AF37] transition-colors p-0.5"
+                                className="flex-shrink-0 text-[#D4AF37]/60 hover:text-[#D4AF37] transition-colors p-0.5 -mt-0.5"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                <X className="w-3 h-3" />
                               </button>
                             )}
                           </div>
                           
-                          <div className="flex items-center justify-between mt-1.5">
-                            <span className={style.timeColor} style={{ fontSize: '0.75rem' }}>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-[#D4AF37]/60 text-xs">
                               {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                             </span>
                             
-                            <div className="flex items-center gap-2">
-                              {isUnread && (
-                                <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>
-                              )}
-                              <ChevronRight className="w-3.5 h-3.5 text-[#D4AF37]/50" />
+                            <div className="flex items-center gap-1.5">
+                              {isUnread && <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>}
+                              <ChevronRight className="w-3 h-3 text-[#D4AF37]/50" />
                             </div>
                           </div>
                         </div>
@@ -255,7 +232,7 @@ const NotificationsPage = () => {
                     </div>
                     
                     {isUnread && (
-                      <div className="h-0.5 bg-gradient-to-r from-[#D4AF37] to-transparent rounded-b-xl" />
+                      <div className="h-px bg-gradient-to-r from-[#D4AF37]/30 to-transparent" />
                     )}
                   </motion.div>
                 );
@@ -264,22 +241,20 @@ const NotificationsPage = () => {
           )}
         </div>
 
-        {/* Footer Stats */}
+        {/* Footer - subtle */}
         {notifications.length > 0 && !isLoading && (
-          <div className="mt-6 pt-4 border-t border-[#26303b]">
-            <div className="flex items-center justify-between text-sm text-[#D4AF37]/70">
-              <span>
-                Showing {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
-              </span>
-              <div className="flex items-center gap-1.5">
+          <div className="mt-5 pt-3 border-t border-[#26303b]/40">
+            <div className="flex items-center justify-between text-[#D4AF37]/60 text-xs">
+              <span>{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</span>
+              <div className="flex items-center gap-1">
                 {unreadCount > 0 ? (
                   <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]"></span>
+                    <span className="w-1 h-1 rounded-full bg-[#D4AF37]"></span>
                     <span>{unreadCount} unread</span>
                   </>
                 ) : (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle className="w-3 h-3 text-emerald-400" />
                     <span>All read</span>
                   </>
                 )}

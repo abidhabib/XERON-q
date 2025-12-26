@@ -28,7 +28,7 @@ const WithdrawRequests = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/login');
+      navigate('/admin');
     }
   }, [user, loading, navigate]);
 
@@ -50,7 +50,7 @@ const WithdrawRequests = () => {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = ('/login');
+    window.location.href = ('/admin');
   };
   const filteredData = data.filter(request =>
     (request.id?.toString() || '').toLowerCase().includes(searchTerm.toLowerCase()) ||

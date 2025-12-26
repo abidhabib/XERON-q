@@ -37,6 +37,7 @@ import salaryRoutes from './routes/salaryRoutes.js';
 import adminMonthlySalaryRoutes from './routes/adminMonthlySalary.js';
 import https from 'https';
 import GetUserWalletRoute from './routes/GetUserWalletRoute.js'
+import contactRoutes from './routes/contactRoutes.js';
 
 setupWebPush();
 
@@ -109,7 +110,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', salaryRoutes);
 app.use('/api/admin/monthly-salary', adminMonthlySalaryRoutes);
-app.use('/api', GetUserWalletRoute); // ← ADD THIS
+app.use('/api', GetUserWalletRoute); 
+app.use('/api', contactRoutes);
 
 const storage = multer.diskStorage({
     destination: './uploads/',
@@ -863,104 +865,101 @@ app.get('/fetchLimitsData', (req, res) => {
 
 
 app.post('/withdraw', (req, res) => {
-    if (!req.session.userId) {
-        return res.status(401).json({ status: 'error', error: 'User not logged in' });
+  if (!req.session.userId) {
+    return res.status(401).json({ status: 'error', error: 'User not logged in' });
+  }
+
+  const userId = req.session.userId;
+  const { amount, chain, address, totalWithdrawn, team } = req.body; // ✅ NEW FIELDS
+
+  // ✅ Validate new fields
+  if (!amount || !chain || !address) {
+    return res.status(400).json({ status: 'error', error: 'Amount, chain, and address are required' });
+  }
+
+  const checkRequestSql = `
+    SELECT * FROM withdrawal_requests
+    WHERE user_id = ? AND approved = 'pending' AND reject = 0
+  `;
+
+  con.query(checkRequestSql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ status: 'error', error: 'Failed to check for existing requests', details: err.message });
+
+    if (results.length > 0) {
+      return res.status(400).json({ status: 'error', error: 'You already have a pending withdrawal request' });
     }
 
-    const userId = req.session.userId;
-    const { amount, accountNumber, bankName, totalWithdrawn, team } = req.body;
+    const getUserAttemptsSql = `SELECT withdrawalAttempts FROM users WHERE id = ?`;
+    con.query(getUserAttemptsSql, [userId], (err, userResults) => {
+      if (err) return res.status(500).json({ status: 'error', error: 'Failed to fetch user attempts', details: err.message });
+      if (userResults.length === 0) {
+        return res.status(404).json({ status: 'error', error: 'User not found' });
+      }
 
-    if (!amount || !accountNumber || !bankName) {
-        return res.status(400).json({ status: 'error', error: 'All fields are required' });
-    }
+      const userAttempts = userResults[0].withdrawalAttempts;
+      const effectiveAttempts = userAttempts > 3 ? 3 : userAttempts;
 
-    const checkRequestSql = `
-        SELECT * FROM withdrawal_requests
-        WHERE user_id = ? AND approved = 'pending' AND reject = 0
-    `;
-
-    con.query(checkRequestSql, [userId], (err, results) => {
-        if (err) return res.status(500).json({ status: 'error', error: 'Failed to check for existing requests', details: err.message });
-
-        if (results.length > 0) {
-            return res.status(400).json({ status: 'error', error: 'You already have a pending withdrawal request' });
+      const checkLimitsSql = `SELECT allow_limit FROM withdraw_limit WHERE withdrawalAttempts = ?`;
+      con.query(checkLimitsSql, [effectiveAttempts], (err, limitResults) => {
+        if (err) return res.status(500).json({ status: 'error', error: 'Failed to check withdrawal limits', details: err.message });
+        if (limitResults.length === 0) {
+          return res.status(500).json({ status: 'error', error: 'Withdrawal limit not found' });
         }
 
-        const getUserAttemptsSql = `SELECT withdrawalAttempts FROM users WHERE id = ?`;
+        const minimumLimit = limitResults[0].allow_limit;
+        const getExchangeFeeSql = `SELECT fee FROM exchange_fee WHERE id = 1`;
 
-        con.query(getUserAttemptsSql, [userId], (err, userResults) => {
-            if (err) return res.status(500).json({ status: 'error', error: 'Failed to fetch user attempts', details: err.message });
+        con.query(getExchangeFeeSql, (err, feeResults) => {
+          if (err) return res.status(500).json({ status: 'error', error: 'Failed to fetch exchange fee', details: err.message });
+          if (feeResults.length === 0) {
+            return res.status(500).json({ status: 'error', error: 'Exchange fee not found' });
+          }
 
-            if (userResults.length === 0) {
-                return res.status(404).json({ status: 'error', error: 'User not found' });
-            }
+          const feePercentage = feeResults[0].fee;
+          const fee = (amount * feePercentage) / 100;
+          const amountAfterFee = amount - fee;
 
-            const userAttempts = userResults[0].withdrawalAttempts;
-            const effectiveAttempts = userAttempts > 3 ? 3 : userAttempts;
+          if (amountAfterFee < minimumLimit) {
+            return res.status(400).json({ status: 'error', error: `Minimum withdrawal amount is $${minimumLimit}` });
+          }
 
-            const checkLimitsSql = `SELECT allow_limit FROM withdraw_limit WHERE withdrawalAttempts = ?`;
+          con.beginTransaction(err => {
+            if (err) return res.status(500).json({ status: 'error', error: 'Failed to start transaction' });
 
-            con.query(checkLimitsSql, [effectiveAttempts], (err, limitResults) => {
-                if (err) return res.status(500).json({ status: 'error', error: 'Failed to check withdrawal limits', details: err.message });
+            // ✅ INSERT with chain + address
+            const withdrawSql = `
+              INSERT INTO withdrawal_requests 
+              (user_id, amount, chain, address, total_withdrawn, team, request_date, approved, fee)
+              VALUES (?, ?, ?, ?, ?, ?, NOW(), 'pending', ?)
+            `;
 
-                if (limitResults.length === 0) {
-                    return res.status(500).json({ status: 'error', error: 'Withdrawal limit not found' });
+            con.query(
+              withdrawSql,
+              [userId, amountAfterFee, chain, address, totalWithdrawn, team, fee], // ✅ Correct order
+              (err) => {
+                if (err) {
+                  return con.rollback(() => {
+                    console.error('Withdrawal DB error:', err);
+                    res.status(500).json({ status: 'error', error: 'Failed to make withdrawal' });
+                  });
                 }
 
-                const minimumLimit = limitResults[0].allow_limit;
-
-                const getExchangeFeeSql = `SELECT fee FROM exchange_fee WHERE id = 1`;
-
-                con.query(getExchangeFeeSql, (err, feeResults) => {
-                    if (err) return res.status(500).json({ status: 'error', error: 'Failed to fetch exchange fee', details: err.message });
-
-                    if (feeResults.length === 0) {
-                        return res.status(500).json({ status: 'error', error: 'Exchange fee not found' });
-                    }
-
-                    const feePercentage = feeResults[0].fee;
-                    const fee = (amount * feePercentage) / 100;
-                    const amountAfterFee = amount - fee;
-
-                    if (amountAfterFee < minimumLimit) {
-                        return res.status(400).json({ status: 'error', error: `Minimum withdrawal amount is ${minimumLimit}$` });
-                    }
-
-                    con.beginTransaction(err => {
-                        if (err) return res.status(500).json({ status: 'error', error: 'Failed to start transaction' });
-
-                        const withdrawSql = `
-                            INSERT INTO withdrawal_requests 
-                            (user_id, amount, account_number, bank_name, total_withdrawn, team, request_date, approved, fee)
-                            VALUES (?, ?, ?, ?, ?, ?, NOW(), 'pending', ?)
-                        `;
-
-                        con.query(withdrawSql, [userId, amountAfterFee, accountNumber, bankName, totalWithdrawn, team, fee], (err) => {
-                            if (err) {
-                                return con.rollback(() => {
-                                    res.status(500).json({ status: 'error', error: 'Failed to make withdrawal', details: err.message });
-                                    console.log(err);
-                                    
-                                });
-                            }
-
-                            con.commit(err => {
-                                if (err) {
-                                    return con.rollback(() => {
-                                        res.status(500).json({ status: 'error', error: 'Failed to commit transaction', details: err.message });
-                                    });
-                                }
-
-                                res.json({ status: 'success', message: 'Withdrawal request submitted successfully' });
-                            });
-                        });
+                con.commit(err => {
+                  if (err) {
+                    return con.rollback(() => {
+                      res.status(500).json({ status: 'error', error: 'Failed to commit transaction' });
                     });
+                  }
+                  res.json({ status: 'success', message: 'Withdrawal request submitted successfully' });
                 });
-            });
+              }
+            );
+          });
         });
+      });
     });
+  });
 });
-
 
 
 
@@ -1208,37 +1207,42 @@ app.put('/update-user', async (req, res) => {
     }
 });
 
+// ✅ NEW — fetch chain + address
 app.get('/all-withdrawal-requests', (req, res) => {
-    const sql = `
-        SELECT wr.id, wr.user_id, wr.amount, wr.bank_name,  
-         wr.account_number, wr.approved, wr.team, wr.total_withdrawn, u.name AS user_name ,u.balance
-        FROM withdrawal_requests wr
-        JOIN users u ON wr.user_id = u.id
-        WHERE wr.approved = "pending" AND wr.reject = "0"
-    `;
+  const sql = `
+    SELECT 
+      wr.id, 
+      wr.user_id, 
+      wr.amount, 
+      wr.chain,          -- ✅ NEW
+      wr.address,        -- ✅ NEW
+      wr.team, 
+      wr.total_withdrawn, 
+      u.name AS user_name,
+      u.balance
+    FROM withdrawal_requests wr
+    JOIN users u ON wr.user_id = u.id
+    WHERE wr.approved = "pending" AND wr.reject = "0"
+  `;
 
-    con.query(sql, (error, results) => {
-        if (error) {
-            res.status(500).json({ error: 'Internal Server Error' });
-            return;
-        }
-        const mappedResults = results.map(item => ({
-            id: item.id,
-            user_id: item.user_id,
-            amount: item.amount,
-            bank_name: item.bank_name,
-            account_number: item.account_number,
-            approved: item.approved === 1,
-            team: item.team,
-            total_withdrawn: item.total_withdrawn,
-            user_name: item.user_name, // Add user_name here
-            balance: item.balance
-        }));
-        res.json(mappedResults);
-    });
+  con.query(sql, (error, results) => {
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+    const mappedResults = results.map(item => ({
+      id: item.id,
+      user_id: item.user_id,
+      amount: item.amount,
+      chain: item.chain || 'bep20',       // fallback if old data
+      address: item.address || item.account_number, // fallback
+      team: item.team,
+      total_withdrawn: item.total_withdrawn,
+      user_name: item.user_name,
+      balance: item.balance
+    }));
+    res.json(mappedResults);
+  });
 });
-
-
 
 
 
@@ -1294,87 +1298,99 @@ const queryAsync = (query, params) => {
 
 
 
+app.post('/approve-withdrawal', (req, res) => {
+  const { userId, requestId, amount } = req.body;
 
-app.post('/approve-withdrawal', async (req, res) => {
-    const { userId, requestId, amount } = req.body;
+  if (!userId || !requestId || !amount) {
+    return res.status(400).json({ error: 'User ID, request ID, and amount are required' });
+  }
 
-    if (!userId || !requestId || !amount) {
-        return res.status(400).json({ error: 'User ID, request ID, and amount are required' });
+  con.beginTransaction((txError) => {
+    if (txError) {
+      return res.status(500).json({ error: 'Transaction failed' });
     }
 
-    const updateWithdrawalRequestsSql = `
-        UPDATE withdrawal_requests 
-        SET approved = 'approved', reject = 0, approved_time = CURRENT_TIMESTAMP 
-        WHERE id = ? AND user_id = ? AND (approved = 'pending' OR approved = 'rejected')`;
+    // ✅ Use con.promise().query() for ALL queries inside async flow
+    con.promise().query(
+      `SELECT chain, address FROM withdrawal_requests WHERE id = ? AND user_id = ?`,
+      [requestId, userId]
+    )
+    .then(([requestRows]) => {
+      if (requestRows.length === 0) {
+        con.rollback(() => {
+          res.status(404).json({ error: 'Withdrawal request not found' });
+        });
+        return;
+      }
 
-    const updateUserBalanceAndTotalWithdrawalSql = `
-        UPDATE users
-        SET balance = balance - ?,
-            total_withdrawal = total_withdrawal + ?,
-            withdrawalAttempts = withdrawalAttempts + 1
-        WHERE id = ?`;
-const msg = `${amount}$ withdrawal approved`;
+      const { chain = 'BEP20' } = requestRows[0];
+      const formattedAmount = parseFloat(amount).toFixed(2);
+      const network = chain.toUpperCase();
+    const msg = `Your withdrawal of $${formattedAmount} on ${network} has been approved and processed.`;
 
-    const insertNotificationSql = `
-        INSERT INTO notifications (user_id, msg, created_at)
-        VALUES (?, ?, CURRENT_TIMESTAMP)`;
-
-    con.beginTransaction(error => {
-        if (error) {
-            console.log(error);
-
-            return res.status(500).json({ error: 'Internal Server Error' });
+      return con.promise().query(
+        `UPDATE withdrawal_requests 
+         SET approved = 'approved', reject = 0, approved_time = CURRENT_TIMESTAMP 
+         WHERE id = ? AND user_id = ? AND approved = 'pending'`,
+        [requestId, userId]
+      )
+      .then(([updateResult]) => {
+        if (updateResult.affectedRows === 0) {
+          con.rollback(() => {
+            res.status(400).json({ error: 'Request already processed or not pending' });
+          });
+          return;
         }
 
-        con.query(updateWithdrawalRequestsSql, [requestId, userId], (error, results) => {
-            if (error) {
-                console.log(error);
-
-                return con.rollback(() => {
-                    res.status(500).json({ error: 'Internal Server Error' });
-                });
+        return con.promise().query(
+          `UPDATE users
+           SET balance = balance - ?,
+               total_withdrawal = total_withdrawal + ?,
+               withdrawalAttempts = withdrawalAttempts + 1
+           WHERE id = ?`,
+          [amount, amount, userId]
+        )
+        .then(() => {
+          return con.promise().query(
+            `INSERT INTO notifications (user_id, msg, created_at)
+             VALUES (?, ?, NOW())`,
+            [userId, msg]
+          );
+        })
+        .then(() => {
+          con.commit((err) => {
+            if (err) {
+              con.rollback(() => {
+                res.status(500).json({ error: 'Failed to commit transaction' });
+              });
+            } else {
+              res.json({ message: 'Withdrawal approved successfully' });
             }
-
-            if (results.affectedRows === 0) {
-                return res.status(400).json({ error: 'Could not find the withdrawal request or it is already approved' });
-            }
-
-            con.query(updateUserBalanceAndTotalWithdrawalSql, [amount, amount, userId], (error, results) => {
-                if (error) {
-                    console.log(error);
-
-                    return con.rollback(() => {
-                        res.status(500).json({ error: 'Internal Server Error' });
-                    });
-                }
-
-
-                con.query(insertNotificationSql, [userId, msg], (error) => {
-                    if (error) {
-                        console.log(error);
-                        return con.rollback(() => {
-                            res.status(500).json({ error: 'Failed to insert notification' });
-                        });
-                    }
-
-                    con.commit(error => {
-                        if (error) {
-                            console.log(error);
-
-                            return con.rollback(() => {
-                                res.status(500).json({ error: 'Failed to commit transaction' });
-                            });
-                        }
-
-                        res.json({ message: 'Withdrawal request approved, balance and total withdrawal updated, user clicks data, referrals deleted, and notification sent successfully!' });
-                    });
-                });
-            });
+          });
+        })
+        .catch((error) => {
+          console.error('DB error during approval:', error);
+          con.rollback(() => {
+            res.status(500).json({ error: 'Database error during approval' });
+          });
         });
+      })
+      .catch((error) => {
+        console.error('Error fetching request:', error);
+        con.rollback(() => {
+          res.status(500).json({ error: 'Failed to fetch withdrawal request' });
+        });
+      });
+    })
+    .catch((error) => {
+      console.error('Initial query error:', error);
+      con.rollback(() => {
+        res.status(500).json({ error: 'Unexpected error' });
+      });
     });
-
-
+  });
 });
+
 app.post('/delete-withdrawal', async (req, res) => {
     const { requestId, userId } = req.body;
 
@@ -1443,7 +1459,7 @@ app.post('/reject-withdrawal', async (req, res) => {
             }
 
             if (result.affectedRows > 0) {
-                const notificationMsg = `❌ Your withdrawal request has been rejected.\nReason: ${reason}`;
+                const notificationMsg = ` Your withdrawal request has been rejected.\nReason: ${reason}`;
 
                 con.query(insertNotificationSql, [userId, notificationMsg], (notifErr, notifResult) => {
                     if (notifErr) {
@@ -1840,20 +1856,41 @@ app.post('/exchange-coin', async (req, res) => {
     }
 });
 // Fixed /user-data endpoint to match frontend expectations
+// app.get('/user-data', ...)
 app.get('/user-data', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    try {
-        const [results] = await con.promise().query(
-            `SELECT backend_wallet, coin , balance, last_collect_date FROM users WHERE id = ?`,
-            [req.session.userId]
-        );
+  try {
+    const userId = req.session.userId;
 
-        res.json(results[0]);
-    } catch (error) {
-        console.error('User data error:', error);
-        res.status(500).json({ error: 'Database error' });
+    // Get current date from DB (avoids client timezone issues)
+    const [dateRow] = await con.promise().query(`SELECT CURRENT_DATE() AS today`);
+    const today = dateRow[0].today;
+
+    const [results] = await con.promise().query(
+      `SELECT 
+        backend_wallet, 
+        coin, 
+        balance, 
+        last_collect_date,
+        CASE 
+          WHEN last_collect_date IS NULL OR last_collect_date < ? THEN 1
+          ELSE 0
+        END AS is_eligible_to_collect
+       FROM users 
+       WHERE id = ?`,
+      [today, userId]
+    );
+
+    if (!results.length) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    res.json(results[0]);
+  } catch (error) {
+    console.error('User data error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 app.get('/coin-collect-history', async (req, res) => {
