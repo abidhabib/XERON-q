@@ -199,6 +199,7 @@ export const UserProvider = ({ children }) => {
       team,
       today_team,
       currBalance,
+      setCurrBalance,
       backend_wallet,
       paymentOk,
       approved,

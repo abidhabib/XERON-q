@@ -1,0 +1,15 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "feature-modulerized",
+    "main"
+  ],
+  "parent": {
+    "feature-modulerized": "main",
+    "main": null
+  },
+  "order": [
+    "main",
+    "feature-modulerized"
+  ]
+}
