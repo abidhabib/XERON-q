@@ -18,6 +18,7 @@ const ContactPage = () => {
   const [isVerified, setIsVerified] = useState(false);
   const [canReview, setCanReview] = useState(false);
   const [selectedRating, setSelectedRating] = useState(0);
+  const [userRating, setUserRating] = useState(0); // user’s given rating
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '' });
@@ -38,7 +39,9 @@ const ContactPage = () => {
         if (res.data.success) {
           setContactInfo(res.data.contact);
           setIsVerified(res.data.isVerified);
-          setCanReview(res.data.canReview);
+          setUserRating(res.data.userRating || 0);
+          setSelectedRating(res.data.userRating || 0);
+          setCanReview(res.data.canReview && !res.data.userRating); // disable if already reviewed
         }
       } catch {
         showToast('Failed to load mentor info');
@@ -55,15 +58,21 @@ const ContactPage = () => {
 
     setSubmitting(true);
     try {
-      await axios.post(
+      const res = await axios.post(
         `${API}/api/review`,
         { parentId: contactInfo.id, rating: selectedRating },
         { withCredentials: true }
       );
-      showToast('Review submitted');
-      setSelectedRating(0);
+
+      if (res.data.success) {
+        showToast('Review submitted');
+        setContactInfo(prev => ({ ...prev, average_rating: res.data.average_rating }));
+        setUserRating(selectedRating);
+        setSelectedRating(selectedRating);
+        setCanReview(false); // prevent further reviews
+      }
     } catch {
-      showToast(e);
+      showToast('Failed to submit review');
     } finally {
       setSubmitting(false);
     }
@@ -123,6 +132,12 @@ const ContactPage = () => {
                       : 'No reviews yet'}
                   </span>
                 </div>
+
+                {userRating > 0 && (
+                  <p className="text- text-[#D4AF37]/50 mt-1">
+                    Your Gave: <span className='text-amber-400'>{userRating} / 5</span>
+                  </p>
+                )}
               </div>
             </div>
 

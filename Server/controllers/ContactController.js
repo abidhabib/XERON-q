@@ -1,20 +1,18 @@
 // controllers/ContactController.js
 import con from '../config/db.js';
 
+
 export const getContactInfo = async (req, res) => {
   const userId = req.session?.userId;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
-    // Step 1: Get user's referral chain (up to 10 levels)
     const [chain] = await con.promise().query(`
       WITH RECURSIVE referral_chain AS (
         SELECT id, refer_by, monthly_salary_unlocked, name
         FROM users
         WHERE id = ?
-        
         UNION ALL
-        
         SELECT u.id, u.refer_by, u.monthly_salary_unlocked, u.name
         FROM users u
         INNER JOIN referral_chain rc ON u.id = rc.refer_by
@@ -24,13 +22,13 @@ export const getContactInfo = async (req, res) => {
       SELECT id, refer_by, monthly_salary_unlocked, name
       FROM referral_chain
       WHERE refer_by IS NOT NULL
-      ORDER BY FIELD(id, ?) -- prioritize direct referrer
+      ORDER BY FIELD(id, ?)
     `, [userId, userId]);
 
     let contactUser = null;
-    let contactApp = null;
+    let alreadyReviewed = false;
+    let userRating = null;
 
-    // Step 2: Find nearest parent with monthly_salary_unlocked = 1 AND approved salary app
     for (const user of chain) {
       const [apps] = await con.promise().query(`
         SELECT 
@@ -55,24 +53,40 @@ export const getContactInfo = async (req, res) => {
       }
     }
 
-    // Step 3: Get user's own salary app (for verified tag)
+    if (contactUser) {
+      const [review] = await con.promise().query(
+        `SELECT rating FROM reviews WHERE reviewer_id = ? AND reviewed_id = ?`,
+        [userId, contactUser.id]
+      );
+
+      if (review.length > 0) {
+        alreadyReviewed = true;
+        userRating = review[0].rating;
+      }
+    }
+
     const [ownApp] = await con.promise().query(
       `SELECT status FROM salary_applications WHERE user_id = ?`,
       [userId]
     );
+
     const isVerified = ownApp.length > 0 && ownApp[0].status === 'approved';
 
     res.json({
       success: true,
       contact: contactUser,
       isVerified,
-      canReview: contactUser ? true : false
+      canReview: contactUser ? !alreadyReviewed : false,
+      alreadyReviewed,
+      userRating
     });
+
   } catch (error) {
     console.error('Contact info error:', error);
     res.status(500).json({ error: 'Failed to fetch contact info' });
   }
 };
+
 // controllers/ContactController.js
 export const submitReview = async (req, res) => {
   const { parentId, rating } = req.body;
