@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { RemoveTrailingZeros } from '../utils/utils';
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
+import { UserContext } from './UserContext/UserContext';
 
 // Axios Config
 axios.defaults.withCredentials = true;
@@ -134,7 +135,7 @@ const MiningTask = () => {
   const [collectSuccessSheet, setCollectSuccessSheet] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
   const [exchangeSheetOpen, setExchangeSheetOpen] = useState(false);
-
+const { currBalance, setCurrBalance } = useContext(UserContext);
   const navigate = useNavigate();
 
   // --- Toast Helpers ---
@@ -195,23 +196,35 @@ const handleCollect = async () => {
     }
     setExchangeSheetOpen(true);
   };
-  const confirmExchange = async () => {
-    setExchangeSheetOpen(false);
-    setLoading(prev => ({ ...prev, exchange: true }));
 
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/exchange-coin`);
-      setRefreshTrigger(p => p + 1);
-      showToast(res.data?.message || 'Exchange completed successfully', 'success');
-    } catch (err) {
-      const msg = err.response?.data?.error || 'Exchange failed';
-      showToast(msg, 'error');
-    } finally {
-      setLoading(prev => ({ ...prev, exchange: false }));
+const confirmExchange = async () => {
+  setExchangeSheetOpen(false);
+  setLoading(prev => ({ ...prev, exchange: true }));
+
+  try {
+    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/exchange-coin`);
+    
+    if (!res.data?.success) {
+      throw new Error(res.data?.error || 'Exchange failed');
     }
-  };
 
-  // --- Render ---
+    // ✅ CORRECT: API returns the NEW total balance as a string
+    const newBalance = RemoveTrailingZeros(res.data.balance); // "33.674814" → "33.674814" (or cleaned)
+    
+    // ✅ Update context immediately
+    setCurrBalance(newBalance);
+
+    // ✅ Also trigger full refresh for consistency (optional but safe)
+    setRefreshTrigger(p => p + 1);
+
+    showToast(res.data?.message || 'Exchange completed successfully', 'success');
+  } catch (err) {
+    const msg = err.response?.data?.error || err.message || 'Exchange failed';
+    showToast(msg, 'error');
+  } finally {
+    setLoading(prev => ({ ...prev, exchange: false }));
+  }
+};
   return (
     <div className="min-h-screen bg-[#111827]">
       <BalanceCard />

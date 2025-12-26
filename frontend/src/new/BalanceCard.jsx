@@ -6,9 +6,7 @@ import {
   Send,
   Users,
   Bell,
-  Mail,
-  CheckCheck,
-  Crown,
+
   Shield,
   Receipt
 } from 'lucide-react';
