@@ -9,22 +9,19 @@ export const getContactInfo = async (req, res) => {
   try {
     const [chain] = await con.promise().query(`
       WITH RECURSIVE referral_chain AS (
-  -- Start with the PARENT, not the user!
-  SELECT id, refer_by, monthly_salary_unlocked, name
-  FROM users
-  WHERE id = (SELECT refer_by FROM users WHERE id = ?)
-  
-  UNION ALL
-  
-  SELECT u.id, u.refer_by, u.monthly_salary_unlocked, u.name
-  FROM users u
-  INNER JOIN referral_chain rc ON u.id = rc.refer_by
-  WHERE rc.refer_by IS NOT NULL
-  LIMIT 10
-)
-SELECT id, refer_by, monthly_salary_unlocked, name
-FROM referral_chain
-WHERE refer_by IS NOT NULL OR id IS NOT NULL;
+        SELECT id, refer_by, monthly_salary_unlocked, name
+        FROM users
+        WHERE id = ?
+        UNION ALL
+        SELECT u.id, u.refer_by, u.monthly_salary_unlocked, u.name
+        FROM users u
+        INNER JOIN referral_chain rc ON u.id = rc.refer_by
+        WHERE rc.refer_by IS NOT NULL
+        LIMIT 10
+      )
+      SELECT id, refer_by, monthly_salary_unlocked, name
+      FROM referral_chain
+      WHERE refer_by IS NOT NULL
       ORDER BY FIELD(id, ?)
     `, [userId, userId]);
 
@@ -33,7 +30,7 @@ WHERE refer_by IS NOT NULL OR id IS NOT NULL;
     let userRating = null;
 
     for (const user of chain) {
-        
+        if (user.id === userId) continue;
       const [apps] = await con.promise().query(`
         SELECT 
           sa.whatsapp_number,
