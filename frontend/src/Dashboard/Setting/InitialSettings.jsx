@@ -46,7 +46,7 @@ const SETTINGS_CONFIG = {
   },
   coinValue: {
     title: "Coin Value",
-    subtitle: "Current coin value in USD",
+    subtitle: `1 Rovex Coin equals how many USD`,
     icon: HiCurrencyDollar,
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",

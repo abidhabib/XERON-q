@@ -3,17 +3,14 @@ import axios from 'axios';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
 import BalanceCard from './BalanceCard';
-import { 
-  Coins, 
+import {
+  Coins,
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-  Users,
-  Calendar,
   Lock,
   Trophy
 } from 'lucide-react';
-import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 const SalaryCollection = () => {
@@ -24,12 +21,13 @@ const SalaryCollection = () => {
   const [collecting, setCollecting] = useState(false);
   const { Userid } = useContext(UserContext);
   const API = import.meta.env.VITE_API_BASE_URL;
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+
   const fetchStatus = async () => {
     try {
       const res = await axios.get(`${API}/api/salary/status`, { withCredentials: true });
       setStatus(res.data);
-    } catch (err) {
+    } catch {
       setError('Failed to load eligibility status');
     } finally {
       setLoading(false);
@@ -47,7 +45,7 @@ const SalaryCollection = () => {
     try {
       await axios.post(`${API}/api/salary/collect`, {}, { withCredentials: true });
       setSuccess('Salary collected successfully!');
-      fetchStatus(); // Refresh to clear eligible flag for this week
+      fetchStatus();
     } catch (err) {
       setError(err.response?.data?.error || 'Collection failed');
     } finally {
@@ -57,44 +55,36 @@ const SalaryCollection = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <RefreshCw className="animate-spin text-amber-500 w-8 h-8" />
+      <div className="flex items-center justify-center min-h-screen bg-[#f5f5f5]">
+        <div className="w-8 h-8 border-2 border-[#f0f0f0] border-t-[#f0b90b] rounded-full animate-spin" />
       </div>
     );
   }
 
-  // ✅ SHOW: Permanently Eligible but Already Collected This Week
+  // Already collected this week
   if (status?.permanentlyEligible && !status.eligible && status.weekCredits === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-900 ">
+      <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
         <BalanceCard />
-          <div className="flex items-center justify-between p-3">
-          <div>
-            <h1 className=" font-bold text-white">Week Salary</h1>
-          </div>
-          <div className="flex gap-2">
+        <div className="px-4 pt-3 pb-6 flex-1">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-base font-semibold text-[#1e2329]">Week Salary</h1>
             <button
-              onClick={() => {navigate('/salary-history')}}
-              className='px-4 py-2 rounded-xl font-medium transition-all bg-[#D4AF37] text-gray-900'
+              onClick={() => navigate('/salary-history')}
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold bg-[#f0b90b] text-[#0b0e11] active:opacity-85 transition-opacity"
             >
               Show History
             </button>
-       
           </div>
-        </div>
-        <div className=" flex items-center  justify-center p-2">
-          
-          <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
-            <div className="w-16 h-16 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="text-emerald-400 w-8 h-8" />
+          <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="text-emerald-500 w-8 h-8" />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Salary Collected</h2>
-            <p className="text-gray-400 mb-4">
-              You’ve already collected your weekly salary.
-            </p>
+            <h2 className="text-lg font-bold text-[#1e2329] mb-2">Salary Collected</h2>
+            <p className="text-sm text-[#848e9c] mb-4">You've already collected your weekly salary.</p>
             <button
               onClick={fetchStatus}
-              className="w-full py-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl text-white flex items-center justify-center gap-2 transition-colors"
+              className="w-full h-11 bg-[#fafafa] hover:bg-[#f0f0f0] rounded-xl text-sm text-[#1e2329] font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh Status
@@ -105,49 +95,41 @@ const SalaryCollection = () => {
     );
   }
 
-  
+  // Not eligible yet
   if (!status?.permanentlyEligible) {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-900">
+      <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
         <BalanceCard />
-        <div className="flex-1  items-center justify-center">
-          <div className="bg-gray- -2xl mt-5 p-6 max-w-md w-full text-center">
-            <div className="w-16 h-16 bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="text-amber-500 w-8 h-8" />
+        <div className="px-4 pt-3 pb-6 flex-1">
+          <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
+            <div className="w-16 h-16 bg-[#fffbeb] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="text-[#f0b90b] w-8 h-8" />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Unlock Weekly Salary</h2>
-            <p className="text-gray-400 mb-4">
-              Recruit <span className="text-amber-400 font-medium">{status?.requiredRecruits || 0}</span> members in a single week to unlock lifetime salary.
+            <h2 className="text-lg font-bold text-[#1e2329] mb-2">Unlock Weekly Salary</h2>
+            <p className="text-sm text-[#848e9c] mb-4">
+              Recruit <span className="text-[#f0b90b] font-semibold">{status?.requiredRecruits || 0}</span> members in a single week to unlock lifetime salary.
             </p>
-            
             {status?.recruitsThisWeek !== undefined && (
-              <div className="bg-gray-700 rounded-xl p-4 mb-4">
+              <div className="bg-[#fafafa] rounded-xl p-4 mb-4">
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-400">Recruits This Week</span>
-                  <span className="text-amber-400 font-medium">
-                    {status.recruitsThisWeek}
-                  </span>
+                  <span className="text-[#848e9c]">Recruits This Week</span>
+                  <span className="text-[#f0b90b] font-semibold">{status.recruitsThisWeek}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Required</span>
-                  <span className="text-white font-medium">
-                    {status.requiredRecruits || 0}
-                  </span>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-[#848e9c]">Required</span>
+                  <span className="text-[#1e2329] font-semibold">{status.requiredRecruits || 0}</span>
                 </div>
-                <div className="h-2 bg-gray-600 rounded-full mt-2 overflow-hidden">
-                  <div 
-                    className="h-full bg-amber-500 rounded-full"
-                    style={{ 
-                      width: `${status.requiredRecruits ? Math.min(100, (status.recruitsThisWeek / status.requiredRecruits) * 100) : 0}%` 
-                    }}
+                <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#f0b90b] rounded-full"
+                    style={{ width: `${status.requiredRecruits ? Math.min(100, (status.recruitsThisWeek / status.requiredRecruits) * 100) : 0}%` }}
                   />
                 </div>
               </div>
             )}
-
             <button
               onClick={fetchStatus}
-              className="w-full py-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl text-white flex items-center justify-center gap-2 transition-colors"
+              className="w-full h-11 bg-[#fafafa] hover:bg-[#f0f0f0] rounded-xl text-sm text-[#1e2329] font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh Status
@@ -158,29 +140,32 @@ const SalaryCollection = () => {
     );
   }
 
+  // Ready to collect
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
       <BalanceCard />
-      <div className="p-2 flex-1">
-        <div className="bg-gray-800 rounded-2xl p-5 mb-4">
-          <div className="text-center mb-4">
-            <div className="w-20 h-20 bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Trophy className="text-emerald-400 w-10 h-10" />
+      <div className="px-4 pt-3 pb-6 flex-1">
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="text-center mb-5">
+            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Trophy className="text-emerald-500 w-10 h-10" />
             </div>
-            <h2 className="text-xl font-bold text-white">Weekly Salary Ready!</h2>
-            <p className="text-emerald-400 font-semibold text-lg mt-1">
+            <h2 className="text-lg font-bold text-[#1e2329]">Weekly Salary Ready!</h2>
+            <p className="text-emerald-600 font-bold text-3xl mt-2">
               ${RemoveTrailingZeros(status.weekCredits)}
             </p>
-            <p className="text-gray-400 text-sm mt-2">Lifetime eligibility unlocked <CheckCircle/> </p>
+            <p className="text-[#848e9c] text-sm mt-2 flex items-center justify-center gap-1">
+              Lifetime eligibility unlocked <CheckCircle className="w-4 h-4 text-emerald-500" />
+            </p>
           </div>
 
           <button
             onClick={handleCollect}
             disabled={collecting}
-            className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
-              collecting 
-                ? 'bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-gray-900 hover:from-emerald-400 hover:to-emerald-500'
+            className={`w-full h-[52px] flex items-center justify-center gap-2 rounded-xl text-[15px] font-semibold transition-all active:scale-[0.98] ${
+              collecting
+                ? 'bg-[#f5f5f5] text-[#c1c7cd] cursor-not-allowed'
+                : 'bg-[#f0b90b] text-[#0b0e11] active:opacity-90'
             }`}
           >
             {collecting ? (
@@ -198,19 +183,22 @@ const SalaryCollection = () => {
         </div>
       </div>
 
-      {/* Toasts */}
       {error && (
-        <div className="fixed bottom-4 left-4 right-4 p-3 bg-rose-900/50 text-rose-300 rounded-lg flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          <span>{error}</span>
-          <button onClick={() => setError('')} className="ml-auto">×</button>
+        <div className="fixed bottom-4 left-4 right-4 flex justify-center z-50">
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            <span>{error}</span>
+            <button onClick={() => setError('')} className="ml-auto text-lg leading-none">&times;</button>
+          </div>
         </div>
       )}
       {success && (
-        <div className="fixed top-4 left-4 right-4 p-3 bg-emerald-900/50 text-emerald-300 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          <span>{success}</span>
-          <button onClick={() => setSuccess('')} className="ml-auto">×</button>
+        <div className="fixed top-4 left-4 right-4 flex justify-center z-50">
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 text-sm">
+            <CheckCircle className="w-4 h-4" />
+            <span>{success}</span>
+            <button onClick={() => setSuccess('')} className="ml-auto text-lg leading-none">&times;</button>
+          </div>
         </div>
       )}
     </div>

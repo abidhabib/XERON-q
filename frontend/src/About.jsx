@@ -1,38 +1,34 @@
-import NavBAr from "./NavBAr";
+import NavBar from "./NavBar";
 import BalanceCard from "./new/BalanceCard";
 
 const About = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-[#111827]">
-      <NavBAr />
+    <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
+      <NavBar />
 
-      {/* BalanceCard — no extra wrapper needed */}
       <BalanceCard />
 
-      {/* Content Sections — clean, padded, consistent */}
-      <div className="px-4 pb-6 space-y-6 flex-1">
-        <div className="mt-4 space-y-6">
-          <section>
-            <h2 className="text-xl font-bold text-white mb-2">Activity</h2>
-            <p className="text-gray-400 text-sm">
-              Track your transactions, interactions, and progress.
-            </p>
-          </section>
+      <div className="px-3 pb-6 space-y-4 flex-1 mt-3">
+        <section className="bg-white rounded-xl p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-[#1e2329] mb-1.5">Activity</h2>
+          <p className="text-sm text-[#848e9c] leading-relaxed">
+            Track your transactions, interactions, and progress.
+          </p>
+        </section>
 
-          <section>
-            <h2 className="text-xl font-bold text-white mb-2">Rewards</h2>
-            <p className="text-gray-400 text-sm">
-              Earn benefits based on your activities and contributions.
-            </p>
-          </section>
+        <section className="bg-white rounded-xl p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-[#1e2329] mb-1.5">Rewards</h2>
+          <p className="text-sm text-[#848e9c] leading-relaxed">
+            Earn benefits based on your activities and contributions.
+          </p>
+        </section>
 
-          <section>
-            <h2 className="text-xl font-bold text-white mb-2">About</h2>
-            <p className="text-gray-400 text-sm">
-              Secure platform for managing your financial progress.
-            </p>
-          </section>
-        </div>
+        <section className="bg-white rounded-xl p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-[#1e2329] mb-1.5">About</h2>
+          <p className="text-sm text-[#848e9c] leading-relaxed">
+            Secure platform for managing your financial progress.
+          </p>
+        </section>
       </div>
     </div>
   );

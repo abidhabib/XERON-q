@@ -36,29 +36,29 @@ const Team = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#111827]">
+    <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
       <BalanceCard />
 
-      <div className="px-3 pt-4 pb-6 flex-1">
+      <div className="px-4 pt-4 pb-6 flex-1">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-lg font-semibold text-white">My Team</h1>
-            <p className="text-[#D4AF37]/60 text-xs mt-0.5">Approved members</p>
+            <h1 className="text-base font-semibold text-[#1e2329]">My Team</h1>
+            <p className="text-xs text-[#848e9c] mt-0.5">Approved members</p>
           </div>
           {teamMembers.length > 0 && (
-            <span className="px-2.5 py-1 bg-[#1c2a3a] text-[#D4AF37] rounded-full text-[11px] font-medium">
+            <span className="px-2.5 py-1 text-[11px] font-medium text-[#f0b90b] bg-[#f0b90b]/10 rounded-full">
               {teamMembers.length} Members
             </span>
           )}
         </div>
 
-        {/* Loading Overlay */}
+        {/* Loading */}
         {loading && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-[#19202a] p-4 rounded-xl flex flex-col items-center">
-              <div className="w-6 h-6 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-2 text-[#D4AF37] text-sm">Loading...</p>
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+            <div className="bg-white p-5 rounded-xl flex flex-col items-center shadow-xl">
+              <div className="w-6 h-6 border-2 border-[#f0f0f0] border-t-[#f0b90b] rounded-full animate-spin" />
+              <p className="mt-2.5 text-sm text-[#848e9c]">Loading...</p>
             </div>
           </div>
         )}
@@ -67,47 +67,42 @@ const Team = () => {
         {teamMembers.length > 0 ? (
           <div className="space-y-2.5">
             {teamMembers.map((member) => (
-              <div
-                key={member.id}
-                className="bg-[#19202a] rounded-xl p-3.5"
-              >
+              <div key={member.id} className="bg-white rounded-xl p-3.5 shadow-sm">
                 {/* Name + WhatsApp */}
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-white text-sm truncate">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-sm text-[#1e2329] truncate max-w-[200px]">
                     {member.name}
                   </h3>
                   <button
                     onClick={() => window.open(`https://wa.me/${member.phoneNumber}`, '_blank')}
-                    className="p-1.5 rounded-lg bg-[#1c2a3a] hover:bg-[#202e3a] transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors"
                     aria-label={`Message ${member.name} on WhatsApp`}
                   >
-                    <SiWhatsapp className="w-3.5 h-3.5 text-emerald-400" />
+                    <SiWhatsapp className="w-4 h-4 text-emerald-500" />
                   </button>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mb-2.5">
-                  <div className="flex justify-between text-[10px] text-[#D4AF37]/70 mb-1">
+                {/* Progress */}
+                <div className="mb-3">
+                  <div className="flex justify-between text-[11px] text-[#848e9c] mb-1.5">
                     <span>Progress</span>
-                    <span>
-                      {Math.min(parseFloat(member.backend_wallet || 0) * 100, 100).toFixed(0)}%
-                    </span>
+                    <span>{Math.min(parseFloat(member.backend_wallet || 0) * 100, 100).toFixed(0)}%</span>
                   </div>
-                  <div className="h-1 bg-[#1c2a3a] rounded-full overflow-hidden">
+                  <div className="h-1 bg-[#f5f5f5] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#D4AF37] to-amber-400 rounded-full"
+                      className="h-full bg-[#f0b90b] rounded-full"
                       style={{ width: `${Math.min(parseFloat(member.backend_wallet || 0) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Stats Row */}
+                {/* Stats */}
                 <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-[#D4AF37]/70" />
-                    <span className="text-white font-medium">{member.team || 0}</span>
+                  <div className="flex items-center gap-1.5 text-[#848e9c]">
+                    <Users className="w-3.5 h-3.5" />
+                    <span className="font-semibold text-[#1e2329]">{member.team || 0}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[#D4AF37]/70">
+                  <div className="flex items-center gap-1.5 text-[#848e9c]">
                     <Calendar className="w-3.5 h-3.5" />
                     <span>{formatDate(member.approved_at)}</span>
                   </div>
@@ -117,11 +112,11 @@ const Team = () => {
           </div>
         ) : !loading ? (
           <div className="text-center py-10">
-            <div className="w-12 h-12 mx-auto bg-[#1c2a3a] rounded-full flex items-center justify-center mb-3">
-              <Users className="w-6 h-6 text-[#D4AF37]/50" />
+            <div className="w-12 h-12 mx-auto bg-[#fafafa] rounded-full flex items-center justify-center mb-3">
+              <Users className="w-6 h-6 text-[#c1c7cd]" />
             </div>
-            <h3 className="text-white font-medium text-sm mb-1">No Team Members</h3>
-            <p className="text-[#D4AF37]/60 text-xs px-4">
+            <h3 className="text-sm font-medium text-[#1e2329] mb-1">No Team Members</h3>
+            <p className="text-xs text-[#848e9c] px-8">
               Invite users to grow your team.
             </p>
           </div>

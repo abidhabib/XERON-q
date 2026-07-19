@@ -29,43 +29,43 @@ axios.interceptors.response.use(
   }
 );
 
-// ✅ Toast (Golden Luxury – Top Right)
+// ✅ Toast (Light Mode)
 const Toast = ({ message, type, onClose }) => {
   const iconMap = {
-    success: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
-    error: <AlertCircle className="w-4 h-4 text-rose-400" />,
-    info: <AlertCircle className="w-4 h-4 text-amber-400" />
+    success: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
+    error: <AlertCircle className="w-4 h-4 text-rose-500" />,
+    info: <AlertCircle className="w-4 h-4 text-amber-500" />
   };
 
   const bgMap = {
-    success: 'bg-emerald-900/20 border-emerald-800/30',
-    error: 'bg-rose-900/20 border-rose-800/30',
-    info: 'bg-amber-900/20 border-amber-800/30'
+    success: 'bg-emerald-50 border-emerald-200',
+    error: 'bg-rose-50 border-rose-200',
+    info: 'bg-amber-50 border-amber-200'
   };
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border ${bgMap[type]} backdrop-blur-sm`}>
+    <div className={`flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg border ${bgMap[type]} shadow-sm`}>
       {iconMap[type]}
-      <span className="text-gray-200">{message}</span>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-300">
+      <span className="text-[#1E2026]">{message}</span>
+      <button onClick={onClose} className="text-[#C5C8CE] hover:text-[#707A8A] transition-colors">
         <X className="w-4 h-4" />
       </button>
     </div>
   );
 };
 
-// ✅ Reusable Bottom Sheet (Matches WithdrawalHistory)
+// ✅ Reusable Bottom Sheet (Light Mode)
 const BottomSheet = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50">
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
-        className="absolute bottom-0 left-0 right-0 bg-[#19202a] rounded-t-2xl border-t border-[#26303b] shadow-2xl max-h-[85vh]"
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl border-t border-[#E6E8EB] shadow-2xl max-h-[85vh]"
         style={{
           transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.35s cubic-bezier(0.33, 1, 0.68, 1)'
@@ -73,7 +73,7 @@ const BottomSheet = ({ isOpen, onClose, children }) => {
         onClick={e => e.stopPropagation()}
       >
         <div className="pt-3 flex justify-center">
-          <div className="w-12 h-1.5 bg-gray-700 rounded-full"></div>
+          <div className="w-12 h-1.5 bg-[#C5C8CE] rounded-full"></div>
         </div>
         {children}
       </div>
@@ -87,13 +87,13 @@ const MiningAnimation = ({ isMining }) => {
   return (
     <div className="relative w-full h-32 mb-6 flex items-center justify-center">
       <div className="relative z-10">
-        <div className="w-14 h-14 rounded-xl bg-[#1c2a3a] flex items-center justify-center shadow-lg">
-          <Cpu className="w-7 h-7 text-[#D4AF37] animate-pulse" />
+        <div className="w-14 h-14 rounded-xl bg-[#F5F5F5] border border-[#E6E8EB] flex items-center justify-center shadow-sm">
+          <Cpu className="w-7 h-7 text-[#F0B90B] animate-pulse" />
         </div>
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="absolute w-28 h-28 border-2 border-[#c9a030] rounded-full animate-ping"></div>
-        <div className="absolute w-36 h-36 border border-[#c9a030] rounded-full animate-pulse"></div>
+        <div className="absolute w-28 h-28 border-2 border-[#F0B90B]/30 rounded-full animate-ping"></div>
+        <div className="absolute w-36 h-36 border border-[#F0B90B]/20 rounded-full animate-pulse"></div>
       </div>
     </div>
   );
@@ -102,9 +102,9 @@ const MiningAnimation = ({ isMining }) => {
 const ActionButton = ({ onClick, disabled, loading, icon, label, isSell = false }) => {
   const baseClasses = "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all flex-1";
   const enabledClasses = isSell
-    ? "bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900 hover:from-[#e8c04e] hover:to-[#d4af37] shadow-[0_2px_8px_rgba(212,175,55,0.2)]"
-    : "bg-transparent border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10";
-  const disabledClasses = "bg-[#1c2a3a] text-[#D4AF37]/50 cursor-not-allowed";
+    ? "bg-[#F0B90B] text-[#1E2026] hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm"
+    : "bg-white border border-[#E6E8EB] text-[#1E2026] hover:bg-[#F5F5F5] hover:border-[#C5C8CE]";
+  const disabledClasses = "bg-[#F5F5F5] text-[#C5C8CE] cursor-not-allowed border border-[#E6E8EB]";
 
   return (
     <button
@@ -131,11 +131,11 @@ const MiningTask = () => {
   const [collectAvailable, setCollectAvailable] = useState(true);
   const [toasts, setToasts] = useState([]);
 
-  // ✅ Bottom sheet states
+  // Bottom sheet states
   const [collectSuccessSheet, setCollectSuccessSheet] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
   const [exchangeSheetOpen, setExchangeSheetOpen] = useState(false);
-const { currBalance, setCurrBalance } = useContext(UserContext);
+  const { setCurrBalance } = useContext(UserContext);
   const navigate = useNavigate();
 
   // --- Toast Helpers ---
@@ -149,45 +149,46 @@ const { currBalance, setCurrBalance } = useContext(UserContext);
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
- const fetchUserData = useCallback(async () => {
-  try {
-    const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/user-data`);
-    const data = res.data || {};
-    const user = {
-      coin: data.coin ?? 0,
-      balance: data.balance ?? 0,
-      last_collect_date: data.last_collect_date ?? null,
-      isEligibleToCollect: Boolean(data.is_eligible_to_collect) // ✅ NEW
-    };
-    setUserData(user);
-    setCollectAvailable(user.isEligibleToCollect); // ✅ Use server value
-  } catch (err) {
-    console.error('User data fetch error:', err);
-  }
-}, []);
+  const fetchUserData = useCallback(async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/user-data`);
+      const data = res.data || {};
+      const user = {
+        coin: data.coin ?? 0,
+        balance: data.balance ?? 0,
+        last_collect_date: data.last_collect_date ?? null,
+        isEligibleToCollect: Boolean(data.is_eligible_to_collect)
+      };
+      setUserData(user);
+      setCollectAvailable(user.isEligibleToCollect);
+    } catch (err) {
+      console.error('User data fetch error:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData, refreshTrigger]);
-const handleCollect = async () => {
-  if (!collectAvailable || loading.collect) return;
 
-  setLoading(prev => ({ ...prev, collect: true }));
-  setIsMining(true);
+  const handleCollect = async () => {
+    if (!collectAvailable || loading.collect) return;
 
-  try {
-    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/collect-coin`);
-    setRefreshTrigger(p => p + 1); // ✅ This will re-fetch and set collectAvailable = false
-    setCollectMessage(res.data?.message || 'Coins collected successfully');
-    setCollectSuccessSheet(true);
-    // ❌ Don't manually set collectAvailable — let fetchUserData handle it
-  } catch (err) {
-    const msg = err.response?.data?.error || 'Collection failed';
-    showToast(msg, 'error');
-  } finally {
-    setLoading(prev => ({ ...prev, collect: false }));
-    setTimeout(() => setIsMining(false), 2000);
-  }
-};
+    setLoading(prev => ({ ...prev, collect: true }));
+    setIsMining(true);
+
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/collect-coin`);
+      setRefreshTrigger(p => p + 1);
+      setCollectMessage(res.data?.message || 'Coins collected successfully');
+      setCollectSuccessSheet(true);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Collection failed';
+      showToast(msg, 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, collect: false }));
+      setTimeout(() => setIsMining(false), 2000);
+    }
+  };
 
   const handleExchangeClick = () => {
     if ((userData.coin ?? 0) <= 0) {
@@ -197,59 +198,55 @@ const handleCollect = async () => {
     setExchangeSheetOpen(true);
   };
 
-const confirmExchange = async () => {
-  setExchangeSheetOpen(false);
-  setLoading(prev => ({ ...prev, exchange: true }));
+  const confirmExchange = async () => {
+    setExchangeSheetOpen(false);
+    setLoading(prev => ({ ...prev, exchange: true }));
 
-  try {
-    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/exchange-coin`);
-    
-    if (!res.data?.success) {
-      throw new Error(res.data?.error || 'Exchange failed');
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/exchange-coin`);
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.error || 'Exchange failed');
+      }
+
+      const newBalance = RemoveTrailingZeros(res.data.balance);
+      setCurrBalance(newBalance);
+      setRefreshTrigger(p => p + 1);
+      showToast(res.data?.message || 'Exchange completed successfully', 'success');
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Exchange failed';
+      showToast(msg, 'error');
+    } finally {
+      setLoading(prev => ({ ...prev, exchange: false }));
     }
+  };
 
-    // ✅ CORRECT: API returns the NEW total balance as a string
-    const newBalance = RemoveTrailingZeros(res.data.balance); // "33.674814" → "33.674814" (or cleaned)
-    
-    // ✅ Update context immediately
-    setCurrBalance(newBalance);
-
-    // ✅ Also trigger full refresh for consistency (optional but safe)
-    setRefreshTrigger(p => p + 1);
-
-    showToast(res.data?.message || 'Exchange completed successfully', 'success');
-  } catch (err) {
-    const msg = err.response?.data?.error || err.message || 'Exchange failed';
-    showToast(msg, 'error');
-  } finally {
-    setLoading(prev => ({ ...prev, exchange: false }));
-  }
-};
   return (
-    <div className="min-h-screen bg-[#111827]">
+    <div className="min-h-screen bg-[#F5F5F5]">
       <BalanceCard />
-{/* Rovex Coin Display */}
-<div className="px-2 mt-4">
-  <div className="bg-[#19202a] rounded-2xl px-4 py-4  border-[#26303b] backdrop-blur-sm">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="p-2 bg-[#1c2a3a] rounded-xl">
-          <Coins className="w-5 h-5 text-[#D4AF37]" />
-        </div>
-        <div>
-          <p className="text-[#D4AF37]/60 text-xs font-medium">Your Rovex Coins</p>
-          <p className="text-white text-xl font-semibold mt-0.5">
-            {RemoveTrailingZeros(userData.coin ?? 0)}
-          </p>
+
+      <div className="px-3 mt-4">
+        <div className="bg-white rounded-2xl px-4 py-4 border border-[#E6E8EB] shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-[#F0B90B]/10 rounded-xl border border-[#F0B90B]/20">
+                <Coins className="w-5 h-5 text-[#F0B90B]" />
+              </div>
+              <div>
+                <p className="text-[#707A8A] text-xs font-medium">Available Rovex Coins</p>
+                <p className="text-[#1E2026] text-xl font-semibold mt-0.5">
+                  {RemoveTrailingZeros(userData.coin ?? 0)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[#707A8A] text-xs">Rovex</p>
+              <p className="text-[#F0B90B] text-sm font-medium mt-0.5">Coin</p>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="text-right">
-        <p className="text-[#D4AF37]/60 text-xs">Rovex</p>
-        <p className="text-[#D4AF37] text-sm font-medium mt-0.5">Coin</p>
-      </div>
-    </div>
-  </div>
-</div>
+
       {/* Toasts - Top Right */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
@@ -266,15 +263,15 @@ const confirmExchange = async () => {
         <div className="space-y-6 pt-8">
           <MiningAnimation isMining={isMining} />
 
-          <div className="bg-[#19202a] rounded-2xl p-4 space-y-4 mx-2">
+          <div className="bg-white rounded-2xl p-4 space-y-4 mx-2 border border-[#E6E8EB] shadow-sm">
             <div className="text-center">
-              <p className="text-[#D4AF37]/70 text-sm mb-2">
+              <p className="text-[#707A8A] text-sm mb-2">
                 Daily coin collection · 24h cooldown
               </p>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1c2a3a] rounded-full">
-                <span className="text-[11px] text-[#D4AF37]/80">Status:</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F5F5F5] rounded-full border border-[#E6E8EB]">
+                <span className="text-[11px] text-[#707A8A]">Status:</span>
                 <span className={`text-[11px] font-medium ${
-                  collectAvailable ? 'text-emerald-400' : 'text-amber-400'
+                  collectAvailable ? 'text-emerald-600' : 'text-amber-600'
                 }`}>
                   {collectAvailable ? 'Available' : 'Collected Today'}
                 </span>
@@ -299,16 +296,15 @@ const confirmExchange = async () => {
                 isSell={false}
               />
             </div>
-             <button
-            onClick={() => navigate('/mining-history')}
-            className="w-full flex items-center  mt-5 justify-center gap-2 py-3 bg-[#2a2a2a] hover:bg-[#1c2a3a] rounded-xl text-[#D4AF37] font-medium transition-colors m-2"
-          >
-            <History className="w-4 h-4" />
-            <span>See Full History</span>
-          </button>
-          </div>
 
-         
+            <button
+              onClick={() => navigate('/mining-history')}
+              className="w-full flex items-center mt-5 justify-center gap-2 py-3 bg-[#F5F5F5] hover:bg-[#EBECF0] rounded-xl text-[#1E2026] font-medium transition-colors border border-[#E6E8EB]"
+            >
+              <History className="w-4 h-4 text-[#707A8A]" />
+              <span>See Full History</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -318,14 +314,14 @@ const confirmExchange = async () => {
         onClose={() => setCollectSuccessSheet(false)}
       >
         <div className="px-4 pt-2 pb-6 text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-emerald-900/30 flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+          <div className="mx-auto w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4 border border-emerald-200">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">Collected!</h3>
-          <p className="text-[#D4AF37]/70 text-sm mb-6">{collectMessage}</p>
+          <h3 className="text-lg font-semibold text-[#1E2026] mb-2">Collected!</h3>
+          <p className="text-[#707A8A] text-sm mb-6">{collectMessage}</p>
           <button
             onClick={() => setCollectSuccessSheet(false)}
-            className="w-full py-2.5 bg-[#1c2a3a] hover:bg-[#26303b] text-white rounded-lg font-medium transition-colors text-sm"
+            className="w-full py-2.5 bg-[#F0B90B] text-[#1E2026] rounded-lg font-medium transition-colors text-sm hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm"
           >
             Done
           </button>
@@ -340,28 +336,28 @@ const confirmExchange = async () => {
         <div className="px-4 pt-2 pb-6 text-center relative">
           <button
             onClick={() => setExchangeSheetOpen(false)}
-            className="absolute top-3 right-3 p-1 text-[#D4AF37]/70 hover:text-[#D4AF37] rounded-full"
+            className="absolute top-3 right-3 p-1 text-[#C5C8CE] hover:text-[#707A8A] rounded-full transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="mx-auto w-12 h-12 rounded-full bg-[#D4AF37]/20 flex items-center justify-center mb-4">
-            <ArrowDownToLine className="w-6 h-6 text-[#D4AF37]" />
+          <div className="mx-auto w-12 h-12 rounded-full bg-[#F0B90B]/10 flex items-center justify-center mb-4 border border-[#F0B90B]/20">
+            <ArrowDownToLine className="w-6 h-6 text-[#F0B90B]" />
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">Confirm Exchange</h3>
-          <p className="text-[#D4AF37]/70 mb-6 text-sm">
-            Exchange <span className="font-semibold">{RemoveTrailingZeros(userData.coin ?? 0)}</span> Coins?
+          <h3 className="text-lg font-semibold text-[#1E2026] mb-2">Confirm Exchange</h3>
+          <p className="text-[#707A8A] mb-6 text-sm">
+            Exchange <span className="font-semibold text-[#1E2026]">{RemoveTrailingZeros(userData.coin ?? 0)}</span> Coins?
           </p>
           <div className="flex gap-3">
             <button
-              className="flex-1 py-2.5 px-4 bg-[#1c2a3a] hover:bg-[#26303b] text-[#D4AF37] rounded-lg font-medium transition-colors text-sm"
+              className="flex-1 py-2.5 px-4 bg-white border border-[#E6E8EB] text-[#707A8A] rounded-lg font-medium transition-colors text-sm hover:bg-[#F5F5F5]"
               onClick={() => setExchangeSheetOpen(false)}
             >
               Cancel
             </button>
             <button
-              className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900 rounded-lg font-medium transition-all text-sm shadow-[0_2px_6px_rgba(212,175,55,0.25)]"
+              className="flex-1 py-2.5 px-4 bg-[#F0B90B] text-[#1E2026] rounded-lg font-medium transition-all text-sm hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm"
               onClick={confirmExchange}
             >
               Confirm

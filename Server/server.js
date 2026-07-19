@@ -38,6 +38,7 @@ import adminMonthlySalaryRoutes from './routes/adminMonthlySalary.js';
 import https from 'https';
 import GetUserWalletRoute from './routes/GetUserWalletRoute.js'
 import contactRoutes from './routes/contactRoutes.js';
+import { auditSummary } from './controllers/AuditController.js';
 
 setupWebPush();
 
@@ -112,6 +113,7 @@ app.use('/api', salaryRoutes);
 app.use('/api/admin/monthly-salary', adminMonthlySalaryRoutes);
 app.use('/api', GetUserWalletRoute); 
 app.use('/api', contactRoutes);
+app.use('/api',auditSummary)
 
 const storage = multer.diskStorage({
     destination: './uploads/',
@@ -1787,7 +1789,6 @@ app.post('/exchange-coin', async (req, res) => {
     try {
         await connection.query('START TRANSACTION');
 
-        // ✅ Get current coin value from `settings` table
         const [valueResult] = await connection.query(
             `SELECT coin_value AS value FROM settings WHERE id = 1`
         );
@@ -1832,7 +1833,7 @@ app.post('/exchange-coin', async (req, res) => {
         // Insert into history
         await connection.query(
             `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'exchange', ?, ?)`,
-            [userId, coins, usdAmount]
+            [userId, usdAmount, coins]
         );
 
         // Get updated user data
@@ -1855,8 +1856,7 @@ app.post('/exchange-coin', async (req, res) => {
         res.status(500).json({ error: 'Exchange failed' });
     }
 });
-// Fixed /user-data endpoint to match frontend expectations
-// app.get('/user-data', ...)
+
 app.get('/user-data', async (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -1951,7 +1951,7 @@ app.post('/collect-coin', async (req, res) => {
         }
 
         // 3. Calculate collect amount (10% of backend wallet)
-        const collectAmount = backendWallet * 0.1;
+        const collectAmount = backendWallet * 0.1 ;
         const newWallet = backendWallet - collectAmount;
 
         // ✅ Get current coin value from `settings`
@@ -1977,13 +1977,13 @@ app.post('/collect-coin', async (req, res) => {
                 coin = coin + ?, 
                 last_collect_date = CURDATE() 
              WHERE id = ?`,
-            [newWallet, collectAmount, userId]
+            [newWallet, collectAmount*coinValue, userId]
         );
 
         // 5. Insert into history
         await connection.query(
             `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'collect', ?, ?)`,
-            [userId, collectAmount, collectAmount / coinValue]
+            [userId, collectAmount, collectAmount * coinValue]
         );
 
         // 6. Get updated user data

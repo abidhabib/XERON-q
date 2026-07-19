@@ -6,11 +6,11 @@ import { ClipLoader } from "react-spinners";
 import { format, subDays } from "date-fns";
 import PaymentReceipt from "./new/PaymentReceipt";
 
-// Lucide Icons (only what's used)
-import { CheckCircle, XCircle, Clock, Filter, Calendar, Cross, CrossIcon, X } from 'lucide-react';
+// Lucide Icons
+import { CheckCircle, XCircle, Clock, Filter, Calendar, X, ChevronRight } from 'lucide-react';
 
 
-export const WithdrwaHistory = () => {
+export const WithdrawalHistory = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,17 +55,17 @@ export const WithdrwaHistory = () => {
 
   useEffect(() => {
     if (withdrawalRequests.length === 0) return;
-    
+
     let filtered = [...withdrawalRequests];
-    
+
     if (statusFilter !== "all") {
       filtered = filtered.filter(request => request.approved === statusFilter);
     }
-    
+
     if (dateRange !== "all") {
       const now = new Date();
       let startDate;
-      
+
       switch (dateRange) {
         case "1d":
           startDate = subDays(now, 1);
@@ -79,14 +79,14 @@ export const WithdrwaHistory = () => {
         default:
           startDate = subDays(now, 7);
       }
-      
+
       filtered = filtered.filter(request => {
         const rawDate = request.date ?? request.request_date;
         const requestDate = new Date(rawDate);
         return requestDate >= startDate && requestDate <= now;
       });
     }
-    
+
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     setFilteredRequests(filtered);
     setIsFiltered(statusFilter !== "all" || dateRange !== "7d");
@@ -100,13 +100,41 @@ export const WithdrwaHistory = () => {
   const statusData = (status) => {
     switch (status) {
       case "approved":
-        return { label: "Completed", color: "text-emerald-400", dot: "bg-emerald-400", icon: <CheckCircle size={18} className="text-emerald-400" /> };
+        return { 
+          label: "Completed", 
+          color: "text-emerald-600", 
+          dot: "bg-emerald-500",
+          bg: "bg-emerald-50",
+          border: "border-emerald-200",
+          icon: <CheckCircle size={18} className="text-emerald-500" /> 
+        };
       case "pending":
-        return { label: "Processing", color: "text-[#D4AF37]", dot: "bg-[#D4AF37]", icon: <Clock size={18} className="text-[#D4AF37]" /> };
+        return { 
+          label: "Processing", 
+          color: "text-amber-600", 
+          dot: "bg-amber-500",
+          bg: "bg-amber-50",
+          border: "border-amber-200",
+          icon: <Clock size={18} className="text-amber-500" /> 
+        };
       case "rejected":
-        return { label: "Rejected", color: "text-rose-400", dot: "bg-rose-400", icon: <XCircle size={18} className="text-rose-400" /> };
+        return { 
+          label: "Rejected", 
+          color: "text-rose-600", 
+          dot: "bg-rose-500",
+          bg: "bg-rose-50",
+          border: "border-rose-200",
+          icon: <XCircle size={18} className="text-rose-500" /> 
+        };
       default:
-        return { label: "Unknown", color: "text-gray-400", dot: "bg-gray-400", icon: <XCircle size={18} className="text-gray-400" /> };
+        return { 
+          label: "Unknown", 
+          color: "text-gray-500", 
+          dot: "bg-gray-400",
+          bg: "bg-gray-50",
+          border: "border-gray-200",
+          icon: <XCircle size={18} className="text-gray-400" /> 
+        };
     }
   };
 
@@ -130,64 +158,65 @@ export const WithdrwaHistory = () => {
   };
 
   return (
-<div className="min-h-screen bg-[#111827]  pb-20 relative z-0 ">      {/* Fixed Header */}
-      <div className="sticky top-10 z-10  px-4 py-6 mt-">
+    <div className="min-h-screen bg-[#F5F5F5] pb-20 relative">
+      {/* Fixed Header */}
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-[#E6E8EB] px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-semibold text-white text-lg">Withdrawals</h1>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Calendar size={14} className="text-gray-500" />
-              <span className="text-xs text-gray-500">
-                {getFilterSummary()} • {filteredRequests.length}
+            <h1 className="font-semibold text-[#1E2026] text-lg">Withdrawals</h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Calendar size={13} className="text-[#707A8A]" />
+              <span className="text-xs text-[#707A8A]">
+                {getFilterSummary()} • {filteredRequests.length} records
               </span>
             </div>
           </div>
-          
+
           <button 
             onClick={() => setShowFilters(true)}
-            className="relative p-2 rounded-full bg-[#26303b] text-[#D4AF37]"
+            className="relative p-2.5 rounded-lg bg-[#F5F5F5] border border-[#E6E8EB] text-[#1E2026] hover:bg-[#EBECF0] active:scale-95 transition-all"
           >
-            <Filter size={20} />
+            <Filter size={18} />
             {isFiltered && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#D4AF37] rounded-full"></span>
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#F0B90B] rounded-full border-2 border-white"></span>
             )}
           </button>
         </div>
       </div>
 
-      <div className="px-2.5 ">
+      <div className="px-3 pt-3">
         {isLoading && (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <ClipLoader color="#D4AF37" size={40} />
-            <p className="mt-4 text-gray-500 text-sm">Loading transactions...</p>
+            <ClipLoader color="#F0B90B" size={40} />
+            <p className="mt-4 text-[#707A8A] text-sm">Loading transactions...</p>
           </div>
         )}
 
         {!isLoading && filteredRequests.length === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-            <div className="w-20 h-20 mb-4 text-gray-700">
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+            <div className="w-16 h-16 mb-4 text-[#C5C8CE]">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <h3 className="text-gray-400 font-medium mb-1">No transactions</h3>
-            <p className="text-gray-600 text-sm mb-6 max-w-[250px]">
+            <h3 className="text-[#1E2026] font-semibold text-base mb-1">No transactions</h3>
+            <p className="text-[#707A8A] text-sm mb-6 max-w-[260px]">
               {isFiltered 
                 ? "No transactions match your filters" 
                 : "You haven't made any withdrawals yet"}
             </p>
-            
+
             {isFiltered ? (
               <button
                 onClick={resetFilters}
-                className="w-full max-w-[200px] px-4 py-3 bg-[#D4AF37] text-gray-900 rounded-xl text-sm font-medium active:bg-[#c69c2e]"
+                className="w-full max-w-[220px] px-4 py-3 bg-[#F0B90B] text-[#1E2026] rounded-lg text-sm font-semibold hover:bg-[#E5AC00] active:scale-[0.98] transition-all shadow-sm"
               >
                 Reset Filters
               </button>
             ) : (
               <button
                 onClick={() => setShowFilters(true)}
-                className="w-full max-w-[200px] px-4 py-3 bg-[#26303b] text-gray-300 rounded-xl text-sm font-medium active:bg-[#36404b]"
+                className="w-full max-w-[220px] px-4 py-3 bg-white border border-[#E6E8EB] text-[#1E2026] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] active:scale-[0.98] transition-all"
               >
                 View Filters
               </button>
@@ -196,7 +225,7 @@ export const WithdrwaHistory = () => {
         )}
 
         {!isLoading && filteredRequests.length > 0 && (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {filteredRequests.map((request, index) => (
               <TransactionCard
                 key={`${request.id}-${index}`}
@@ -214,35 +243,35 @@ export const WithdrwaHistory = () => {
       {showFilters && (
         <div className="fixed inset-0 z-50">
           <div 
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setShowFilters(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 bg-[#1c232d] rounded-t-2xl shadow-2xl animate-slideUp border-t border-[#26303b]">
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl animate-slideUp">
             <div className="pt-3 flex justify-center">
-              <div className="w-12 h-1.5 bg-gray-700 rounded-full"></div>
+              <div className="w-10 h-1 bg-[#C5C8CE] rounded-full"></div>
             </div>
-            <div className="px-4 pt-6 pb-6">
+            <div className="px-4 pt-5 pb-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-semibold text-white text-lg">Filter Transactions</h2>
+                <h2 className="font-semibold text-[#1E2026] text-lg">Filter Transactions</h2>
                 <button
                   onClick={() => setShowFilters(false)}
-                  className="p-2 text-gray-400 hover:text-white"
+                  className="p-2 text-[#707A8A] hover:text-[#1E2026] hover:bg-[#F5F5F5] rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Status</h3>
-                <div className="grid grid-cols-2 gap-2">
+                <h3 className="text-sm font-semibold text-[#1E2026] mb-3">Status</h3>
+                <div className="grid grid-cols-2 gap-2.5">
                   {statusFilters.map(filter => (
                     <button
                       key={filter.id}
                       onClick={() => setStatusFilter(filter.id)}
-                      className={`py-2 rounded-xl text-sm font-medium transition-all ${
+                      className={`py-2.5 rounded-lg text-sm font-medium transition-all border ${
                         statusFilter === filter.id
-                          ? 'bg-[#D4AF37] text-gray-900'
-                          : 'bg-[#26303b] text-gray-300 active:bg-[#36404b]'
+                          ? 'bg-[#F0B90B] text-[#1E2026] border-[#F0B90B] shadow-sm'
+                          : 'bg-white text-[#707A8A] border-[#E6E8EB] hover:border-[#C5C8CE] active:bg-[#F5F5F5]'
                       }`}
                     >
                       {filter.label}
@@ -250,18 +279,18 @@ export const WithdrwaHistory = () => {
                   ))}
                 </div>
               </div>
-              
+
               <div className="mb-8">
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Time Period</h3>
-                <div className="grid grid-cols-2 gap-2">
+                <h3 className="text-sm font-semibold text-[#1E2026] mb-3">Time Period</h3>
+                <div className="grid grid-cols-2 gap-2.5">
                   {dateRanges.map(range => (
                     <button
                       key={range.id}
                       onClick={() => setDateRange(range.id)}
-                      className={`py-2 rounded-xl text-sm font-medium transition-all ${
+                      className={`py-2.5 rounded-lg text-sm font-medium transition-all border ${
                         dateRange === range.id
-                          ? 'bg-[#D4AF37] text-gray-900'
-                          : 'bg-[#26303b] text-gray-300 active:bg-[#36404b]'
+                          ? 'bg-[#F0B90B] text-[#1E2026] border-[#F0B90B] shadow-sm'
+                          : 'bg-white text-[#707A8A] border-[#E6E8EB] hover:border-[#C5C8CE] active:bg-[#F5F5F5]'
                       }`}
                     >
                       {range.label}
@@ -269,17 +298,17 @@ export const WithdrwaHistory = () => {
                   ))}
                 </div>
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   onClick={resetFilters}
-                  className="flex-1 py-2 bg-rose-900/50 text-rose-300 rounded-xl text-sm font-medium active:bg-rose-800/50"
+                  className="flex-1 py-3 bg-white border border-[#E6E8EB] text-[#707A8A] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] active:scale-[0.98] transition-all"
                 >
                   Reset
                 </button>
                 <button
                   onClick={applyFilters}
-                  className="flex-1 py-2 bg-[#D4AF37] text-gray-900 rounded-xl text-sm font-medium active:bg-[#c69c2e]"
+                  className="flex-1 py-3 bg-[#F0B90B] text-[#1E2026] rounded-lg text-sm font-semibold hover:bg-[#E5AC00] active:scale-[0.98] transition-all shadow-sm"
                 >
                   Apply Filters
                 </button>
@@ -293,7 +322,7 @@ export const WithdrwaHistory = () => {
       {selectedTransaction && (
         <div className="fixed inset-0 z-50">
           <div 
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setSelectedTransaction(null)}
           />
           <PaymentReceipt 
@@ -308,48 +337,51 @@ export const WithdrwaHistory = () => {
 
 const TransactionCard = ({ request, formatDate, statusData, setSelectedTransaction }) => {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
-  const { label, color, dot, icon } = statusData(request.approved);
+  const { label, color, dot, bg, border, icon } = statusData(request.approved);
 
   return (
     <div
       ref={ref}
-      className={`bg-[#1c232d] rounded-xl p-3 active:scale-[0.998] transition-all ${
+      className={`bg-white rounded-xl p-3.5 border border-[#E6E8EB] active:scale-[0.995] transition-all shadow-sm hover:shadow-md hover:border-[#D1D5DB] cursor-pointer ${
         inView ? "animate-fadeInUp" : "opacity-0"
       }`}
       onClick={() => setSelectedTransaction(request)}
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#26303b]">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg} ${border} border`}>
           {icon}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
-            <span className={`text-sm font-medium ${color}`}>
+            <span className={`text-sm font-semibold ${color}`}>
               {label}
             </span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-bold text-[#1E2026]">
               ${RemoveTrailingZeros(request.amount)}
             </span>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[#707A8A]">
                 {formatDate(request.date)}
               </span>
-              <span className={`w-2 h-2 rounded-full ${dot}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${dot}`}></span>
             </div>
-            <span className={`text-xs px-2 py-0.5 rounded-full bg-[#26303b] ${color}`}>
-              {request.approved}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${bg} ${color} ${border} border`}>
+                {request.approved}
+              </span>
+              <ChevronRight size={14} className="text-[#C5C8CE]" />
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
+export default WithdrawalHistory;
 const styles = `
 @keyframes slideUp {
   from { transform: translateY(100%); }
@@ -359,7 +391,7 @@ const styles = `
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-slideUp { animation: slideUp 0.3s ease-out; }
+.animate-slideUp { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .animate-fadeInUp { animation: fadeInUp 0.4s ease-out forwards; }
 `;
 

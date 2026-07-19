@@ -2,10 +2,9 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios'; 
 import { useNavigate } from 'react-router-dom';
 import { UserContext } from './UserContext/UserContext';
-import NavBar from './NavBAr';
 import BalanceCard from './new/BalanceCard';
 
-// ✅ Lucide Icons (clean, modern, consistent)
+// ✅ Lucide Icons
 import { 
   User, 
   Phone, 
@@ -37,7 +36,7 @@ const UserProfileUpdate = () => {
       setName(userData.name || '');
       setPhoneNumber(userData.phoneNumber || '');
       setLoading(false);
-      
+
       if (userData.profile_picture) {
         setProfilePicturePreview(`${import.meta.env.VITE_API_BASE_URL}/${userData.profile_picture}`);
       }
@@ -82,13 +81,13 @@ const UserProfileUpdate = () => {
     e.preventDefault();
     setUpdating(true);
     setError('');
-    
+
     if (!name.trim() || !phoneNumber.trim()) {
       setError('Name and phone number are required');
       setUpdating(false);
       return;
     }
-    
+
     if (!validatePasswords()) {
       setUpdating(false);
       return;
@@ -139,41 +138,39 @@ const UserProfileUpdate = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#111827] items-center justify-center">
-        <RotateCw className="w-8 h-8 text-[#D4AF37] animate-spin" />
-        <p className="mt-3 text-[#D4AF37]/70 text-sm">Loading profile...</p>
+      <div className="flex flex-col min-h-screen bg-[#F5F5F5] items-center justify-center">
+        <RotateCw className="w-8 h-8 text-[#F0B90B] animate-spin" />
+        <p className="mt-3 text-[#707A8A] text-sm">Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#111827]">
-      <div className="sticky top-0 z-50 bg-[#111827]">
-        <NavBar />
-      </div>
+    <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
+  alerts
 
       <BalanceCard />
 
-      <div className="px-2 pb-6 pt-2">
-        <div className="bg-[#19202a] rounded-2xl p-4">
+      <div className="px-3 pb-6 pt-2">
+        <div className="bg-white rounded-2xl p-4 border border-[#E6E8EB] shadow-sm">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-white">Profile Settings</h2>
-            <p className="text-[#D4AF37]/70 text-sm mt-1">Manage your account information</p>
+            <h2 className="text-lg font-semibold text-[#1E2026]">Profile Settings</h2>
+            <p className="text-[#707A8A] text-sm mt-1">Manage your account information</p>
           </div>
-          
+
           {(error || passwordError) && (
-            <div className="mb-5 p-3 bg-rose-900/20 border border-rose-800/30 rounded-xl">
-              <p className="text-rose-400 text-sm">{error || passwordError}</p>
+            <div className="mb-5 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+              <p className="text-rose-600 text-sm">{error || passwordError}</p>
             </div>
           )}
-          
+
           {updateSuccess && (
-            <div className="mb-5 p-3 bg-emerald-900/20 border border-emerald-800/30 rounded-xl flex items-center">
-              <Check className="w-4 h-4 text-emerald-400 mr-2 flex-shrink-0" />
-              <p className="text-emerald-400 text-sm">Profile updated successfully!</p>
+            <div className="mb-5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center">
+              <Check className="w-4 h-4 text-emerald-600 mr-2 flex-shrink-0" />
+              <p className="text-emerald-600 text-sm">Profile updated successfully!</p>
             </div>
           )}
-          
+
           <form onSubmit={handleUpdate} className="space-y-5">
             {/* Profile Picture */}
             <div className="flex items-center gap-4">
@@ -182,15 +179,15 @@ const UserProfileUpdate = () => {
                   <img 
                     src={profilePicturePreview} 
                     alt="Profile" 
-                    className="w-14 h-14 rounded-full object-cover border-2 border-[#26303b]"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-[#E6E8EB]"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-[#1c2a3a] flex items-center justify-center">
-                    <User className="w-6 h-6 text-[#D4AF37]/60" />
+                  <div className="w-14 h-14 rounded-full bg-[#F5F5F5] border border-[#E6E8EB] flex items-center justify-center">
+                    <User className="w-6 h-6 text-[#C5C8CE]" />
                   </div>
                 )}
-                <label className="absolute bottom-0 right-0 bg-[#D4AF37] rounded-full p-1 cursor-pointer hover:opacity-90 transition-opacity">
-                  <Camera className="w-4 h-4 text-gray-900" />
+                <label className="absolute bottom-0 right-0 bg-[#F0B90B] rounded-full p-1.5 cursor-pointer hover:opacity-90 transition-opacity shadow-sm border-2 border-white">
+                  <Camera className="w-3.5 h-3.5 text-[#1E2026]" />
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -200,92 +197,92 @@ const UserProfileUpdate = () => {
                 </label>
               </div>
               <div>
-                <p className="text-white text-sm font-medium">Profile Picture</p>
-                <p className="text-[#D4AF37]/70 text-xs">JPG, PNG (max 2MB)</p>
+                <p className="text-[#1E2026] text-sm font-medium">Profile Picture</p>
+                <p className="text-[#707A8A] text-xs">JPG, PNG (max 2MB)</p>
               </div>
             </div>
 
             {/* Name */}
             <div>
-              <label className="block text-[#D4AF37]/80 text-sm mb-2">Full Name</label>
+              <label className="block text-[#1E2026] text-sm font-medium mb-2">Full Name</label>
               <div className="relative">
-                <div className="absolute left-3.5 top-3 text-[#D4AF37]/60">
-                  <User className="w-4.5 h-4.5" />
+                <div className="absolute left-3.5 top-3 text-[#C5C8CE]">
+                  <User className="w-[18px] h-[18px]" />
                 </div>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-[#D4AF37]/40 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] transition-all text-sm"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-[#E6E8EB] rounded-xl text-[#1E2026] placeholder-[#C5C8CE] focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B] transition-all text-sm"
                   placeholder="Enter your full name"
                 />
               </div>
             </div>
-            
+
             {/* Phone */}
             <div>
-              <label className="block text-[#D4AF37]/80 text-sm mb-2">Phone Number</label>
+              <label className="block text-[#1E2026] text-sm font-medium mb-2">Phone Number</label>
               <div className="relative">
-                <div className="absolute left-3.5 top-3 text-[#D4AF37]/60">
-                  <Phone className="w-4.5 h-4.5" />
+                <div className="absolute left-3.5 top-3 text-[#C5C8CE]">
+                  <Phone className="w-[18px] h-[18px]" />
                 </div>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-[#D4AF37]/40 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] transition-all text-sm"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-[#E6E8EB] rounded-xl text-[#1E2026] placeholder-[#C5C8CE] focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B] transition-all text-sm"
                   placeholder="Enter phone number"
                 />
               </div>
             </div>
-            
+
             {/* Password Section */}
-            <div className="pt-3 border-t border-[#26303b]">
-              <h3 className="text-white text-sm font-medium mb-4">Change Password</h3>
-              
+            <div className="pt-3 border-t border-[#F0F0F0]">
+              <h3 className="text-[#1E2026] text-sm font-semibold mb-4">Change Password</h3>
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[#D4AF37]/80 text-sm mb-2">Current Password</label>
+                  <label className="block text-[#1E2026] text-sm font-medium mb-2">Current Password</label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-3 text-[#D4AF37]/60">
-                      <Lock className="w-4.5 h-4.5" />
+                    <div className="absolute left-3.5 top-3 text-[#C5C8CE]">
+                      <Lock className="w-[18px] h-[18px]" />
                     </div>
                     <input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-[#D4AF37]/40 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] transition-all text-sm"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-[#E6E8EB] rounded-xl text-[#1E2026] placeholder-[#C5C8CE] focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B] transition-all text-sm"
                       placeholder="Enter current password"
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-[#D4AF37]/80 text-sm mb-2">New Password</label>
+                  <label className="block text-[#1E2026] text-sm font-medium mb-2">New Password</label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-3 text-[#D4AF37]/60">
-                      <Lock className="w-4.5 h-4.5" />
+                    <div className="absolute left-3.5 top-3 text-[#C5C8CE]">
+                      <Lock className="w-[18px] h-[18px]" />
                     </div>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-[#D4AF37]/40 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] transition-all text-sm"
+                      className="w-full pl-11 pr-4 py-3 bg-white border border-[#E6E8EB] rounded-xl text-[#1E2026] placeholder-[#C5C8CE] focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B] transition-all text-sm"
                       placeholder="Enter new password"
                     />
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Update Button */}
             <button
               type="submit"
               disabled={updating}
-              className={`w-full py-3 rounded-xl font-medium text-sm transition-all ${
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
                 updating
-                  ? 'bg-[#1c2a3a] text-[#D4AF37]/70 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900 shadow-[0_2px_6px_rgba(212,175,55,0.2)] hover:from-[#e8c04e] hover:to-[#d4af37]'
+                  ? 'bg-[#F5F5F5] text-[#C5C8CE] cursor-not-allowed border border-[#E6E8EB]'
+                  : 'bg-[#F0B90B] text-[#1E2026] hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm'
               }`}
             >
               {updating ? (

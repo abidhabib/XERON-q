@@ -10,74 +10,62 @@ import {
   ShieldCheck,
   X,
   Clock,
-  Home,
-  Plus,
   Settings,
-  Info
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import BalanceCard from './BalanceCard';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
+import { RemoveTrailingZeros } from '../../utils/utils';
 
-// --- Toast Component (unchanged) ---
 const Toast = ({ message, type, onClose }) => {
-  const iconMap = {
-    success: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
-    error: <AlertCircle className="w-4 h-4 text-rose-400" />,
-    info: <AlertCircle className="w-4 h-4 text-amber-400" />
+  const styles = {
+    success: { icon: '✓', bg: 'bg-emerald-50 border-emerald-200 text-emerald-600' },
+    error: { icon: '✕', bg: 'bg-red-50 border-red-200 text-red-600' },
+    info: { icon: 'ℹ', bg: 'bg-amber-50 border-amber-200 text-amber-600' }
   };
-
-  const bgMap = {
-    success: 'bg-emerald-900/20 border-emerald-800/30',
-    error: 'bg-rose-900/20 border-rose-800/30',
-    info: 'bg-amber-900/20 border-amber-800/30'
-  };
+  const s = styles[type];
 
   return (
-    <div className={`animate-fade-in-up flex items-center gap-2 px-3 py-2 text-sm rounded-lg border ${bgMap[type]} backdrop-blur-sm`}>
-      {iconMap[type]}
-      <span className="text-gray-200">{message}</span>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-300">
+    <div className={`flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg border ${s.bg} bg-white shadow-lg`}>
+      <span className={`w-5 h-5 flex items-center justify-center rounded-md text-xs font-bold ${s.bg.split(' ')[0]} ${s.bg.split(' ')[2]}`}>{s.icon}</span>
+      <span className="text-[#1e2329] font-medium">{message}</span>
+      <button onClick={onClose} className="text-[#c1c7cd] hover:text-[#848e9c] ml-1">
         <X className="w-4 h-4" />
       </button>
     </div>
   );
 };
 
-// --- Success Modal (unchanged) ---
 const SuccessModal = ({ onClose }) => (
-  <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div className="bg-[#19202a] rounded-2xl p-3 w-full max-w-xs  shadow-2xl">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 mb-3">
-          <CheckCircle2 className="text-amber-400 w-6 h-6" />
-        </div>
-        <h3 className="text-base font-semibold text-white">Request Received</h3>
-        <p className="text-amber-400/80 text-xs mt-1">Processing will complete within 24 hours</p>
-        <button
-          onClick={onClose}
-          className="mt-4 w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-900 py-2.5 rounded-xl text-sm font-medium transition-all shadow-[0_4px_12px_rgba(212,175,55,0.15)]"
-        >
-          View History
-        </button>
+  <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-xl">
+      <div className="w-12 h-12 mx-auto mb-3 bg-[#fffbeb] rounded-full flex items-center justify-center">
+        <CheckCircle2 className="text-[#f0b90b] w-6 h-6" />
       </div>
+      <h3 className="text-base font-semibold text-[#1e2329]">Request Received</h3>
+      <p className="text-[#848e9c] text-xs mt-1">Processing will complete within 24 hours</p>
+      <button
+        onClick={onClose}
+        className="mt-4 w-full h-12 bg-[#f0b90b] text-[#0b0e11] rounded-xl text-sm font-semibold active:opacity-85 transition-opacity"
+      >
+        View History
+      </button>
     </div>
   </div>
 );
 
-// --- ActionCard Component ---
 const ActionCard = ({ to, icon: Icon, title }) => (
   <Link
     to={to}
-    className=" p-2 bg-[#19202a] rounded-xl transition-all duration-200  hover:bg-[#1c2a3a] active:scale-[0.98] flex items-center justify-center gap-3 w-full"
+    className="flex items-center justify-center gap-2 p-2.5 bg-white rounded-xl shadow-sm hover:bg-[#fafafa] active:bg-[#f0f0f0] transition-colors"
   >
-    <div className="w-5 h-5  rounded-lg bg-[#1c2a3a] flex items-center justify-center">
-      <Icon className="w-3 h-3 text-[#D4AF37]" />
+    <div className="w-7 h-7 rounded-lg bg-[#fafafa] flex items-center justify-center">
+      <Icon className="w-3.5 h-3.5 text-[#1e2329]" />
     </div>
-    <span className="text-amber-500 font-medium text-sm underline">{title}</span>
+    <span className="text-[13px] font-medium text-[#1e2329]">{title}</span>
   </Link>
 );
 
-// --- Main Component ---
 const WithdrawPage = () => {
   const { Userid, userData, fetchUserData, team, level, currBalance } = useContext(UserContext);
   const navigate = useNavigate();
@@ -87,8 +75,8 @@ const WithdrawPage = () => {
   const [toasts, setToasts] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSubmissionTime, setLastSubmissionTime] = useState(0);
-  const [availableWallets, setAvailableWallets] = useState([]); // [['bep20', '0x...'], ...]
-  const [selectedChain, setSelectedChain] = useState('');       // 'bep20'
+  const [availableWallets, setAvailableWallets] = useState([]);
+  const [selectedChain, setSelectedChain] = useState('');
 
   const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -98,58 +86,40 @@ const WithdrawPage = () => {
     setTimeout(() => removeToast(id), duration);
   };
 
-  const removeToast = (id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
+  const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // ✅ Fetch data with proper dependencies
   useEffect(() => {
     if (!Userid) return;
-
     const fetchData = async () => {
       try {
         const [limitsRes, walletsRes] = await Promise.all([
           axios.get(`${API}/fetchLimitsData`),
           axios.get(`${API}/api/wallets/${Userid}`)
         ]);
-
-        if (limitsRes.data.status === 'success') {
-          setWithdrawLimits(limitsRes.data.data);
-        }
-
+        if (limitsRes.data.status === 'success') setWithdrawLimits(limitsRes.data.data);
         if (walletsRes.data.success) {
-          const walletEntries = Object.entries(walletsRes.data.wallets || {});
-          setAvailableWallets(walletEntries);
-          
-          // Auto-select first wallet only if none selected yet
-          if (walletEntries.length > 0 && !selectedChain) {
-            setSelectedChain(walletEntries[0][0]);
-          }
+          const entries = Object.entries(walletsRes.data.wallets || {});
+          setAvailableWallets(entries);
+          if (entries.length > 0 && !selectedChain) setSelectedChain(entries[0][0]);
         }
-      } catch (error) {
+      } catch {
         showToast('Unable to load withdrawal data. Please retry.', 'error');
       }
     };
-
     fetchData();
-  }, [Userid, API]); // ✅ Removed 'level' and 'selectedChain' to prevent infinite loop
+  }, [Userid, API]);
 
-  // ✅ Handle empty wallets
   useEffect(() => {
-    if (availableWallets.length === 0) {
-      setSelectedChain('');
-    } else if (!selectedChain && availableWallets.length > 0) {
-      setSelectedChain(availableWallets[0][0]);
-    }
+    if (availableWallets.length === 0) setSelectedChain('');
+    else if (!selectedChain && availableWallets.length > 0) setSelectedChain(availableWallets[0][0]);
   }, [availableWallets, selectedChain]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const now = Date.now();
-
     if (submitting || (now - lastSubmissionTime < 5000)) return;
 
-    const numericAmount = parseFloat(amount);
+    const numericAmount = RemoveTrailingZeros(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
       showToast('Enter a valid amount', 'error');
       return;
@@ -161,7 +131,7 @@ const WithdrawPage = () => {
       return;
     }
 
-    if (numericAmount > currBalance) {
+    if (RemoveTrailingZeros(numericAmount) > RemoveTrailingZeros(currBalance)) {
       showToast('Insufficient balance', 'error');
       return;
     }
@@ -181,14 +151,7 @@ const WithdrawPage = () => {
     setLastSubmissionTime(now);
 
     try {
-      const payload = {
-        amount: numericAmount,
-        chain: selectedChain,
-        address: selectedAddress,
-        totalWithdrawn: userData.total_withdrawal,
-        team
-      };
-
+      const payload = { amount: numericAmount, chain: selectedChain, address: selectedAddress, totalWithdrawn: userData.total_withdrawal, team };
       const { data } = await axios.post(`${API}/withdraw`, payload, { withCredentials: true });
 
       if (data.status === 'success') {
@@ -222,139 +185,101 @@ const WithdrawPage = () => {
     showToast('Address copied to clipboard', 'success');
   };
 
-  const displayBalance = currBalance ? parseFloat(currBalance).toFixed(2) : '0.00';
+  const chainInfo = {
+    bep20: { name: 'BEP20', desc: 'Binance Smart Chain' },
+    eth: { name: 'ETH', desc: 'Ethereum' },
+    btc: { name: 'BTC', desc: 'Bitcoin' },
+    trc20: { name: 'TRC20', desc: 'TRON Network' },
+    sol: { name: 'SOL', desc: 'Solana' },
+    polygon: { name: 'MATIC', desc: 'Polygon' }
+  };
+  const hirtory = () => {
+    navigate('/wallet');
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#111827]">
-      <div className="bg-[#111827]">
-        <BalanceCard />
-      </div>
-
-    
+    <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
+      <BalanceCard />
 
       {/* Toasts */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
+          <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => removeToast(toast.id)} />
         ))}
       </div>
-
-      {/* Main Content */}
-      <div className="px-2 py-3 flex-1">
-        <div className=" mx-auto w-full space-y-5">
-          {/* Wallet Selection */}
+<div className="">
+  <p onClick={hirtory} className='text-amber-500 text-right underline text-sm mt-2 px-4'>show history</p>
+</div>
+      {/* Content */}
+      <div className="px-4 py-3 flex-1">
+        <div className="space-y-3">
           {availableWallets.length === 0 ? (
-            <div className="bg-[#19202a] rounded-2xl p-4 text-center">
-              <div className="w-12 h-12 bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <ShieldCheck className="text-amber-400 w-6 h-6" />
+            <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
+              <div className="w-12 h-12 bg-[#fffbeb] rounded-full flex items-center justify-center mx-auto mb-3">
+                <ShieldCheck className="text-[#f0b90b] w-6 h-6" />
               </div>
-              <h3 className="text-white font-medium mb-1">No Withdrawal Addresses</h3>
-              <p className="text-amber-400/70 text-sm mb-4">
-                Add a wallet address to withdraw funds.
-              </p>
-              <Link
-                to="/userWalletSettings"
-                className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
+              <h3 className="text-[#1e2329] font-medium text-sm mb-1">No Withdrawal Addresses</h3>
+              <p className="text-[#848e9c] text-sm mb-4">Add a wallet address to withdraw funds.</p>
+              <Link to="/userWalletSettings" className="inline-flex items-center gap-1.5 text-[#f0b90b] text-sm font-medium">
+                <Settings className="w-4 h-4" />
                 Add Address
               </Link>
             </div>
           ) : (
             <>
               {/* Chain Selector */}
-           {availableWallets.length > 1 && (
-  <div className="bg-[#19202a] rounded-2xl p-3">
-    
-    <label className="block text-amber-400/80 text-sm mb-2">
-      Withdrawal Network
-    </label>
-    <p className="text-[#D4AF37]/50 text-xs mb-3">
-      Select the blockchain network for your withdrawal
-    </p>
+              {availableWallets.length > 1 && (
+                <div className="bg-white rounded-2xl p-4 shadow-sm">
+                  <label className="block text-[13px] font-medium text-[#848e9c] uppercase tracking-wider mb-2">Withdrawal Network</label>
+                  <p className="text-xs text-[#848e9c] mb-3">Select the blockchain network for your withdrawal</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {availableWallets.map(([chain]) => {
+                      const isSelected = selectedChain === chain;
+                      const info = chainInfo[chain] || { name: chain.toUpperCase(), desc: 'Network' };
+                      return (
+                        <button
+                          key={chain}
+                          onClick={() => setSelectedChain(chain)}
+                          className={`p-2.5 rounded-xl text-left transition-all ${isSelected ? 'bg-[#fffbeb] shadow-[0_0_0_2px_#f0b90b]' : 'bg-[#fafafa] hover:bg-[#f0f0f0]'}`}
+                        >
+                          <div className={`text-sm font-semibold ${isSelected ? 'text-[#b45309]' : 'text-[#1e2329]'}`}>{info.name}</div>
+                          <div className="text-[10px] text-[#848e9c] mt-0.5">{info.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 p-2.5 bg-[#fafafa] rounded-xl flex items-start gap-2">
+                    <Info className="w-3.5 h-3.5 text-[#f0b90b] mt-0.5 flex-shrink-0" />
+                    <p className="text-[11px] text-[#848e9c]">Withdrawals are processed within 24 hours. Ensure your wallet supports the selected network.</p>
+                  </div>
 
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      {availableWallets.map(([chain]) => {
-        const isSelected = selectedChain === chain;
-        const chainInfo = {
-          bep20: { name: 'BEP20', desc: 'Binance Smart Chain', color: 'from-amber-500/20 to-amber-600/20' },
-          eth:   { name: 'ETH',   desc: 'Ethereum',         color: 'from-blue-500/20 to-indigo-600/20' },
-          btc:   { name: 'BTC',   desc: 'Bitcoin',          color: 'from-amber-700/20 to-amber-800/20' },
-          trc20: { name: 'TRC20', desc: 'TRON Network',     color: 'from-purple-500/20 to-purple-600/20' },
-          sol:   { name: 'SOL',   desc: 'Solana',           color: 'from-violet-500/20 to-violet-600/20' },
-          polygon: { name: 'MATIC', desc: 'Polygon',        color: 'from-green-500/20 to-emerald-600/20' }
-        }[chain] || { name: chain.toUpperCase(), desc: 'Network', color: 'from-gray-500/20 to-gray-600/20' };
-
-        return (
-          <button
-            key={chain}
-            onClick={() => setSelectedChain(chain)}
-            className={`p-2.5 rounded-xl text-left transition-all ${
-              isSelected
-                ? `bg-gradient-to-br ${chainInfo.color} text-white shadow-[0_2px_6px_rgba(212,175,55,0.08)]`
-                : 'bg-[#1c2a3a] text-amber-400/70 hover:bg-[#202d3d]'
-            }`}
-          >
-            <div className="font-medium text-sm">{chainInfo.name}</div>
-            <div className="text-[9px] text-amber-400/50 mt-0.5">{chainInfo.desc}</div>
-          </button>
-        );
-      })}
-    </div>
-
-    <div className="mt-3 p-2.5 bg-[#1c2a3a] rounded-xl">
-      <div className="flex items-start gap-2">
-        <Info className="w-3.5 h-3.5 text-[#D4AF37] mt-0.5 flex-shrink-0" />
-        <p className="text-[#D4AF37]/60 text-xs">
-          Withdrawals are processed within 24 hours. 
-          Ensure your wallet supports the selected network.
-        </p>
-      </div>
-    </div>
-      {/* Action Cards */}
-      <div className="px-2 pt-4 pb-3">
-        <div className="grid grid-cols-2 gap-3">
-          <ActionCard
-            to="/userWalletSettings"
-            icon={Settings}
-            title="Update Address"
-          />
-          <ActionCard
-            to="/wallet"
-            icon={HiArrowTopRightOnSquare}
-            title="History"
-          />
-        </div>
-      </div>
-  </div>
-)}
+                  {/* Action Cards */}
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <ActionCard to="/userWalletSettings" icon={Settings} title="Update Address" />
+                    <ActionCard to="/wallet" icon={ExternalLink} title="History" />
+                  </div>
+                </div>
+              )}
 
               {/* Selected Address */}
-              <div className="bg-[#19202a] rounded-2xl p-4">
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-amber-400/70 uppercase tracking-wide">
-                    Your <span className="text-green-500">Active</span> {selectedChain?.toUpperCase()} Address
+                  <span className="text-[11px] font-medium text-[#848e9c] uppercase tracking-wide">
+                    Your <span className="text-emerald-500">Active</span> {selectedChain?.toUpperCase()} Address
                   </span>
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 </div>
                 <div
-                  onClick={() => copyToClipboard(
-                    availableWallets.find(([chain]) => chain === selectedChain)?.[1] || ''
-                  )}
-                  className="group flex items-center gap-2 p-3 bg-[#1c2a3a] rounded-xl cursor-pointer hover:bg-[#202d3d] transition-colors"
+                  onClick={() => copyToClipboard(availableWallets.find(([chain]) => chain === selectedChain)?.[1] || '')}
+                  className="flex items-center gap-2 p-3 bg-[#fafafa] rounded-xl cursor-pointer hover:bg-[#f0f0f0] transition-colors"
                 >
-                  <p className="font-mono text-sm text-gray-200 break-all flex-1 min-w-0">
+                  <p className="font-mono text-xs text-[#1e2329] break-all flex-1 min-w-0">
                     {availableWallets.find(([chain]) => chain === selectedChain)?.[1] || '—'}
                   </p>
-                  <Clipboard className="w-4 h-4 text-amber-400/60 group-hover:text-amber-400 transition-colors" />
+                  <Clipboard className="w-4 h-4 text-[#848e9c] flex-shrink-0" />
                 </div>
-                <p className="text-[#D4AF37]/60 text-xs mt-2">
-                  Ensure this address supports <span className="font-medium">{selectedChain?.toUpperCase()}</span> tokens.
+                <p className="text-[11px] text-[#848e9c] mt-2">
+                  Ensure this address supports <span className="font-medium text-[#1e2329]">{selectedChain?.toUpperCase()}</span> tokens.
                 </p>
               </div>
             </>
@@ -362,66 +287,58 @@ const WithdrawPage = () => {
 
           {/* Withdraw Form */}
           {availableWallets.length > 0 && (
-            <div className="bg-[#19202a] rounded-2xl p-2">
-              <div className="mb-4">
-                <label className="block text-amber-400/80 text-sm font-medium mb-2">Withdraw Amount</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign className="w-4 h-4 text-amber-400/50" />
-                  </div>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={e => {
-                      let value = e.target.value.replace(/[^0-9.]/g, '');
-                      const parts = value.split('.');
-                      if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
-                      if (value.startsWith('.')) value = '0' + value;
-                      setAmount(value);
-                    }}
-                    placeholder="0.00"
-                    className="w-full pl-9 pr-12 py-3 bg-[#1c2a3a] rounded-xl text-white placeholder-amber-400/30 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    disabled={submitting}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setAmount(displayBalance)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-medium text-amber-400 hover:text-amber-300"
-                    disabled={submitting}
-                  >
-                    MAX
-                  </button>
-                </div>
-                <div className="mt-2 flex items-center text-xs text-amber-400/60">
-                  <span className="mx-1">•</span>
-                  <span>Fee: $0</span>
-                </div>
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <label className="block text-[13px] font-medium text-[#848e9c] uppercase tracking-wider mb-2">Withdraw Amount</label>
+              <div className="relative mb-2">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#848e9c]" />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={e => {
+                    let value = e.target.value.replace(/[^0-9.]/g, '');
+                    const parts = value.split('.');
+                    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+                    if (value.startsWith('.')) value = '0' + value;
+                    setAmount(value);
+                  }}
+                  placeholder="0.00"
+                  className="w-full h-[52px] pl-10 pr-14 text-base font-medium text-[#1e2329] bg-[#fafafa] rounded-xl outline-none placeholder:text-[#c1c7cd] focus:ring-2 focus:ring-[#f0b90b] font-variant-numeric-tabular"
+                  disabled={submitting}
+                />
+                <button
+                  type="button"
+                  onClick={() => setAmount(RemoveTrailingZeros(currBalance))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 text-[11px] font-semibold text-[#f0b90b] hover:bg-[#fffbeb] rounded-md transition-colors"
+                  disabled={submitting}
+                >
+                  MAX
+                </button>
               </div>
+              <p className="text-[11px] text-[#848e9c] mb-4">Fee: $0</p>
 
-              {/* Processing Info */}
-              <div className="flex items-start gap-2.5 p-3 bg-[#1c2a3a] rounded-xl mb-5">
-                <Clock className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2.5 p-3 bg-[#fafafa] rounded-xl mb-4">
+                <Clock className="w-4 h-4 text-[#f0b90b] mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-white text-sm font-medium">Processing Time</p>
-                  <p className="text-amber-400/70 text-xs mt-0.5">Withdrawals processed within 24 hours</p>
+                  <p className="text-[13px] font-semibold text-[#1e2329]">Processing Time</p>
+                  <p className="text-[11px] text-[#848e9c] mt-0.5">Withdrawals processed within 24 hours</p>
                 </div>
               </div>
 
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !selectedChain || !amount}
-                className={`w-full py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                className={`w-full h-[52px] flex items-center justify-center gap-2 rounded-xl text-[15px] font-semibold transition-all active:scale-[0.98] ${
                   submitting
-                    ? 'bg-[#1c2a3a] text-amber-400/50 cursor-not-allowed'
+                    ? 'bg-[#f5f5f5] text-[#c1c7cd] cursor-not-allowed'
                     : selectedChain && amount
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-gray-900 shadow-[0_4px_12px_rgba(212,175,55,0.15)] hover:from-amber-600 hover:to-amber-700'
-                      : 'bg-[#1c2a3a] text-amber-400/40 cursor-not-allowed'
+                      ? 'bg-[#f0b90b] text-[#0b0e11] active:opacity-90'
+                      : 'bg-[#f5f5f5] text-[#c1c7cd] cursor-not-allowed'
                 }`}
               >
                 {submitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-[#c1c7cd]/30 border-t-[#c1c7cd] rounded-full animate-spin" />
                     Processing...
                   </>
                 ) : (

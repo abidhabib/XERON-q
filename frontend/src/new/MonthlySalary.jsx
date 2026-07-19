@@ -24,7 +24,6 @@ import {
   Clock,
   Target,
   Award,
-
 } from 'lucide-react';
 import BalanceCard from './BalanceCard';
 import { useNavigate } from 'react-router-dom';
@@ -55,7 +54,7 @@ const useConfetti = () => {
             ...defaults,
             particleCount,
             origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
-            colors: ['#D4AF37', '#FFD700', '#FFFFFF', '#F4E4A6']
+            colors: ['#F0B90B', '#FFD700', '#1E2026', '#F5F5F5']
           });
         }, 250);
       })
@@ -101,25 +100,25 @@ const UploadField = ({ label, description, accept, onChange, required, error, ic
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-white/90 flex items-center gap-2">
-          <Icon className="w-4 h-4 text-[#D4AF37]" />
+        <label className="text-sm font-medium text-[#1E2026] flex items-center gap-2">
+          <Icon className="w-4 h-4 text-[#F0B90B]" />
           {label}
           {required && <span className="text-rose-500">*</span>}
         </label>
         {description && (
-          <span className="text-xs text-white/50">{description}</span>
+          <span className="text-xs text-[#707A8A]">{description}</span>
         )}
       </div>
-      
+
       <label
         className={`relative flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer group ${
           error
-            ? 'border-rose-500/50 bg-rose-500/5'
+            ? 'border-rose-300 bg-rose-50'
             : isDragging
-            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
+            ? 'border-[#F0B90B] bg-[#F0B90B]/5'
             : preview
-            ? 'border-emerald-500/30 bg-emerald-500/5'
-            : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+            ? 'border-emerald-300 bg-emerald-50'
+            : 'border-[#E6E8EB] bg-[#FAFAFA] hover:bg-[#F5F5F5] hover:border-[#C5C8CE]'
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -132,21 +131,21 @@ const UploadField = ({ label, description, accept, onChange, required, error, ic
               alt="Preview"
               className="w-full h-full object-cover rounded-lg"
             />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
               <Upload className="w-6 h-6 text-white" />
             </div>
           </div>
         ) : (
           <div className="text-center p-4">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors ${
-              isDragging ? 'bg-[#D4AF37]' : 'bg-white/10'
+              isDragging ? 'bg-[#F0B90B]' : 'bg-[#F5F5F5]'
             }`}>
-              <Icon className={`w-5 h-5 ${isDragging ? 'text-gray-900' : 'text-[#D4AF37]'}`} />
+              <Icon className={`w-5 h-5 ${isDragging ? 'text-[#1E2026]' : 'text-[#C5C8CE]'}`} />
             </div>
-            <p className="text-sm font-medium text-white mb-1">
+            <p className="text-sm font-medium text-[#1E2026] mb-1">
               {isDragging ? 'Drop file here' : 'Click or drag to upload'}
             </p>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-[#707A8A]">
               PNG, JPG up to 5MB
             </p>
           </div>
@@ -159,9 +158,9 @@ const UploadField = ({ label, description, accept, onChange, required, error, ic
           required={required}
         />
       </label>
-      
+
       {error && (
-        <div className="flex items-center gap-2 text-rose-400 text-sm">
+        <div className="flex items-center gap-2 text-rose-500 text-sm">
           <AlertTriangle className="w-4 h-4" />
           {error}
         </div>
@@ -189,37 +188,37 @@ const PhoneInput = ({ value, onChange, placeholder, countryCode, onCountryChange
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-white/90 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-[#D4AF37]" />
+      <label className="text-sm font-medium text-[#1E2026] flex items-center gap-2">
+        <Icon className="w-4 h-4 text-[#F0B90B]" />
         {placeholder}
       </label>
-      <div className={`flex gap-2 p-2 rounded-xl  transition-all duration-200 ${
+      <div className={`flex gap-2 p-2 rounded-xl border transition-all duration-200 ${
         isFocused
-          ? '-[#D4AF37] bg-white/5'
-          : '-white/10 bg-white/5 hover:bg-white/10'
+          ? 'border-[#F0B90B] bg-white shadow-sm'
+          : 'border-[#E6E8EB] bg-white hover:border-[#C5C8CE]'
       }`}>
         <div className="relative flex-1">
           <select
             value={countryCode}
             onChange={(e) => onCountryChange(e.target.value)}
-            className="w-full bg-transparent text-white px-3 py-2.5 text-sm focus:outline-none appearance-none cursor-pointer"
+            className="w-full bg-transparent text-[#1E2026] px-3 py-2.5 text-sm focus:outline-none appearance-none cursor-pointer"
           >
             {countryOptions.map((country) => (
-              <option key={country.code} value={country.code} className="bg-gray-900">
+              <option key={country.code} value={country.code} className="bg-white">
                 {country.code} {country.name}
               </option>
             ))}
           </select>
-          <ChevronRight className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none rotate-90" />
+          <ChevronRight className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#C5C8CE] pointer-events-none rotate-90" />
         </div>
-        <div className="w-px bg-white/10" />
+        <div className="w-px bg-[#E6E8EB]" />
         <input
           type="tel"
           value={formatPhone(value)}
           onChange={handlePhoneChange}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="flex-1 bg-transparent text-white px-3 py-2.5 text-sm focus:outline-none placeholder-white/30"
+          className="flex-1 bg-transparent text-[#1E2026] px-3 py-2.5 text-sm focus:outline-none placeholder-[#C5C8CE]"
           placeholder="Phone number"
           inputMode="numeric"
           required
@@ -258,33 +257,33 @@ const CountdownTimer = ({ nextWindowStart }) => {
   if (!nextWindowStart) return null;
 
   const timeUnits = [
-    { value: timeLeft.days, label: 'Days', color: 'text-blue-400' },
-    { value: timeLeft.hours, label: 'Hours', color: 'text-emerald-400' },
-    { value: timeLeft.minutes, label: 'Minutes', color: 'text-amber-400' },
-    { value: timeLeft.seconds, label: 'Seconds', color: 'text-rose-400' },
+    { value: timeLeft.days, label: 'Days', color: 'text-blue-600' },
+    { value: timeLeft.hours, label: 'Hours', color: 'text-emerald-600' },
+    { value: timeLeft.minutes, label: 'Minutes', color: 'text-amber-600' },
+    { value: timeLeft.seconds, label: 'Seconds', color: 'text-rose-600' },
   ];
 
   return (
-    <div className="bg-gradient-to-br from-gray-900/50 to-gray-900/30 backdrop-blur-sm rounded-2xl p-6 ">
+    <div className="bg-white rounded-2xl p-6 border border-[#E6E8EB] shadow-sm">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-[#D4AF37]/10 rounded-lg">
-          <Clock className="w-5 h-5 text-[#D4AF37]" />
+        <div className="p-2 bg-[#F0B90B]/10 rounded-lg">
+          <Clock className="w-5 h-5 text-[#F0B90B]" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-white">Next Collection Window</h3>
-          <p className="text-sm text-white/60">Salary collection will be available in</p>
+          <h3 className="text-lg font-semibold text-[#1E2026]">Next Collection Window</h3>
+          <p className="text-sm text-[#707A8A]">Salary collection will be available in</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-4 gap-3">
         {timeUnits.map((unit, i) => (
           <div key={unit.label} className="text-center">
-            <div className="bg-gray-900/50 rounded-xl p-3 mb-2">
+            <div className="bg-[#F5F5F5] rounded-xl p-3 mb-2 border border-[#E6E8EB]">
               <span className={`text-2xl font-bold ${unit.color}`}>
                 {unit.value.toString().padStart(2, '0')}
               </span>
             </div>
-            <span className="text-xs text-white/50">{unit.label}</span>
+            <span className="text-xs text-[#707A8A]">{unit.label}</span>
           </div>
         ))}
       </div>
@@ -292,20 +291,18 @@ const CountdownTimer = ({ nextWindowStart }) => {
   );
 };
 
-
-
 const StatCard = ({ icon: Icon, title, value, subtitle, color = "gold", size = "md" }) => {
   const bgColor = color === "emerald" 
-    ? "bg-emerald-500/10" 
+    ? "bg-emerald-50" 
     : color === "blue" 
-      ? "bg-blue-500/10" 
-      : "bg-[#161d2a]";
-  
+      ? "bg-blue-50" 
+      : "bg-[#F5F5F5]";
+
   const iconColor = color === "emerald" 
-    ? "text-emerald-400" 
+    ? "text-emerald-500" 
     : color === "blue" 
-      ? "text-blue-400" 
-      : "text-[#D4AF37]";
+      ? "text-blue-500" 
+      : "text-[#F0B90B]";
 
   const padding = size === "sm" ? "p-3" : "p-4";
   const titleSize = size === "sm" ? "text-[11px]" : "text-xs";
@@ -313,40 +310,41 @@ const StatCard = ({ icon: Icon, title, value, subtitle, color = "gold", size = "
   const subtitleSize = size === "sm" ? "text-[10px]" : "text-xs";
 
   return (
-    <div className={`${padding} bg-[#121826] rounded-xl`}>
-      <div className={`flex items-center gap-2 mb-1.5 ${titleSize} text-[#D4AF37]/70`}>
+    <div className={`${padding} bg-white rounded-xl border border-[#E6E8EB] shadow-sm`}>
+      <div className={`flex items-center gap-2 mb-1.5 ${titleSize} text-[#707A8A]`}>
         <Icon className="w-3.5 h-3.5" />
         {title}
       </div>
       <div className="flex items-center justify-between">
-        <span className={`font-bold ${valueSize} text-white`}>{value}</span>
+        <span className={`font-bold ${valueSize} text-[#1E2026]`}>{value}</span>
         <div className={`p-1.5 rounded-md ${bgColor}`}>
           <Icon className={`w-3 h-3 ${iconColor}`} />
         </div>
       </div>
-      <p className={`${subtitleSize} text-[#D4AF37]/50 mt-1`}>{subtitle}</p>
+      <p className={`${subtitleSize} text-[#707A8A] mt-1`}>{subtitle}</p>
     </div>
   );
 };
+
 // ✅ Enhanced Progress Bar
 const ProgressBar = ({ current, required, label, showPercentage = true }) => {
   const percentage = required ? Math.min(100, (current / required) * 100) : 0;
-  
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-white">{label}</span>
+        <span className="text-sm font-medium text-[#1E2026]">{label}</span>
         {showPercentage && (
-          <span className="text-sm font-bold text-[#D4AF37]">{Math.round(percentage)}%</span>
+          <span className="text-sm font-bold text-[#F0B90B]">{Math.round(percentage)}%</span>
         )}
       </div>
-      <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-[#F0F0F0] rounded-full overflow-hidden border border-[#E6E8EB]">
         <div
-          className="h-full bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] rounded-full transition-all duration-1000 ease-out"
+          className="h-full bg-[#F0B90B] rounded-full transition-all duration-1000 ease-out"
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-white/50">
+      <div className="flex justify-between text-xs text-[#707A8A]">
         <span>{current} members</span>
         <span>{required} required</span>
       </div>
@@ -359,7 +357,7 @@ const MonthlySalary = () => {
   const { Userid } = useContext(UserContext);
   const API = import.meta.env.VITE_API_BASE_URL;
   const triggerConfetti = useConfetti();
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -378,8 +376,6 @@ const navigate = useNavigate();
     selfie: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasFetchedHistory, setHasFetchedHistory] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const countryOptions = [
     { code: '+1', name: 'United States' },
@@ -394,7 +390,6 @@ const navigate = useNavigate();
     { code: '+966', name: 'Saudi Arabia' },
     { code: '+92', name: 'Pakistan' },
     { code: '+94', name: 'Sri Lanka' },
-    // Add more as needed...
   ].sort((a, b) => a.name.localeCompare(b.name));
 
   const fetchStatus = useCallback(async () => {
@@ -411,7 +406,6 @@ const navigate = useNavigate();
     }
   }, [Userid, API]);
 
-
   const validateForm = () => {
     const errors = {};
     if (!form.identityFront) errors.identityFront = 'Front ID image is required';
@@ -427,16 +421,16 @@ const navigate = useNavigate();
       setError('Please fill all required fields');
       return;
     }
-    
+
     setIsSubmitting(true);
     setError('');
     setSuccess('');
-    
+
     const formData = new FormData();
     Object.entries(form).forEach(([k, v]) => {
       if (v) formData.append(k, v);
     });
-    
+
     try {
       await axios.post(`${API}/api/monthly-salary/apply`, formData, { withCredentials: true });
       setSuccess('Application submitted successfully! Verification usually takes 24-48 hours.');
@@ -463,7 +457,7 @@ const navigate = useNavigate();
   const handleCollect = async () => {
     try {
       const res = await axios.post(`${API}/api/monthly-salary/collect`, {}, { withCredentials: true });
-      setSuccess(`🎉 Successfully collected $${RemoveTrailingZeros(res.data.amount)}! Funds have been added to your balance.`);
+      setSuccess(`Successfully collected $${RemoveTrailingZeros(res.data.amount)}! Funds have been added to your balance.`);
       triggerConfetti();
       fetchStatus();
     } catch (err) {
@@ -476,35 +470,35 @@ const navigate = useNavigate();
   }, [fetchStatus]);
 
   const renderLoading = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-gray-950">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5]">
       <div className="relative">
-        <div className="w-16 h-16 rounded-full border-4 border-gray-800"></div>
-        <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin"></div>
-        <Coins className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-[#D4AF37]" />
+        <div className="w-16 h-16 rounded-full border-4 border-[#E6E8EB]"></div>
+        <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-[#F0B90B] border-t-transparent animate-spin"></div>
+        <Coins className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-[#F0B90B]" />
       </div>
-      <p className="mt-4 text-white/60 animate-pulse">Loading salary dashboard...</p>
+      <p className="mt-4 text-[#707A8A] animate-pulse">Loading salary dashboard...</p>
     </div>
   );
 
   const renderNotEligible = () => (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-gradient-to-br from-gray-900/50 to-gray-900/30 backdrop-blur-sm rounded-2xl px-3 py-6">
+      <div className="bg-white rounded-2xl p-4 border border-[#E6E8EB] shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#D4AF37]/20 to-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Coins className="w-10 h-10 text-[#D4AF37]" />
+          <div className="w-20 h-20 bg-[#F0B90B]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#F0B90B]/20">
+            <Coins className="w-10 h-10 text-[#F0B90B]" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Monthly Salary Program</h1>
-          <p className="text-white/60">Unlock guaranteed monthly income by building your team</p>
+          <h1 className="text-2xl font-bold text-[#1E2026] mb-2">Monthly Salary Program</h1>
+          <p className="text-[#707A8A]">Unlock guaranteed monthly income by building your team</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-gray-900/50 rounded-xl p-4">
-            <p className="text-sm text-white/60 mb-1">Current Team</p>
-            <p className="text-2xl font-bold text-white">{status?.currentTeam || 0}</p>
+          <div className="bg-[#F5F5F5] rounded-xl p-4 border border-[#E6E8EB]">
+            <p className="text-sm text-[#707A8A] mb-1">Current Team</p>
+            <p className="text-2xl font-bold text-[#1E2026]">{status?.currentTeam || 0}</p>
           </div>
-          <div className="bg-gray-900/50 rounded-xl p-4">
-            <p className="text-sm text-white/60 mb-1">Required Team</p>
-            <p className="text-2xl font-bold text-[#D4AF37]">{status?.requiredTeam || 0}</p>
+          <div className="bg-[#F5F5F5] rounded-xl p-4 border border-[#E6E8EB]">
+            <p className="text-sm text-[#707A8A] mb-1">Required Team</p>
+            <p className="text-2xl font-bold text-[#F0B90B]">{status?.requiredTeam || 0}</p>
           </div>
         </div>
 
@@ -514,13 +508,13 @@ const navigate = useNavigate();
           label="Team Progress"
         />
 
-        <div className="mt-8 p-3 bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 rounded-xl ">
+        <div className="mt-8 p-4 bg-[#F0B90B]/10 rounded-xl border border-[#F0B90B]/20">
           <div className="flex items-center gap-3">
-            <Target className="w-5 h-5 text-[#D4AF37]" />
+            <Target className="w-5 h-5 text-[#F0B90B]" />
             <div>
-              <p className="font-medium text-white">Your Potential Earnings</p>
-              <p className="text-3xl font-bold text-[#D4AF37]">${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}</p>
-              <p className="text-sm text-white/60">per month upon approval</p>
+              <p className="font-medium text-[#1E2026]">Your Potential Earnings</p>
+              <p className="text-3xl font-bold text-[#F0B90B]">${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}</p>
+              <p className="text-sm text-[#707A8A]">per month upon approval</p>
             </div>
           </div>
         </div>
@@ -528,302 +522,288 @@ const navigate = useNavigate();
     </div>
   );
 
-const renderApplicationForm = () => (
-  <div className="max-w-2xl mx-auto">
-    <div className="bg-black/20 rounded-2xl p-4"> {/* No gradient, no blur */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="p-2 bg-[#D4AF37]/10 rounded-lg">
-          <BadgeCheck className="w-5 h-5 text-[#D4AF37]" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-white">Complete Your Application</h2>
-          <p className="text-xs text-white/50 mt-0.5">Verify your identity to activate salary benefits</p>
-        </div>
-      </div>
-
-      {(error || success) && (
-        <div className={`mb-5 p-3 rounded-lg ${
-          success ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-        }`}>
-          <div className="flex items-start gap-2.5">
-            {success ? (
-              <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
-            )}
-            <p className={`text-sm ${success ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {success || error}
-            </p>
+  const renderApplicationForm = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-2xl p-4 border border-[#E6E8EB] shadow-sm">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 bg-[#F0B90B]/10 rounded-lg">
+            <BadgeCheck className="w-5 h-5 text-[#F0B90B]" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-[#1E2026]">Complete Your Application</h2>
+            <p className="text-xs text-[#707A8A] mt-0.5">Verify your identity to activate salary benefits</p>
           </div>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Full Name */}
-        <div>
-          <label className="block text-xs text-white/60 mb-1.5">Full Legal Name</label>
-          <input
-            type="text"
-            value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-            className="w-full bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-white/30
-                       focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-0
-                       transition-colors"
-            placeholder="Enter your full name as on ID"
-            required
-          />
-        </div>
-
-        {/* Document Type & Number (side-by-side, tight grid) */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-white/60 mb-1.5">Document Type</label>
-            <select
-              value={form.documentType}
-              onChange={(e) => setForm({ ...form, documentType: e.target.value })}
-              className="w-full bg-white/5 rounded-lg px-3 py-2.5 text-white appearance-none
-                         focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-0
-                         transition-colors"
-              required
-            >
-              <option value="nic" className="bg-gray-800">National ID</option>
-              <option value="passport" className="bg-gray-800">Passport</option>
-              <option value="driving_license" className="bg-gray-800">Driving License</option>
-            </select>
+        {(error || success) && (
+          <div className={`mb-5 p-3 rounded-lg ${
+            success ? 'bg-emerald-50 border border-emerald-200' : 'bg-rose-50 border border-rose-200'
+          }`}>
+            <div className="flex items-start gap-2.5">
+              {success ? (
+                <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+              )}
+              <p className={`text-sm ${success ? 'text-emerald-600' : 'text-rose-500'}`}>
+                {success || error}
+              </p>
+            </div>
           </div>
+        )}
 
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Full Name */}
           <div>
-            <label className="block text-xs text-white/60 mb-1.5">Document Number</label>
+            <label className="block text-xs text-[#707A8A] mb-1.5 font-medium">Full Legal Name</label>
             <input
               type="text"
-              value={form.documentNumber}
-              onChange={(e) => setForm({ ...form, documentNumber: e.target.value })}
-              className="w-full bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-white/30
-                         focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-0
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              className="w-full bg-white border border-[#E6E8EB] rounded-lg px-3 py-2.5 text-[#1E2026] placeholder:text-[#C5C8CE]
+                         focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B]
                          transition-colors"
-              placeholder="ID number"
+              placeholder="Enter your full name as on ID"
               required
             />
           </div>
-        </div>
 
-        {/* Phone Inputs — assumed to follow same style */}
-        <PhoneInput
-          value={form.phoneNumber}
-          onChange={(val) => setForm({ ...form, phoneNumber: val })}
-          placeholder="Phone Number"
-          countryCode={form.phoneCountryCode}
-          onCountryChange={(code) => setForm({ ...form, phoneCountryCode: code })}
-          countryOptions={countryOptions}
-          className="!bg-white/5 !border-0 !rounded-lg !px-3 !py-2.5
-                     focus:!ring-2 focus:!ring-[#D4AF37] focus:!ring-offset-0"
-        />
+          {/* Document Type & Number */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-[#707A8A] mb-1.5 font-medium">Document Type</label>
+              <select
+                value={form.documentType}
+                onChange={(e) => setForm({ ...form, documentType: e.target.value })}
+                className="w-full bg-white border border-[#E6E8EB] rounded-lg px-3 py-2.5 text-[#1E2026] appearance-none
+                           focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B]
+                           transition-colors"
+                required
+              >
+                <option value="nic" className="bg-white">National ID</option>
+                <option value="passport" className="bg-white">Passport</option>
+                <option value="driving_license" className="bg-white">Driving License</option>
+              </select>
+            </div>
 
-        <PhoneInput
-          value={form.whatsappNumber}
-          onChange={(val) => setForm({ ...form, whatsappNumber: val })}
-          placeholder="WhatsApp Number"
-          countryCode={form.whatsappCountryCode}
-          onCountryChange={(code) => setForm({ ...form, whatsappCountryCode: code })}
-          countryOptions={countryOptions}
-          icon={MessageCircle}
-          className="!bg-white/5 !border-0 !rounded-lg !px-3 !py-2.5
-                     focus:!ring-2 focus:!ring-[#D4AF37] focus:!ring-offset-0"
-        />
+            <div>
+              <label className="block text-xs text-[#707A8A] mb-1.5 font-medium">Document Number</label>
+              <input
+                type="text"
+                value={form.documentNumber}
+                onChange={(e) => setForm({ ...form, documentNumber: e.target.value })}
+                className="w-full bg-white border border-[#E6E8EB] rounded-lg px-3 py-2.5 text-[#1E2026] placeholder:text-[#C5C8CE]
+                           focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B]
+                           transition-colors"
+                placeholder="ID number"
+                required
+              />
+            </div>
+          </div>
 
-        {/* Upload Fields – ensure UploadField also follows minimal style */}
-        <div className="space-y-4 pt-1">
-          <h3 className="text-base font-medium text-white">Verification Documents</h3>
-          <p className="text-xs text-white/50 -mt-1">Upload clear images for verification</p>
-
-          <UploadField
-            label="ID Front Side"
-            description="Clear image of front side"
-            accept="image/*"
-            onChange={(file) => setForm({ ...form, identityFront: file })}
-            required
-            error={uploadErrors.identityFront}
-            icon={CreditCard}
-            minimalStyle // <-- ensure your UploadField accepts a prop to style minimally
+          {/* Phone Inputs */}
+          <PhoneInput
+            value={form.phoneNumber}
+            onChange={(val) => setForm({ ...form, phoneNumber: val })}
+            placeholder="Phone Number"
+            countryCode={form.phoneCountryCode}
+            onCountryChange={(code) => setForm({ ...form, phoneCountryCode: code })}
+            countryOptions={countryOptions}
           />
-          
-          <UploadField
-            label="ID Back Side"
-            description="Clear image of back side"
-            accept="image/*"
-            onChange={(file) => setForm({ ...form, identityBack: file })}
-            required
-            error={uploadErrors.identityBack}
-            icon={CreditCard}
-            minimalStyle
-          />
-          
-          <UploadField
-            label="Selfie with ID"
-            description="Your face with ID in same frame"
-            accept="image/*"
-            onChange={(file) => setForm({ ...form, selfie: file })}
-            required
-            error={uploadErrors.selfie}
-            icon={User}
-            minimalStyle
-          />
-        </div>
 
-        {/* Submit Button – subtle gradient optional, but keep tight */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3 bg-[#D4AF37] text-gray-900 font-semibold rounded-lg
-                     flex items-center justify-center gap-2
-                     hover:opacity-95 active:scale-[0.99] transition-all
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? (
-            <>
-              <RotateCw className="w-4 h-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <ShieldCheck className="w-4 h-4" />
-              Submit Application
-            </>
-          )}
-        </button>
-      </form>
+          <PhoneInput
+            value={form.whatsappNumber}
+            onChange={(val) => setForm({ ...form, whatsappNumber: val })}
+            placeholder="WhatsApp Number"
+            countryCode={form.whatsappCountryCode}
+            onCountryChange={(code) => setForm({ ...form, whatsappCountryCode: code })}
+            countryOptions={countryOptions}
+            icon={MessageCircle}
+          />
+
+          {/* Upload Fields */}
+          <div className="space-y-4 pt-1">
+            <h3 className="text-base font-medium text-[#1E2026]">Verification Documents</h3>
+            <p className="text-xs text-[#707A8A] -mt-1">Upload clear images for verification</p>
+
+            <UploadField
+              label="ID Front Side"
+              description="Clear image of front side"
+              accept="image/*"
+              onChange={(file) => setForm({ ...form, identityFront: file })}
+              required
+              error={uploadErrors.identityFront}
+              icon={CreditCard}
+            />
+
+            <UploadField
+              label="ID Back Side"
+              description="Clear image of back side"
+              accept="image/*"
+              onChange={(file) => setForm({ ...form, identityBack: file })}
+              required
+              error={uploadErrors.identityBack}
+              icon={CreditCard}
+            />
+
+            <UploadField
+              label="Selfie with ID"
+              description="Your face with ID in same frame"
+              accept="image/*"
+              onChange={(file) => setForm({ ...form, selfie: file })}
+              required
+              error={uploadErrors.selfie}
+              icon={User}
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 bg-[#F0B90B] text-[#1E2026] font-semibold rounded-lg
+                       flex items-center justify-center gap-2
+                       hover:bg-[#E5AC00] active:scale-[0.99] transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            {isSubmitting ? (
+              <>
+                <RotateCw className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-4 h-4" />
+                Submit Application
+              </>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
-  </div>
-);
+  );
 
   const renderApprovedDashboard = () => (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className=" font-bold text-white">Monthly Salary</h1>
+            <h1 className="font-bold text-[#1E2026] text-xl">Monthly Salary</h1>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => {navigate('/month-salary-history')}}
-              className='px-4 py-2 rounded-xl font-medium transition-all bg-[#D4AF37] text-gray-900'
+              className='px-4 py-2 rounded-xl font-medium transition-all bg-[#F0B90B] text-[#1E2026] hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm text-sm'
             >
               Show History
             </button>
-       
           </div>
         </div>
 
+        <div className="space-y-4">
+          {/* 4 Stat Cards */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              icon={Users}
+              title="Team"
+              value={`${status?.currentTeam || 0}/${status?.requiredTeam || 0}`}
+              subtitle="members"
+              size="sm"
+            />
+            <StatCard
+              icon={Trophy}
+              title="Salary"
+              value={`$${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}`}
+              subtitle="monthly"
+              size="sm"
+            />
+            <StatCard
+              icon={FileText}
+              title="Status"
+              value="Active"
+              subtitle="approved"
+              color="emerald"
+              size="sm"
+            />
+            <StatCard
+              icon={Calendar}
+              title="Collect"
+              value={status?.hasCollectedThisMonth ? "Done" : "Ready"}
+              subtitle={status?.hasCollectedThisMonth ? "this month" : "now"}
+              color={status?.hasCollectedThisMonth ? "blue" : "emerald"}
+              size="sm"
+            />
+          </div>
 
-  <div className="space-y-4">
-    {/* 4 Stat Cards – Tight, Borderless, Golden Minimal */}
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <StatCard
-        icon={Users}
-        title="Team"
-        value={`${status?.currentTeam || 0}/${status?.requiredTeam || 0}`}
-        subtitle="members"
-        size="sm"
-      />
-      <StatCard
-        icon={Trophy}
-        title="Salary"
-        value={`$${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}`}
-        subtitle="monthly"
-        size="sm"
-      />
-      <StatCard
-        icon={FileText}
-        title="Status"
-        value="Active"
-        subtitle="approved"
-        color="emerald"
-        size="sm"
-      />
-      <StatCard
-        icon={Calendar}
-        title="Collect"
-        value={status?.hasCollectedThisMonth ? "Done" : "Ready"}
-        subtitle={status?.hasCollectedThisMonth ? "this month" : "now"}
-        color={status?.hasCollectedThisMonth ? "blue" : "emerald"}
-        size="sm"
-      />
-    </div>
+          {/* Countdown */}
+          {status?.hasCollectedThisMonth && status?.nextCollectionWindowStart && (
+            <CountdownTimer nextWindowStart={status.nextCollectionWindowStart} />
+          )}
 
-    {/* Countdown – Only if collected */}
-    {status?.hasCollectedThisMonth && status?.nextCollectionWindowStart && (
-      <CountdownTimer nextWindowStart={status.nextCollectionWindowStart} />
-    )}
+          {/* Collection Action */}
+          <div className="bg-white rounded-xl p-4 border border-[#E6E8EB] shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-[#1E2026] font-medium text-sm">Salary Collection</h3>
+                <p className="text-[#707A8A] text-xs mt-0.5">
+                  {status?.hasCollectedThisMonth 
+                    ? "Collected for this cycle" 
+                    : "Ready to receive your income"}
+                </p>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded ${
+                status?.hasCollectedThisMonth
+                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                  : 'bg-[#F0B90B]/15 text-[#F0B90B]'
+              }`}>
+                {status?.hasCollectedThisMonth ? 'Collected' : 'Available'}
+              </span>
+            </div>
 
-    {/* Collection Action – Minimal Card */}
-    <div className="bg-[#121826] rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-white font-medium text-sm">Salary Collection</h3>
-          <p className="text-[#D4AF37]/60 text-xs mt-0.5">
-            {status?.hasCollectedThisMonth 
-              ? "Collected for this cycle" 
-              : "Ready to receive your income"}
-          </p>
+            <button
+              onClick={handleCollect}
+              disabled={status?.hasCollectedThisMonth}
+              className={`w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+                status?.hasCollectedThisMonth
+                  ? 'bg-[#F5F5F5] text-[#C5C8CE] cursor-not-allowed border border-[#E6E8EB]'
+                  : 'bg-[#F0B90B] text-[#1E2026] hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm'
+              }`}
+            >
+              {status?.hasCollectedThisMonth ? (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  Collected
+                </>
+              ) : (
+                <>
+                  <Coins className="w-4 h-4" />
+                  Collect ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-1 rounded ${
-          status?.hasCollectedThisMonth
-            ? 'bg-emerald-500/10 text-emerald-400'
-            : 'bg-[#D4AF37]/15 text-[#D4AF37]'
-        }`}>
-          {status?.hasCollectedThisMonth ? 'Collected' : 'Available'}
-        </span>
-      </div>
-
-      <button
-        onClick={handleCollect}
-        disabled={status?.hasCollectedThisMonth}
-        className={`w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${
-          status?.hasCollectedThisMonth
-            ? 'bg-[#161d2a] text-[#D4AF37]/40 cursor-not-allowed'
-            : 'bg-gradient-to-r from-[#D4AF37] to-[#c69c2e] text-gray-900'
-        }`}
-      >
-        {status?.hasCollectedThisMonth ? (
-          <>
-            <CheckCircle className="w-4 h-4" />
-            Collected
-          </>
-        ) : (
-          <>
-            <Coins className="w-4 h-4" />
-            Collect ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}
-          </>
-        )}
-      </button>
-    </div>
-
-  
-  </div>
-
-
-
       </div>
     </div>
   );
 
   const renderPendingReview = () => (
     <div className="max-w-md mx-auto">
-      <div className="bg-gradient-to-br from-gray-900/50 to-gray-900/30 backdrop-blur-sm rounded-2xl p-5  text-center">
-        <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Clock className="w-10 h-10 text-amber-400" />
+      <div className="bg-white rounded-2xl p-5 text-center border border-[#E6E8EB] shadow-sm">
+        <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
+          <Clock className="w-10 h-10 text-amber-500" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Application Under Review</h2>
-        <p className="text-white/60 mb-6">
+        <h2 className="text-2xl font-bold text-[#1E2026] mb-2">Application Under Review</h2>
+        <p className="text-[#707A8A] mb-6">
           Your application is being verified. This usually takes 24-48 hours.
           You'll receive a notification once approved.
         </p>
-        <div className="bg-amber-500/10 rounded-xl p-4">
+        <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-            <p className="text-amber-400 font-medium">Verification in Progress</p>
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+            <p className="text-amber-600 font-medium">Verification in Progress</p>
           </div>
-          <p className="text-sm text-white/60">Check back later for updates</p>
+          <p className="text-sm text-[#707A8A]">Check back later for updates</p>
         </div>
       </div>
     </div>
@@ -832,9 +812,9 @@ const renderApplicationForm = () => (
   if (loading) return renderLoading();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950">
+    <div className="min-h-screen bg-[#F5F5F5]">
       <BalanceCard />
-      
+
       <div className="p-4 md:p-6">
         {!status?.isEligible && renderNotEligible()}
         {status?.isEligible && (!status?.applicationStatus || status?.applicationStatus === 'rejected') && renderApplicationForm()}
@@ -844,8 +824,8 @@ const renderApplicationForm = () => (
         {(error || success) && (status?.applicationStatus === 'approved') && (
           <div className={`fixed bottom-4 right-4 max-w-md p-4 rounded-xl shadow-2xl border transition-all duration-300 animate-slideIn ${
             success 
-              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-              : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+              : 'bg-rose-50 border-rose-200 text-rose-500'
           }`}>
             <div className="flex items-center gap-3">
               {success ? (
@@ -856,7 +836,7 @@ const renderApplicationForm = () => (
               <p className="text-sm">{success || error}</p>
               <button
                 onClick={() => { setSuccess(''); setError(''); }}
-                className="ml-4 p-1 hover:bg-white/10 rounded"
+                className="ml-4 p-1 hover:bg-[#F5F5F5] rounded transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -864,7 +844,6 @@ const renderApplicationForm = () => (
           </div>
         )}
       </div>
-
     </div>
   );
 };
