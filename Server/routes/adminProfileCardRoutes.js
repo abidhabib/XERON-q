@@ -7,7 +7,7 @@ import path from 'path';
 const router = express.Router();
 
 // Configure multer for file uploads
-const FRONTEND_UPLOADS = '/home/rovexking/htdocs/rovexking.com/uploads';
+const FRONTEND_UPLOADS = '/home/run-webthree/htdocs/webthree.run.place';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
