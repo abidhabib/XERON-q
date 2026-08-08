@@ -773,10 +773,10 @@ app.delete('/delete-rejected-users', async (req, res) => {
 });
 
 
-
+// GET /fetchLevelsData
 app.get('/fetchLevelsData', (req, res) => {
     const sql = `
-        SELECT id, level, threshold
+        SELECT id, level, threshold, category_name, give_from_webbackend
         FROM levels
         ORDER BY level ASC
     `;
@@ -794,13 +794,16 @@ app.get('/fetchLevelsData', (req, res) => {
     });
 });
 
-app.put('/upDateLevelData', (req, res) => {
-    const { id, threshold } = req.body;
+// PUT /upDateLevelData
+app.put('/upDateLevelData', verifyToken, (req, res) => {
+    const { id, threshold, category_name, give_from_webbackend } = req.body;
 
     // Validate input
     const errors = [];
     if (!id) errors.push('ID is required');
     if (threshold === undefined) errors.push('Threshold is required');
+    if (category_name === undefined) errors.push('Category name is required');
+    if (give_from_webbackend === undefined) errors.push('Give from web backend is required');
 
     if (errors.length > 0) {
         return res.status(400).json({
@@ -817,13 +820,21 @@ app.put('/upDateLevelData', (req, res) => {
         });
     }
 
+    const giveValue = Number(give_from_webbackend);
+    if (isNaN(giveValue) || giveValue < 0) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Give from web backend must be a non-negative number'
+        });
+    }
+
     const updateQuery = `
         UPDATE levels
-        SET threshold = ?
+        SET threshold = ?, category_name = ?, give_from_webbackend = ?
         WHERE id = ?
     `;
 
-    con.query(updateQuery, [thresholdValue, id], (err, result) => {
+    con.query(updateQuery, [thresholdValue, category_name.trim(), giveValue, id], (err, result) => {
         if (err) {
             console.error('Database update error:', err);
             return res.status(500).json({
@@ -842,15 +853,16 @@ app.put('/upDateLevelData', (req, res) => {
 
         res.json({
             status: 'success',
-            message: 'Level threshold updated successfully',
+            message: 'Level updated successfully',
             data: {
                 id,
-                threshold: thresholdValue
+                threshold: thresholdValue,
+                category_name: category_name.trim(),
+                give_from_webbackend: giveValue
             }
         });
     });
 });
-
 app.get('/fetchLimitsData', (req, res) => {
     const sql = 'SELECT * FROM withdraw_limit';
 
@@ -1008,19 +1020,14 @@ app.get('/fetchCommissionData', (req, res) => {
         res.json({ status: 'success', data: result });
     });
 });
-app.put('/updateCommissionData', (req, res) => {
-  const { id, direct_bonus, indirect_bonus, week_backend, web_backend } = req.body;
 
-  // Validate all four fields (adjust validation as needed)
-  if (
-    direct_bonus == null ||
-    indirect_bonus == null ||
-    week_backend == null ||
-    web_backend == null
-  ) {
+app.put('/updateCommissionData', (req, res) => {
+  const { id, direct_bonus, indirect_bonus } = req.body;
+
+  if (direct_bonus == null || indirect_bonus == null) {
     return res.status(400).json({
       status: 'error',
-      message: 'Direct Bonus, Indirect Bonus, Week Backend, and Web Backend are required'
+      message: 'Direct Bonus and Indirect Bonus are required'
     });
   }
 
@@ -1030,38 +1037,49 @@ app.put('/updateCommissionData', (req, res) => {
   if (id === 0) {
     updateQuery = `
       UPDATE commission
-      SET 
+      SET
         direct_bonus = ?,
-        indirect_bonus = ?,
-        week_backend = ?,
-        web_backend = ?
-      WHERE id = 0`;
-    queryParams = [direct_bonus, indirect_bonus, week_backend, web_backend];
+        indirect_bonus = ?
+      WHERE id = 0
+    `;
+
+    queryParams = [direct_bonus, indirect_bonus];
   } else {
     updateQuery = `
       UPDATE commission
-      SET 
+      SET
         direct_bonus = ?,
-        indirect_bonus = ?,
-        week_backend = ?,
-        web_backend = ?
-      WHERE id = ?`;
-    queryParams = [direct_bonus, indirect_bonus, week_backend, web_backend, id];
+        indirect_bonus = ?
+      WHERE id = ?
+    `;
+
+    queryParams = [direct_bonus, indirect_bonus, id];
   }
 
   con.query(updateQuery, queryParams, (err, result) => {
     if (err) {
       console.error('Error updating commission data:', err);
-      return res.status(500).json({ status: 'error', error: 'Failed to update commission data' });
+
+      return res.status(500).json({
+        status: 'error',
+        error: 'Failed to update commission data'
+      });
     }
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ status: 'error', message: 'Commission data not found' });
+      return res.status(404).json({
+        status: 'error',
+        message: 'Commission data not found'
+      });
     }
 
-    res.json({ status: 'success', message: 'Commission data updated successfully' });
+    res.json({
+      status: 'success',
+      message: 'Commission data updated successfully'
+    });
   });
 });
+
 
 
 
@@ -1678,6 +1696,7 @@ app.get('/settings', async (req, res) => {
     const [rows] = await con.promise().query(
       `SELECT 
         joining_fee AS fee,
+        web_backend_fee_percent AS webBackendFeePercent,
         initial_percent AS percentage,
         offer,
         coin_value AS coinValue,
@@ -1690,12 +1709,13 @@ app.get('/settings', async (req, res) => {
     if (rows.length === 0) {
       // Initialize default row if not exists
       await con.promise().query(
-        `INSERT INTO settings (id, joining_fee, initial_percent, offer, coin_value, week_salary_person_require, month_salary_person_require, month_salary_amount) 
-         VALUES (1, 0, 0, '', 0.0, 0.0, 0.0, 0.0)
+        `INSERT INTO settings (id, joining_fee, web_backend_fee_percent, initial_percent, offer, coin_value, week_salary_person_require, month_salary_person_require, month_salary_amount) 
+         VALUES (1, 0, 0, 0, '', 0.0, 0.0, 0.0, 0.0)
          ON DUPLICATE KEY UPDATE id = 1`
       );
       return res.json({
         fee: "0",
+        webBackendFeePercent: "0",
         percentage: "0",
         offer: "",
         coinValue: "0.0",
@@ -1709,12 +1729,13 @@ app.get('/settings', async (req, res) => {
     // Ensure all values are strings for frontend consistency
     res.json({
       fee: settings.fee?.toString() || "0",
+      webBackendFeePercent: settings.webBackendFeePercent?.toString() || "0",
       percentage: settings.percentage?.toString() || "0",
       offer: settings.offer || "",
       coinValue: settings.coinValue?.toString() || "0.0",
       weekSalaryPersonRequire: settings.weekSalaryPersonRequire?.toString() || "0.0",
       monthSalaryPersonRequire: settings.monthSalaryPersonRequire?.toString() || "0.0",
-        monthSalaryAmount: settings.monthSalaryAmount?.toString() || "0.0"
+      monthSalaryAmount: settings.monthSalaryAmount?.toString() || "0.0"
     });
   } catch (error) {
     console.error('GET /settings error:', error);
@@ -1726,6 +1747,7 @@ app.get('/settings', async (req, res) => {
 app.post('/settings', async (req, res) => {
   const {
     fee,
+    webBackendFeePercent,
     percentage,
     offer,
     coinValue,
@@ -1734,14 +1756,15 @@ app.post('/settings', async (req, res) => {
     monthSalaryAmount
   } = req.body;
 
-  // Basic presence validation
+  // Basic presence validation (fixed: comma → || before monthSalaryAmount)
   if (
     fee == null ||
+    webBackendFeePercent == null ||
     percentage == null ||
     offer == null ||
     coinValue == null ||
     weekSalaryPersonRequire == null ||
-    monthSalaryPersonRequire == null,
+    monthSalaryPersonRequire == null ||
     monthSalaryAmount == null
   ) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -1751,6 +1774,7 @@ app.post('/settings', async (req, res) => {
     const [result] = await con.promise().query(
       `UPDATE settings SET 
         joining_fee = ?,
+        web_backend_fee_percent = ?,
         initial_percent = ?,
         offer = ?,
         coin_value = ?,
@@ -1760,7 +1784,8 @@ app.post('/settings', async (req, res) => {
        WHERE id = 1`,
       [
         parseFloat(fee) || 0,
-        parseInt(percentage) || 0,
+        parseFloat(webBackendFeePercent) || 0,
+        parseFloat(percentage) || 0,
         offer,
         parseFloat(coinValue) || 0.0,
         parseFloat(weekSalaryPersonRequire) || 0.0,
@@ -1779,7 +1804,6 @@ app.post('/settings', async (req, res) => {
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
-
 app.post('/exchange-coin', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
 

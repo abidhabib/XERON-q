@@ -8,7 +8,9 @@ const Levels = () => {
     const [updateData, setUpdateData] = useState({ 
         id: '', 
         threshold: '', 
-        level: '' 
+        level: '',
+        category_name: '',
+        give_from_webbackend: ''
     });
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +31,10 @@ const Levels = () => {
                 const sortedData = [...response.data.data].sort((a, b) => a.level - b.level);
                 setLevelsData(sortedData);
             } else {
-                setError('Invalid levels data format');
+                setError('Invalid Category data format');
             }
         } catch (error) {
-            console.error('Levels fetch error:', error);
+            console.error('Category fetch error:', error);
             setError(error.response?.data?.message || 'Failed to fetch data');
         } finally {
             setIsLoading(false);
@@ -47,7 +49,9 @@ const Levels = () => {
         setUpdateData({
             id: item.id,
             threshold: item.threshold,
-            level: item.level
+            level: item.level,
+            category_name: item.category_name || '',
+            give_from_webbackend: item.give_from_webbackend ?? ''
         });
         setHasChanges(false);
         setShowModal(true);
@@ -61,9 +65,19 @@ const Levels = () => {
 
     const validateForm = () => {
         const thresholdValue = Number(updateData.threshold);
-
         if (isNaN(thresholdValue) || thresholdValue < 0) {
             setError('Threshold must be a non-negative number');
+            return false;
+        }
+
+        if (!updateData.category_name.trim()) {
+            setError('Category name is required');
+            return false;
+        }
+
+        const giveValue = Number(updateData.give_from_webbackend);
+        if (isNaN(giveValue) || giveValue < 0) {
+            setError('Give from web backend must be a non-negative number');
             return false;
         }
 
@@ -72,19 +86,27 @@ const Levels = () => {
 
     const handleSave = async () => {
         if (!validateForm()) return;
-        
+
         try {
             setIsSaving(true);
             setError('');
+
             const payload = {
                 id: updateData.id,
                 threshold: Number(updateData.threshold),
+                category_name: updateData.category_name.trim(),
+                give_from_webbackend: Number(updateData.give_from_webbackend),
             };
-            
+
+            const token = localStorage.getItem('adminTokens');
+
             const response = await axios.put(
-                `${import.meta.env.VITE_API_BASE_URL}/upDateLevelData`, 
+                `${import.meta.env.VITE_API_BASE_URL}/upDateLevelData`,
                 payload,
-                { timeout: 15000 }
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    timeout: 15000,
+                }
             );
 
             if (response.data?.status === 'success') {
@@ -95,7 +117,11 @@ const Levels = () => {
             }
         } catch (error) {
             console.error('Update error:', error);
-            setError(error.response?.data?.error || 'Request failed');
+            setError(
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Request failed'
+            );
         } finally {
             setIsSaving(false);
         }
@@ -116,8 +142,20 @@ const Levels = () => {
             </td>
 
             <td className="px-4 py-3">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-sm font-medium text-slate-700 border border-slate-200">
+                    {item.category_name || '—'}
+                </span>
+            </td>
+
+            <td className="px-4 py-3">
                 <span className="text-sm font-medium text-gray-700">
                     {item.threshold} <span className="text-gray-500 text-xs">members</span>
+                </span>
+            </td>
+
+            <td className="px-4 py-3">
+                <span className="text-sm font-medium text-emerald-700 font-mono">
+                    {Number(item.give_from_webbackend || 0).toFixed(2)}
                 </span>
             </td>
 
@@ -134,13 +172,13 @@ const Levels = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Level Settings</h1>
-                            <p className="text-sm text-gray-500 mt-1">Configure team size thresholds for each level</p>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Category Settings</h1>
+                            <p className="text-sm text-gray-500 mt-1">Configure thresholds, categories, and web backend ratios per category</p>
                         </div>
                         <button 
                             onClick={fetchData}
@@ -175,12 +213,12 @@ const Levels = () => {
                     <div className="flex justify-center items-center h-64">
                         <div className="text-center">
                             <FaSpinner className="animate-spin text-3xl text-indigo-600 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">Loading levels...</p>
+                            <p className="text-sm text-gray-500">Loading Category...</p>
                         </div>
                     </div>
                 ) : levelsData.length === 0 ? (
                     <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                        <p className="text-gray-500 mb-3">No levels available</p>
+                        <p className="text-gray-500 mb-3">No categories available</p>
                         <button 
                             onClick={fetchData}
                             className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
@@ -189,21 +227,16 @@ const Levels = () => {
                         </button>
                     </div>
                 ) : (
-                    /* Table Container */
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
-                                            Level
-                                        </th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                            Team Required
-                                        </th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
-                                            Actions
-                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">LID</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Category Name</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Team Required</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Web Backend Ratio</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -223,13 +256,10 @@ const Levels = () => {
                             className="bg-white rounded-xl shadow-lg w-full max-w-sm animate-fade-in"
                             onClick={e => e.stopPropagation()}
                         >
-                            {/* Modal Header */}
                             <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                        Level {updateData.level}
-                                    </h3>
-                                    <p className="text-sm text-gray-500 mt-0.5">Update threshold</p>
+                                    <h3 className="text-lg font-semibold text-gray-900">Category {updateData.level}</h3>
+                                    <p className="text-sm text-gray-500 mt-0.5">Update Category settings</p>
                                 </div>
                                 <button 
                                     onClick={handleCloseModal}
@@ -240,33 +270,51 @@ const Levels = () => {
                                 </button>
                             </div>
                             
-                            {/* Modal Body */}
                             <div className="px-6 py-4">
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Team Size Threshold
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                name="threshold"
-                                                value={updateData.threshold}
-                                                onChange={handleInputChange}
-                                                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent text-sm"
-                                                min="0"
-                                            />
-                                           
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                            Minimum team size required to reach this level
-                                        </p>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                                        <input
+                                            type="text"
+                                            name="category_name"
+                                            value={updateData.category_name}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent text-sm"
+                                            placeholder="e.g. Bronze, Silver, Gold"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Team Size Threshold</label>
+                                        <input
+                                            type="number"
+                                            name="threshold"
+                                            value={updateData.threshold}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent text-sm"
+                                            min="0"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1.5">Minimum team size to reach this Category</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Web Backend Ratio</label>
+                                        <input
+                                            type="number"
+                                            name="give_from_webbackend"
+                                            value={updateData.give_from_webbackend}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent text-sm font-mono"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1.5">Amount paid from web backend when user reaches this Category</p>
                                     </div>
                                 </div>
                             </div>
                             
-                            {/* Modal Footer */}
-                            <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                            <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl">
                                 <button
                                     type="button"
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -284,13 +332,9 @@ const Levels = () => {
                                     disabled={isSaving}
                                 >
                                     {isSaving ? (
-                                        <>
-                                            <FaSpinner className="animate-spin mr-2" /> Saving
-                                        </>
+                                        <><FaSpinner className="animate-spin mr-2" /> Saving</>
                                     ) : (
-                                        <>
-                                            <FaSave className="mr-2" /> Save
-                                        </>
+                                        <><FaSave className="mr-2" /> Save</>
                                     )}
                                 </button>
                             </div>

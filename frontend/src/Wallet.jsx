@@ -3,10 +3,8 @@ import { UserContext } from './UserContext/UserContext';
 import { Toaster } from 'react-hot-toast';
 import  WithdrwaHistory  from './MyWithdrwal';
 import BalanceCard from './new/BalanceCard';
-import { Link } from 'react-router-dom';
 
 // ✅ Lucide Icons
-import { Home, History } from 'lucide-react';
 
 const Wallet = () => {
   const { fetchUserData } = useContext(UserContext);
@@ -19,8 +17,6 @@ const Wallet = () => {
 
   return (
     <>
-        {/* ✅ Top Action Cards */}
-                <BalanceCard />
 
        
 

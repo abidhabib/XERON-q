@@ -16,18 +16,18 @@ export const getDashboardData = (req, res) => {
       (SELECT COUNT(*) FROM users WHERE payment_ok = 0 AND approved = 0) as unapprovedUnpaidUsersCount,
       (SELECT SUM(backend_wallet) FROM users WHERE approved = 1 AND id NOT BETWEEN 9329 AND 9338) as backend_wallet,
       (SELECT SUM(balance) FROM users WHERE approved = 1 AND id NOT BETWEEN 9329 AND 9338) as balance,
-      (SELECT SUM(bonus_amount) FROM bonus_history_level_up WHERE user_id NOT BETWEEN 9329 AND 9338) as bonus,
       (SELECT SUM(today_wallet) FROM users WHERE id != 9338) as today_wallet,
 
       -- Settings (from unified settings table)
       (SELECT joining_fee FROM settings WHERE id = 1 LIMIT 1) as joining_fee,
       (SELECT initial_percent FROM settings WHERE id = 1 LIMIT 1) as initial_percent,
+      (SELECT web_backend_fee_percent FROM settings WHERE id = 1 LIMIT 1) as web_backend_fee_percent,
+      (SELECT web_backend_earnings FROM settings WHERE id = 1 LIMIT 1) as web_backend_earnings,
 
       -- Commission total
       (SELECT SUM(direct_bonus + indirect_bonus) FROM commission) as total_commission
   `;
 
-  // ✅ Only 2 placeholders → pass [today, tomorrow] (not 4)
   con.query(sql, [today, tomorrow], (err, results) => {
     if (err) {
       console.error('Dashboard main query error:', err);
@@ -36,7 +36,6 @@ export const getDashboardData = (req, res) => {
 
     const r = results[0];
 
-    // Safely parse values (handle NULL/undefined)
     const approvedUsersCount = Number(r.approvedUsersCount) || 0;
     const approvedUsersCountToday = Number(r.approvedUsersCountToday) || 0;
     const totalWithdrawal = Number(r.totalWithdrawal) || 0;
@@ -44,17 +43,16 @@ export const getDashboardData = (req, res) => {
     const joining_fee = Number(r.joining_fee) || 0;
     const initial_percent = Number(r.initial_percent) || 0;
     const total_commission = Number(r.total_commission) || 0;
-    const bonus = Number(r.bonus) || 0;
+    const webBackendFeePercent = Number(r.web_backend_fee_percent) || 0;
+    const webBackendEarnings = Number(r.web_backend_earnings) || 0;
 
-    // ✅ Compute derived values in JavaScript (since not in SQL)
     const totalReceived = joining_fee * approvedUsersCount;
     const totalReceivedToday = joining_fee * approvedUsersCountToday;
 
-    // ✅ Recreate will_give using the original formula:
-    // ((joining_fee / 100) * (total_commission + initial_percent) * approvedUsersCount) + bonus
-    const will_give = 
-      (joining_fee / 100) * (total_commission + initial_percent) * approvedUsersCount 
-      + bonus;
+  const will_give =
+  (joining_fee / 100) *
+  (total_commission + initial_percent) *
+  approvedUsersCount;
 
     const dashboardData = {
       approvedUsersCount,
@@ -62,19 +60,19 @@ export const getDashboardData = (req, res) => {
       totalWithdrawal,
       totalAmountToday,
       unapprovedUnpaidUsersCount: Number(r.unapprovedUnpaidUsersCount) || 0,
-      totalAmountTodayWithdrawal: totalAmountToday, // alias
+      totalAmountTodayWithdrawal: totalAmountToday,
       totalReceived,
       totalReceivedToday,
       backend_wallet: Number(r.backend_wallet) || 0,
       users_balance: Number(r.balance) || 0,
-      users_bonus: bonus,
       today_wallet: Number(r.today_wallet) || 0,
       totalIncome: totalReceived - totalWithdrawal,
       todayIncome: totalReceivedToday - totalAmountToday,
-      will_give: will_give - totalWithdrawal // as per your original logic
+      will_give: will_give - totalWithdrawal,
+      webBackendFeePercent,
+      webBackendEarnings
     };
 
-    // Subadmin query (unchanged)
     const subadminSql = `
       SELECT 
         sa.username AS subadmin,

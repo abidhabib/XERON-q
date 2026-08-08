@@ -2,7 +2,6 @@
 import con from '../config/db.js';
 
 class AdminProfileCard {
-  // Get public admin profile (single card for entire system)
   static async getPublicProfile() {
     return new Promise((resolve, reject) => {
       const query = `

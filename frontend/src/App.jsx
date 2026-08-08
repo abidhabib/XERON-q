@@ -58,6 +58,7 @@ import SalaryHistory from './SalaryHistory';
 import MonthlySalaryAdmin from './Dashboard/MonthlySalaryAdmin/MonthlySalaryAdmin';
 import MonthSalaryHistory from './MonthSalaryHistory';
 import ContactPage from './ContactPage';
+import Levels from './Dashboard/Levels/Levels';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);  
@@ -138,7 +139,7 @@ function App() {
             <Route path="/users" element={
               adminAuthenticated ? <AdminLayout><ApprovedUsers /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
-            <Route path="/easypaisa" element={
+            <Route path="/pending-for-approval" element={
               adminAuthenticated ? <AdminLayout><EasyPaisa /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
             <Route path="/rejecteduser" element={
@@ -195,9 +196,12 @@ function App() {
             <Route path="/admin/monthly-salary" element={
               adminAuthenticated ? <AdminLayout><MonthlySalaryAdmin /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
-            <Route path="/admin-profile-manager" element={
-              adminAuthenticated ? <AdminLayout><AdminProfileManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+              <Route path="/admin/level-setting" element={
+              adminAuthenticated ? <AdminLayout><Levels /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
+            {/* <Route path="/admin-profile-manager" element={
+              adminAuthenticated ? <AdminLayout><AdminProfileManager /></AdminLayout> : <Navigate to="/admin/login" replace />
+            } /> */}
 
             {/* Public Routes */}
             <Route path='/' element={<Login />} />

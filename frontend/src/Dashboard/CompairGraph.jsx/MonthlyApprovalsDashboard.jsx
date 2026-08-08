@@ -10,11 +10,20 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
+import { 
+  HiOutlineCheckCircle, 
+  HiOutlineTrendingUp, 
+  HiOutlineCalendar, 
+  HiOutlineArrowSmUp, 
+  HiOutlineArrowSmDown 
+} from 'react-icons/hi';
 
 const MonthlyApprovalsDashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('12');
+  
+  // Stats State
   const [totalApprovals, setTotalApprovals] = useState(0);
   const [averageMonthly, setAverageMonthly] = useState(0);
   const [maxMonth, setMaxMonth] = useState({ month: '', approvals: 0 });
@@ -32,14 +41,12 @@ const MonthlyApprovalsDashboard = () => {
         if (result.success) {
           const fetchedData = result.data;
           
-          // Calculate total, avg, max
           const total = fetchedData.reduce((sum, item) => sum + item.approvals, 0);
           const avg = fetchedData.length > 0 ? Math.round(total / fetchedData.length) : 0;
           const max = fetchedData.reduce((max, item) =>
             item.approvals > max.approvals ? item : max, { approvals: 0 }
           );
           
-          // Calculate average monthly growth rate
           let growthRate = 0;
           if (fetchedData.length > 1) {
             let sumGrowth = 0;
@@ -53,7 +60,6 @@ const MonthlyApprovalsDashboard = () => {
             growthRate = Math.round((sumGrowth / (fetchedData.length - 1)) * 100);
           }
           
-          // Calculate last period change
           let diffText = 'No previous data';
           let diff = 0;
           if (fetchedData.length > 1) {
@@ -61,8 +67,8 @@ const MonthlyApprovalsDashboard = () => {
             const prevMonth = fetchedData[fetchedData.length - 2];
             diff = lastMonth.approvals - prevMonth.approvals;
             diffText = diff >= 0 
-              ? `${diff} increase from last period` 
-              : `${Math.abs(diff)} decrease from last period`;
+              ? `${diff.toLocaleString()} increase` 
+              : `${Math.abs(diff).toLocaleString()} decrease`;
           } else if (fetchedData.length === 1) {
             diffText = 'First data point';
           }
@@ -74,8 +80,6 @@ const MonthlyApprovalsDashboard = () => {
           setLastPeriodChange(diffText);
           setDiffValue(diff);
           setAverageMonthlyGrowthRate(growthRate);
-        } else {
-          console.error('Failed to fetch approval data');
         }
       } catch (error) {
         console.error('Fetch error:', error);
@@ -87,29 +91,18 @@ const MonthlyApprovalsDashboard = () => {
     fetchData();
   }, [timeRange]);
 
-  // Calculate peak month's performance relative to average
   const peakPerformance = averageMonthly > 0
     ? Math.round(((maxMonth.approvals / averageMonthly) - 1) * 100)
     : maxMonth.approvals > 0 ? 100 : 0;
 
-  // Custom tooltip component
+  // Minimal Custom Tooltip
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      const value = payload[0].value;
-      const diff = averageMonthly > 0 
-        ? Math.round(((value / averageMonthly) - 1) * 100)
-        : value > 0 ? 100 : 0;
-        
       return (
-        <div className="bg-white p-4 border border-gray-200 shadow-lg rounded-lg">
-          <p className="font-bold text-gray-800">{label}</p>
-          <p className="text-blue-600">
-            <span className="font-medium">Approvals:</span> {value.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            {diff >= 0 
-              ? `${diff}% above average` 
-              : `${Math.abs(diff)}% below average`}
+        <div className="bg-white p-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-none">
+          <p className="font-bold text-zinc-900 mb-1">{label}</p>
+          <p className="text-zinc-600 font-medium">
+            {payload[0].value.toLocaleString()} Approvals
           </p>
         </div>
       );
@@ -117,15 +110,15 @@ const MonthlyApprovalsDashboard = () => {
     return null;
   };
 
-  // Custom bar shape for gradient effect
+  // Clean Bar Shape
   const CustomBar = (props) => {
-    const { fill, x, y, width, height } = props;
+    const { x, y, width, height } = props;
     return (
       <g>
         <defs>
           <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4f46e5" />
-            <stop offset="100%" stopColor="#818cf8" />
+            <stop offset="0%" stopColor="#18181b" /> {/* Zinc-900 */}
+            <stop offset="100%" stopColor="#52525b" /> {/* Zinc-600 */}
           </linearGradient>
         </defs>
         <rect 
@@ -133,8 +126,8 @@ const MonthlyApprovalsDashboard = () => {
           y={y} 
           width={width} 
           height={height} 
-          rx="4" 
-          ry="4" 
+          rx="6" 
+          ry="6" 
           fill="url(#colorBar)" 
         />
       </g>
@@ -142,315 +135,176 @@ const MonthlyApprovalsDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 mt-6 rounded ">
-      <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">User Approvals Dashboard</h1>
-          <p className="text-gray-600 mt-2">Monthly approval statistics and trends</p>
+    <div className="w-full space-y-6 px-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">Approval Trends</h1>
+          <p className="text-sm text-zinc-500 mt-1">Performance overview by month</p>
         </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Total Approvals</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">
-                  {totalApprovals.toLocaleString()}
-                </h3>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className={`h-4 w-4 mr-1 ${diffValue >= 0 ? 'text-green-500' : 'text-red-500'}`} 
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={diffValue >= 0 ? 'M5 10l7-7m0 0l7 7m-7-7v18' : 'M19 9l-7 7-7-7'} />
-                </svg>
-                <span>{lastPeriodChange}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Avg. Monthly</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">
-                  {averageMonthly.toLocaleString()}
-                </h3>
-              </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-                <span>Peak was {peakPerformance}% above average</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Peak Month</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">
-                  {maxMonth.approvals > 0 ? maxMonth.approvals.toLocaleString() : 'N/A'}
-                </h3>
-                <p className="text-gray-600 mt-1 text-sm">
-                  {maxMonth.month ? `in ${maxMonth.month}` : ''}
-                </p>
-              </div>
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <span>Highest month in selected period</span>
-              </div>
-            </div>
-          </div>
+        
+        {/* Minimal Toggle Buttons */}
+        <div className="flex bg-zinc-100 p-1 rounded-full">
+          {['6', '12', '24'].map((range) => (
+            <button 
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                timeRange === range 
+                  ? 'bg-white text-zinc-900 shadow-sm' 
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              {range === '24' ? 'All Time' : `${range} Mo`}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Chart Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">Monthly Approvals</h2>
-              <p className="text-gray-600">User approvals by month</p>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+           {[1,2,3].map(i => <div key={i} className="h-32 bg-zinc-100 rounded-2xl"></div>)}
+        </div>
+      ) : (
+        <>
+          {/* Summary Cards - Borderless & Monochromatic */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-zinc-50 p-2.5 rounded-xl text-zinc-600">
+                  <HiOutlineCheckCircle className="w-6 h-6" />
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${diffValue >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                  {diffValue >= 0 ? '+' : ''}{diffValue}
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-zinc-500">Total Approvals</p>
+              <h3 className="text-2xl font-bold text-zinc-900 mt-1 tracking-tight">
+                {totalApprovals.toLocaleString()}
+              </h3>
+              <p className="text-xs text-zinc-400 mt-2">{lastPeriodChange}</p>
             </div>
-            <div className="flex mt-4 md:mt-0">
-              <button 
-                onClick={() => setTimeRange('6')}
-                className={`px-4 py-2 rounded-l-lg border border-r-0 text-sm font-medium ${
-                  timeRange === '6' 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                6 Months
-              </button>
-              <button 
-                onClick={() => setTimeRange('12')}
-                className={`px-4 py-2 border border-r-0 text-sm font-medium ${
-                  timeRange === '12' 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                12 Months
-              </button>
-              <button 
-                onClick={() => setTimeRange('24')}
-                className={`px-4 py-2 rounded-r-lg border text-sm font-medium ${
-                  timeRange === '24' 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                All Time
-              </button>
+
+            <div className="bg-white p-5 rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-zinc-50 p-2.5 rounded-xl text-zinc-600">
+                  <HiOutlineTrendingUp className="w-6 h-6" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-zinc-500">Avg. Monthly</p>
+              <h3 className="text-2xl font-bold text-zinc-900 mt-1 tracking-tight">
+                {averageMonthly.toLocaleString()}
+              </h3>
+              <p className="text-xs text-zinc-400 mt-2">Peak was {peakPerformance}% above avg</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-zinc-50 p-2.5 rounded-xl text-zinc-600">
+                  <HiOutlineCalendar className="w-6 h-6" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-zinc-500">Best Month</p>
+              <h3 className="text-2xl font-bold text-zinc-900 mt-1 tracking-tight">
+                {maxMonth.approvals > 0 ? maxMonth.approvals.toLocaleString() : '-'}
+              </h3>
+              <p className="text-xs text-zinc-400 mt-2">{maxMonth.month || 'N/A'}</p>
             </div>
           </div>
 
-          {loading ? (
-            <div className="h-80 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : data.length === 0 ? (
-            <div className="h-80 flex items-center justify-center">
-              <p className="text-gray-500">No approval data available</p>
-            </div>
-          ) : (
-            <div className="h-80">
+          {/* Main Chart */}
+          <div className="bg-white p-6 rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 20,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                   <XAxis 
                     dataKey="month" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    tickMargin={10}
+                    tick={{ fill: '#a1a1aa', fontSize: 12 }} 
+                    dy={10}
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    tickFormatter={(value) => value.toLocaleString()}
+                    tick={{ fill: '#a1a1aa', fontSize: 12 }} 
                   />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar 
-                    dataKey="approvals" 
-                    name="Approvals" 
-                    barSize={32}
-                    shape={<CustomBar />}
-                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f4f4f5' }} />
+                  <Bar dataKey="approvals" shape={<CustomBar />} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Trend Analysis */}
-        <div className="grid grid-cols-1 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Approval Trend</h3>
-            <div className="h-64">
-              {data.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-gray-500">No data available for trend analysis</p>
+          {/* Trend Area Chart */}
+          <div className="bg-white p-6 rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+             <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-zinc-900">Growth Trajectory</h3>
+                <div className={`flex items-center text-sm font-bold ${averageMonthlyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {averageMonthlyGrowthRate >= 0 ? <HiOutlineArrowSmUp className="w-5 h-5 mr-1"/> : <HiOutlineArrowSmDown className="w-5 h-5 mr-1"/>}
+                  {Math.abs(averageMonthlyGrowthRate)}% Avg Growth
                 </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={data}
-                    margin={{
-                      top: 10,
-                      right: 30,
-                      left: 0,
-                      bottom: 0,
-                    }}
-                  >
-                    <defs>
-                      <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="month" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#6b7280', fontSize: 12 }}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#6b7280', fontSize: 12 }}
-                      tickFormatter={(value) => (value/1000).toFixed(0) + 'K'}
-                    />
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <Tooltip />
-                    <Area 
-                      type="monotone" 
-                      dataKey="approvals" 
-                      stroke="#4f46e5" 
-                      fillOpacity={1} 
-                      fill="url(#colorArea)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            <div className="mt-4">
-              <div className={`flex items-center font-medium ${
-                averageMonthlyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {averageMonthlyGrowthRate >= 0 ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                )}
-                <span>
-                  {averageMonthlyGrowthRate >= 0 ? '+' : ''}
-                  {averageMonthlyGrowthRate}% average monthly growth
-                </span>
-              </div>
+             </div>
+             <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#18181b" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#18181b" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={false} />
+                  <YAxis axisLine={false} tickLine={false} tick={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="approvals" 
+                    stroke="#18181b" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorArea)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
-        </div>
 
-        {/* Data Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800">Monthly Approval Data</h3>
+          {/* Minimal Data Table */}
+          <div className="bg-white rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-zinc-100">
+                    <th className="px-6 py-4 text-sm font-semibold text-zinc-500">Month</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-zinc-500 text-right">Approvals</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-zinc-500 text-right">Change</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {data.map((item, index) => {
+                    const prevValue = index > 0 ? data[index - 1].approvals : item.approvals;
+                    const change = prevValue > 0 
+                      ? Math.round(((item.approvals - prevValue) / prevValue) * 100)
+                      : 0;
+                    
+                    return (
+                      <tr key={item.month} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium text-zinc-900">{item.month}</td>
+                        <td className="px-6 py-4 text-sm text-zinc-600 text-right font-mono">{item.approvals.toLocaleString()}</td>
+                        <td className={`px-6 py-4 text-sm text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {index === 0 ? '-' : `${change > 0 ? '+' : ''}${change}%`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Month
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Approvals
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Change
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trend
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {data.map((item, index) => {
-                  const prevValue = index > 0 ? data[index - 1].approvals : item.approvals;
-                  const change = prevValue > 0 
-                    ? Math.round(((item.approvals - prevValue) / prevValue) * 100)
-                    : item.approvals > 0 ? 100 : 0;
-                  
-                  return (
-                    <tr key={item.month} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.month}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.approvals.toLocaleString()}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        change >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {change >= 0 ? `+${change}%` : `${change}%`}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {change >= 0 ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };

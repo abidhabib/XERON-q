@@ -15,53 +15,50 @@ export const updateBalancesAndWallet = async (userId, depth = 0) => {
         if (referrerId) {
             // Fetch commission rates for current depth
             const commissionResult = await queryAsync(`
-                SELECT 
-                    direct_bonus, 
-                    indirect_bonus,
-                    week_backend,
-                    web_backend
+                SELECT
+                    direct_bonus,
+                    indirect_bonus
                 FROM commission
                 WHERE id = ?
             `, [depth]);
 
             const {
                 direct_bonus = 0,
-                indirect_bonus = 0,
-                week_backend = 0,
-                web_backend = 0
+                indirect_bonus = 0
             } = commissionResult[0] || {};
 
-            // ✅ FETCH joining_fee FROM `settings` TABLE (NOT `joining_fee` table)
+            // Fetch joining fee from settings table
             const settingsResult = await queryAsync(`
                 SELECT joining_fee
                 FROM settings
                 WHERE id = 1
             `);
-            const joiningFee = parseFloat(settingsResult[0]?.joining_fee) || 0;
+
+            const joiningFee =
+                parseFloat(settingsResult[0]?.joining_fee) || 0;
 
             // Compute bonus amounts
-            const directBonusAmount = (direct_bonus * joiningFee) / 100;
-            const indirectBonusAmount = (indirect_bonus * joiningFee) / 100;
-            const weekCreditAmount = (week_backend * joiningFee) / 100;
-            const webCreditAmount = (web_backend * joiningFee) / 100;
-            const totalCredits = directBonusAmount + indirectBonusAmount + weekCreditAmount + webCreditAmount;
+            const directBonusAmount =
+                (parseFloat(direct_bonus) * joiningFee) / 100;
+
+            const indirectBonusAmount =
+                (parseFloat(indirect_bonus) * joiningFee) / 100;
+
+            const totalCredits =
+                directBonusAmount + indirectBonusAmount;
 
             // Update referrer's wallets
             await queryAsync(`
                 UPDATE users
-                SET 
+                SET
                     balance = balance + ?,
                     backend_wallet = backend_wallet + ?,
-                    all_credits = all_credits + ?,
-                    week_credits = week_credits + ?,
-                    web_credits = web_credits + ?
+                    all_credits = all_credits + ?
                 WHERE id = ?
             `, [
-                directBonusAmount,        
-                indirectBonusAmount,      
-                totalCredits,             
-                weekCreditAmount,         
-                webCreditAmount,          
+                directBonusAmount,
+                indirectBonusAmount,
+                totalCredits,
                 referrerId
             ]);
 
@@ -69,7 +66,11 @@ export const updateBalancesAndWallet = async (userId, depth = 0) => {
             await updateBalancesAndWallet(referrerId, depth + 1);
         }
     } catch (error) {
-        console.error('Error updating balances and wallet:', error.message);
+        console.error(
+            'Error updating balances and wallet:',
+            error.message
+        );
+
         throw error;
     }
 };

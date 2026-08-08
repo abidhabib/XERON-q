@@ -25,13 +25,7 @@ class AdminProfileCardController {
     // Removed console.log
 
     try {
-      // Check if user is admin
-      // IMPORTANT: You need to implement this check based on your auth system.
-      // Example:
-      // if (!req.user || !req.user.role || req.user.role !== 'admin') {
-      //   return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-      // }
-
+   
       const profileData = await AdminProfileCard.getCompletePublicProfile();
 
       res.json(profileData);
@@ -44,13 +38,7 @@ class AdminProfileCardController {
   // Update admin profile (admin only)
   static async updateAdminProfile(req, res) {
     try {
-      // Check if user is admin
-      // IMPORTANT: Implement this check.
-      // Example:
-      // if (!req.user || !req.user.role || req.user.role !== 'admin') {
-      //   return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-      // }
-
+ 
       const { fullName, title, socialLinks, resetToDefault } = req.body;
 
       if (resetToDefault) {
@@ -80,12 +68,6 @@ class AdminProfileCardController {
   // Upload admin profile image (admin only)
   static async uploadImage(req, res) {
     try {
-      // Check if user is admin
-      // IMPORTANT: Implement this check.
-      // Example:
-      // if (!req.user || !req.user.role || req.user.role !== 'admin') {
-      //   return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-      // }
 
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -106,11 +88,7 @@ class AdminProfileCardController {
   // --- NEW: Generate Encrypted Link Token (Admin only) ---
   static async generatePublicLink(req, res) {
     try {
-      // Ensure only admins can generate links (IMPLEMENT THIS CHECK)
-      // Example:
-      // if (!req.user || !req.user.role || req.user.role !== 'admin') {
-      //   return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-      // }
+ 
 
       // Generate a unique, secure token
       const token = crypto.randomBytes(32).toString('hex');

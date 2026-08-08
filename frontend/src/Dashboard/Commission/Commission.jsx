@@ -22,8 +22,7 @@ const [editingItem, setEditingItem] = useState({
   person: '',
   direct_bonus: '',
   indirect_bonus: '',
-  week_backend: '',
-  web_backend: ''
+
 });
   const [formErrors, setFormErrors] = useState({});
 
@@ -92,20 +91,14 @@ if (editingItem.direct_bonus === '' || isNaN(Number(editingItem.direct_bonus))) 
 if (editingItem.indirect_bonus === '' || isNaN(Number(editingItem.indirect_bonus))) {
   errors.indirect_bonus = 'Indirect Bonus must be a valid number.';
 }
-if (editingItem.week_backend === '' || isNaN(Number(editingItem.week_backend))) {
-  errors.week_backend = 'Week Backend must be a valid number.';
-}
-if (editingItem.web_backend === '' || isNaN(Number(editingItem.web_backend))) {
-  errors.web_backend = 'Web Backend must be a valid number.';
-}
+
 
     try {
       const response = await axios.put(`${API_BASE_URL}/updateCommissionData`, {
   id: editingItem.id,
   direct_bonus: Number(editingItem.direct_bonus),
   indirect_bonus: Number(editingItem.indirect_bonus),
-  week_backend: Number(editingItem.week_backend),
-  web_backend: Number(editingItem.web_backend),
+
 });
       if (response.data.status === 'success') {
         setIsModalOpen(false); 
@@ -157,8 +150,7 @@ if (editingItem.web_backend === '' || isNaN(Number(editingItem.web_backend))) {
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Member</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Direct Bonus (%)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Indirect Bonus (%)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Week Backend (%)</th>
-<th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Web Backend (%)</th>
+                  
                     <th className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -169,8 +161,7 @@ if (editingItem.web_backend === '' || isNaN(Number(editingItem.web_backend))) {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.person}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.direct_bonus}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.indirect_bonus}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.week_backend}</td>
-<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.web_backend}</td>
+                    
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
                             onClick={() => handleUpdateClick(item)}
@@ -264,49 +255,7 @@ if (editingItem.web_backend === '' || isNaN(Number(editingItem.web_backend))) {
                   <p className="mt-1 text-sm text-red-600">{formErrors.indirect_bonus}</p>
                 )}
               </div>
-<div className="mb-4">
-  <label htmlFor="week_backend" className="block text-sm font-medium text-gray-700 mb-1">
-    Week Backend (%)
-  </label>
-  <input
-    type="number"
-    id="week_backend"
-    name="week_backend"
-    value={editingItem.week_backend}
-    onChange={handleInputChange}
-    min="0"
-    step="any"
-    required
-    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-      formErrors.week_backend ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
-    }`}
-  />
-  {formErrors.week_backend && (
-    <p className="mt-1 text-sm text-red-600">{formErrors.week_backend}</p>
-  )}
-</div>
 
-<div className="mb-4">
-  <label htmlFor="web_backend" className="block text-sm font-medium text-gray-700 mb-1">
-    Web Backend (%)
-  </label>
-  <input
-    type="number"
-    id="web_backend"
-    name="web_backend"
-    value={editingItem.web_backend}
-    onChange={handleInputChange}
-    min="0"
-    step="any"
-    required
-    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-      formErrors.web_backend ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
-    }`}
-  />
-  {formErrors.web_backend && (
-    <p className="mt-1 text-sm text-red-600">{formErrors.web_backend}</p>
-  )}
-</div>
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"

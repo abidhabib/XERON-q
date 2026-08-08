@@ -67,7 +67,7 @@ const AdminProfileManager = () => {
         return;
       }
 
-      const response = await fetch(`${apiBaseUrl}/api/admin/profile`, {
+      const response = await fetch(`${apiBaseUrl}/admin/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

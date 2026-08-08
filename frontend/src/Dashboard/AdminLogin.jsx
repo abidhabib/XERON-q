@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import { UserContext } from '../UserContext/UserContext';
@@ -7,12 +7,15 @@ import { Lock, Mail, Loader2 } from 'lucide-react';
 
 const AdminLogin = () => {
     const { setAdminAuthenticated } = useContext(UserContext);
-    const [isLoading, setIsLoading] = useState(false);
-    const [loginUserName, setLoginUserName] = useState('');
-    const [loginPassword, setLoginPassword] = useState('');
     const navigateTo = useNavigate();
-    const [loginStatus, setLoginStatus] = useState('');
-    const [shake, setShake] = useState(false);
+
+    // 1. Use Refs for inputs to PREVENT re-renders on every keystroke
+    const emailRef = useRef(null);
+    const passwordRef = useRef(null);
+
+    // 2. Consolidate states: Only keep loading and a single error state
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         const token = localStorage.getItem('adminTokens');
@@ -23,7 +26,7 @@ const AdminLogin = () => {
                     setAdminAuthenticated(true);
                     navigateTo('/admin');
                 }
-            } catch (error) {
+            } catch (err) {
                 localStorage.removeItem('adminTokens');
             }
         }
@@ -31,109 +34,77 @@ const AdminLogin = () => {
 
     const loginUser = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setShake(false);
         
-        if (!loginUserName || !loginPassword) {
-            setLoginStatus('Please enter username and password');
-            setShake(true);
-            setIsLoading(false);
+        // Read values directly from refs instead of state
+        const email = emailRef.current?.value;
+        const password = passwordRef.current?.value;
+
+        if (!email || !password) {
+            setError('Please enter username and password');
             return;
         }
-        
+
+        setIsLoading(true);
+        setError(''); // Clear previous errors
+
         try {
             const response = await Axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/admin-login`,
-                {
-                    LoginUserName: loginUserName,
-                    LoginPassword: loginPassword
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
+                { LoginUserName: email, LoginPassword: password },
+                { headers: { 'Content-Type': 'application/json' } }
             );
-    
+
             if (response.data.token) {
                 const decoded = jwtDecode(response.data.token);
-                
                 if (decoded.isAdmin !== true) {
                     throw new Error('Invalid admin credentials');
                 }
-                
                 localStorage.setItem('adminTokens', response.data.token);
                 setAdminAuthenticated(true);
                 navigateTo('/admin');
             } else {
-                setLoginStatus(response.data.message || 'Authentication failed');
-                setShake(true);
+                setError(response.data.message || 'Authentication failed');
             }
-        } catch (error) {
-            const message = error.response?.data?.message || 'Authentication failed. Please try again.';
-            setLoginStatus(message);
-            setShake(true);
+        } catch (err) {
+            const message = err.response?.data?.message || 'Authentication failed. Please try again.';
+            setError(message);
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Auto-hide error after 4 seconds
     useEffect(() => {
-        if (loginStatus) {
-            const timer = setTimeout(() => {
-                setLoginStatus('');
-                setShake(false);
-            }, 4000);
+        if (error) {
+            const timer = setTimeout(() => setError(''), 4000);
             return () => clearTimeout(timer);
         }
-    }, [loginStatus]);
+    }, [error]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="flex justify-center">
-                    <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center">
-                        <Lock className="h-6 w-6 text-white" />
-                    </div>
-                </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Admin Panel
-                </h2>
-            
+                {/* Add Logo/Title here if needed */}
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200">
                     <form className="space-y-6" onSubmit={loginUser}>
-                        {loginStatus && (
+                        {/* 3. Use key={error} to restart animation without a separate 'shake' state */}
+                        {error && (
                             <div 
-                                className={`rounded-md p-4 transition-all duration-300 ${
-                                    shake ? 'animate-shake' : ''
-                                } ${
-                                    loginStatus.includes('failed') || loginStatus.includes('Invalid') 
-                                    ? 'bg-red-50 border border-red-200' 
-                                    : 'bg-yellow-50 border border-yellow-200'
-                                }`}
+                                key={error} 
+                                className="rounded-md p-4 animate-shake bg-red-50 border border-red-200 transition-all duration-300"
                             >
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        {loginStatus.includes('failed') || loginStatus.includes('Invalid') ? (
-                                            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                            </svg>
-                                        )}
+                                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
                                     </div>
                                     <div className="ml-3">
-                                        <p className={`text-sm font-medium ${
-                                            loginStatus.includes('failed') || loginStatus.includes('Invalid') 
-                                            ? 'text-red-800' 
-                                            : 'text-yellow-800'
-                                        }`}>
-                                            {loginStatus}
+                                        <p className="text-sm font-medium text-red-800">
+                                            {error}
                                         </p>
                                     </div>
                                 </div>
@@ -142,20 +113,20 @@ const AdminLogin = () => {
 
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                                Email Address
+                                Email
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Mail className="h-5 w-5 text-gray-400" />
                                 </div>
+                                {/* Uncontrolled Input: No onChange, no value prop */}
                                 <input
+                                    ref={emailRef}
                                     id="email"
                                     name="email"
                                     type="email"
                                     autoComplete="email"
                                     required
-                                    value={loginUserName}
-                                    onChange={(e) => setLoginUserName(e.target.value)}
                                     className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
                                     placeholder="admin@example.com"
                                 />
@@ -170,14 +141,14 @@ const AdminLogin = () => {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Lock className="h-5 w-5 text-gray-400" />
                                 </div>
+                                {/* Uncontrolled Input: No onChange, no value prop */}
                                 <input
+                                    ref={passwordRef}
                                     id="password"
                                     name="password"
                                     type="password"
                                     autoComplete="current-password"
                                     required
-                                    value={loginPassword}
-                                    onChange={(e) => setLoginPassword(e.target.value)}
                                     className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
                                     placeholder="••••••••"
                                 />
@@ -200,8 +171,6 @@ const AdminLogin = () => {
                                 )}
                             </button>
                         </div>
-
-                       
                     </form>
                 </div>
             </div>

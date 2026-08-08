@@ -10,7 +10,7 @@ const UserLayout = () => {
       </div>
       
       {/* Main content area */}
-      <main className="pt-16"> {/* Adjust pt based on your navbar height */}
+      <main className=""> {/* Adjust pt based on your navbar height */}
         <Outlet /> {/* This renders the child route components */}
       </main>
     </div>

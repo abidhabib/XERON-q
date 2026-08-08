@@ -6,14 +6,15 @@ import fs from 'fs';
 import path from 'path';
 const router = express.Router();
 
-// Configure multer for file uploads (No changes here)
+// Configure multer for file uploads
+const FRONTEND_UPLOADS = '/home/rovexking/htdocs/rovexking.com/uploads';
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'public/uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    if (!fs.existsSync(FRONTEND_UPLOADS)) {
+      fs.mkdirSync(FRONTEND_UPLOADS, { recursive: true });
     }
-    cb(null, uploadDir);
+    cb(null, FRONTEND_UPLOADS);
   },
   filename: (req, file, cb) => { 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -39,11 +40,9 @@ const upload = multer({
 router.get('/public/admin-profile', AdminProfileCardController.getPublicProfile);
 
 // --- NEW: Public route - anyone with a VALID token can access the profile data ---
-// Uses the validatePublicToken middleware FIRST, then getPublicProfile
 router.get('/admin/public-profile/:token', AdminProfileCardController.validatePublicToken, AdminProfileCardController.getPublicProfile);
 
 // --- NEW: Admin route - generate the encrypted public access link ---
-// Requires authentication via middleware and admin check in controller
 router.post('/admin/generate-public-link',  AdminProfileCardController.generatePublicLink);
 
 // Admin routes - require authentication (via middleware) and admin privileges (checked in controller)

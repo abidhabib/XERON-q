@@ -1,7 +1,5 @@
-// controllers/ContactController.js
 import con from '../config/db.js';
 
-// Helper: Get user's referral chain (up to 10 levels) - reusable for validation
 const getUserReferralChain = async (userId) => {
   const [chain] = await con.promise().query(`
     WITH RECURSIVE referral_chain AS (
@@ -23,7 +21,6 @@ const getUserReferralChain = async (userId) => {
   return chain;
 };
 
-// Helper: Verify if a parent is eligible to be reviewed by this user
 const isEligibleForReview = async (reviewerId, parentId) => {
   // ✅ Security: Verify parentId exists in reviewer's referral chain
   const chain = await getUserReferralChain(reviewerId);
@@ -209,6 +206,10 @@ export const submitReview = async (req, res) => {
     }
     
   } catch (error) {
+     console.error(error);
+    console.error(error.code);
+    console.error(error.sqlMessage);
+    console.error(error.stack);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'You have already reviewed this mentor' });
     }

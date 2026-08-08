@@ -1,35 +1,16 @@
-// src/pages/MonthlySalary.jsx
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { UserContext } from '../UserContext/UserContext';
 import axios from 'axios';
 import {
-  Coins,
-  CheckCircle,
-  RotateCw,
-  History,
-  Upload,
-  User,
-  Smartphone,
-  MessageCircle,
-  Trophy,
-  Users,
-  Calendar,
-  AlertTriangle,
-  FileText,
-  ShieldCheck,
-  X,
-  ChevronRight,
-  CreditCard,
-  BadgeCheck,
-  Clock,
-  Target,
-  Award,
+  Coins, CheckCircle, RotateCw, History, Upload, User, Smartphone, MessageCircle,
+  Trophy, Users, Calendar, AlertTriangle, FileText, ShieldCheck, ChevronDown,
+  CreditCard, BadgeCheck, Clock, Target, Check,
 } from 'lucide-react';
-import BalanceCard from './BalanceCard';
+import NavBar from '../NavBar';
 import { useNavigate } from 'react-router-dom';
 import { RemoveTrailingZeros } from '../../utils/utils';
 
-// ✅ Confetti with improved timing
+/* ── Confetti ── */
 const useConfetti = () => {
   const trigger = () => {
     if (typeof window === 'undefined') return;
@@ -39,23 +20,11 @@ const useConfetti = () => {
         const duration = 2000;
         const animationEnd = Date.now() + duration;
         const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
-
         const randomInRange = (min, max) => Math.random() * (max - min) + min;
-
         const interval = setInterval(() => {
           const timeLeft = animationEnd - Date.now();
-
-          if (timeLeft <= 0) {
-            return clearInterval(interval);
-          }
-
-          const particleCount = 50 * (timeLeft / duration);
-          confetti({
-            ...defaults,
-            particleCount,
-            origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
-            colors: ['#F0B90B', '#FFD700', '#1E2026', '#F5F5F5']
-          });
+          if (timeLeft <= 0) return clearInterval(interval);
+          confetti({ ...defaults, particleCount: 50 * (timeLeft / duration), origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 }, colors: ['#C6A15B', '#D8BA7C', '#161618', '#EDEDEE'] });
         }, 250);
       })
       .catch(console.warn);
@@ -63,227 +32,70 @@ const useConfetti = () => {
   return trigger;
 };
 
-// ✅ Enhanced Upload Field
-const UploadField = ({ label, description, accept, onChange, required, error, icon: Icon = Upload }) => {
-  const [preview, setPreview] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleFile = (file) => {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File must be under 5 MB');
-      return;
-    }
-    onChange(file);
-    setPreview(URL.createObjectURL(file));
-  };
-
-  const handleFileInput = (e) => {
-    const file = e.target.files?.[0];
-    handleFile(file);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => setIsDragging(false);
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    handleFile(file);
-  };
-
+/* ── Animated team gauge ── */
+const TeamGauge = ({ current, required }) => {
+  const pct = required ? Math.min(100, (current / required) * 100) : 0;
+  const R = 54, C = 2 * Math.PI * R;
+  const [offset, setOffset] = useState(C);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setOffset(C - (pct / 100) * C));
+    return () => cancelAnimationFrame(raf);
+  }, [pct, C]);
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-[#1E2026] flex items-center gap-2">
-          <Icon className="w-4 h-4 text-[#F0B90B]" />
-          {label}
-          {required && <span className="text-rose-500">*</span>}
-        </label>
-        {description && (
-          <span className="text-xs text-[#707A8A]">{description}</span>
-        )}
-      </div>
-
-      <label
-        className={`relative flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer group ${
-          error
-            ? 'border-rose-300 bg-rose-50'
-            : isDragging
-            ? 'border-[#F0B90B] bg-[#F0B90B]/5'
-            : preview
-            ? 'border-emerald-300 bg-emerald-50'
-            : 'border-[#E6E8EB] bg-[#FAFAFA] hover:bg-[#F5F5F5] hover:border-[#C5C8CE]'
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        {preview ? (
-          <div className="relative w-full h-full p-2">
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-full h-full object-cover rounded-lg"
-            />
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-              <Upload className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        ) : (
-          <div className="text-center p-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors ${
-              isDragging ? 'bg-[#F0B90B]' : 'bg-[#F5F5F5]'
-            }`}>
-              <Icon className={`w-5 h-5 ${isDragging ? 'text-[#1E2026]' : 'text-[#C5C8CE]'}`} />
-            </div>
-            <p className="text-sm font-medium text-[#1E2026] mb-1">
-              {isDragging ? 'Drop file here' : 'Click or drag to upload'}
-            </p>
-            <p className="text-xs text-[#707A8A]">
-              PNG, JPG up to 5MB
-            </p>
-          </div>
-        )}
-        <input
-          type="file"
-          accept={accept}
-          onChange={handleFileInput}
-          className="hidden"
-          required={required}
-        />
-      </label>
-
-      {error && (
-        <div className="flex items-center gap-2 text-rose-500 text-sm">
-          <AlertTriangle className="w-4 h-4" />
-          {error}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ✅ Enhanced Phone Input
-const PhoneInput = ({ value, onChange, placeholder, countryCode, onCountryChange, countryOptions, icon: Icon = Smartphone }) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const handlePhoneChange = (e) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.length > 15) val = val.slice(0, 15);
-    onChange(val);
-  };
-
-  const formatPhone = (num) => {
-    if (!num) return '';
-    if (num.length <= 3) return num;
-    if (num.length <= 6) return `(${num.slice(0, 3)}) ${num.slice(3)}`;
-    return `(${num.slice(0, 3)}) ${num.slice(3, 6)}-${num.slice(6, 10)}`;
-  };
-
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-[#1E2026] flex items-center gap-2">
-        <Icon className="w-4 h-4 text-[#F0B90B]" />
-        {placeholder}
-      </label>
-      <div className={`flex gap-2 p-2 rounded-xl border transition-all duration-200 ${
-        isFocused
-          ? 'border-[#F0B90B] bg-white shadow-sm'
-          : 'border-[#E6E8EB] bg-white hover:border-[#C5C8CE]'
-      }`}>
-        <div className="relative flex-1">
-          <select
-            value={countryCode}
-            onChange={(e) => onCountryChange(e.target.value)}
-            className="w-full bg-transparent text-[#1E2026] px-3 py-2.5 text-sm focus:outline-none appearance-none cursor-pointer"
-          >
-            {countryOptions.map((country) => (
-              <option key={country.code} value={country.code} className="bg-white">
-                {country.code} {country.name}
-              </option>
-            ))}
-          </select>
-          <ChevronRight className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#C5C8CE] pointer-events-none rotate-90" />
-        </div>
-        <div className="w-px bg-[#E6E8EB]" />
-        <input
-          type="tel"
-          value={formatPhone(value)}
-          onChange={handlePhoneChange}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className="flex-1 bg-transparent text-[#1E2026] px-3 py-2.5 text-sm focus:outline-none placeholder-[#C5C8CE]"
-          placeholder="Phone number"
-          inputMode="numeric"
-          required
-        />
+    <div className="relative w-32 h-32 flex-shrink-0">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r={R} fill="none" stroke="#212125" strokeWidth="7" />
+        <circle cx="64" cy="64" r={R} fill="none" stroke="#C6A15B" strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={offset} style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1)' }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <p className="tnum text-[22px] font-semibold text-[#EDEDEE] leading-none">{current}<span className="text-[#6F6F76] text-[15px]">/{required}</span></p>
+        <p className="fi text-[9px] uppercase tracking-[0.12em] text-[#6F6F76] mt-1">members</p>
       </div>
     </div>
   );
 };
 
-// ✅ Enhanced Countdown Timer
+/* ── Countdown ── */
 const CountdownTimer = ({ nextWindowStart }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
   useEffect(() => {
     if (!nextWindowStart) return;
     const target = new Date(nextWindowStart);
-
     const update = () => {
       const diff = target - new Date();
-      if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setTimeLeft({ days, hours, minutes, seconds });
+      if (diff <= 0) return setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+      });
     };
-
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [nextWindowStart]);
-
   if (!nextWindowStart) return null;
-
-  const timeUnits = [
-    { value: timeLeft.days, label: 'Days', color: 'text-blue-600' },
-    { value: timeLeft.hours, label: 'Hours', color: 'text-emerald-600' },
-    { value: timeLeft.minutes, label: 'Minutes', color: 'text-amber-600' },
-    { value: timeLeft.seconds, label: 'Seconds', color: 'text-rose-600' },
+  const units = [
+    { value: timeLeft.days, label: 'Days' },
+    { value: timeLeft.hours, label: 'Hours' },
+    { value: timeLeft.minutes, label: 'Min' },
+    { value: timeLeft.seconds, label: 'Sec' },
   ];
-
   return (
-    <div className="bg-white rounded-2xl p-6 border border-[#E6E8EB] shadow-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-[#F0B90B]/10 rounded-lg">
-          <Clock className="w-5 h-5 text-[#F0B90B]" />
-        </div>
+    <div className="rise rounded-xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-4 mt-4">
+      <div className="flex items-center gap-2.5 mb-3">
+        <Clock size={15} className="text-[#C6A15B]" />
         <div>
-          <h3 className="text-lg font-semibold text-[#1E2026]">Next Collection Window</h3>
-          <p className="text-sm text-[#707A8A]">Salary collection will be available in</p>
+          <p className="fi text-[12.5px] font-semibold text-[#EDEDEE]">Next collection window</p>
+          <p className="fi text-[10.5px] text-[#6F6F76]">Available again in</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-4 gap-3">
-        {timeUnits.map((unit, i) => (
-          <div key={unit.label} className="text-center">
-            <div className="bg-[#F5F5F5] rounded-xl p-3 mb-2 border border-[#E6E8EB]">
-              <span className={`text-2xl font-bold ${unit.color}`}>
-                {unit.value.toString().padStart(2, '0')}
-              </span>
-            </div>
-            <span className="text-xs text-[#707A8A]">{unit.label}</span>
+      <div className="grid grid-cols-4 gap-2">
+        {units.map((u) => (
+          <div key={u.label} className="text-center rounded-lg bg-[#161618] ring-1 ring-white/[0.05] py-2.5">
+            <p className="tnum text-[20px] font-semibold text-[#C6A15B] leading-none">{String(u.value).padStart(2, '0')}</p>
+            <p className="fi text-[8.5px] uppercase tracking-[0.12em] text-[#6F6F76] mt-1">{u.label}</p>
           </div>
         ))}
       </div>
@@ -291,68 +103,97 @@ const CountdownTimer = ({ nextWindowStart }) => {
   );
 };
 
-const StatCard = ({ icon: Icon, title, value, subtitle, color = "gold", size = "md" }) => {
-  const bgColor = color === "emerald" 
-    ? "bg-emerald-50" 
-    : color === "blue" 
-      ? "bg-blue-50" 
-      : "bg-[#F5F5F5]";
-
-  const iconColor = color === "emerald" 
-    ? "text-emerald-500" 
-    : color === "blue" 
-      ? "text-blue-500" 
-      : "text-[#F0B90B]";
-
-  const padding = size === "sm" ? "p-3" : "p-4";
-  const titleSize = size === "sm" ? "text-[11px]" : "text-xs";
-  const valueSize = size === "sm" ? "text-base" : "text-lg";
-  const subtitleSize = size === "sm" ? "text-[10px]" : "text-xs";
-
+/* ── Upload field ── */
+const UploadField = ({ label, description, accept, onChange, required, error, icon: Icon = Upload }) => {
+  const [preview, setPreview] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const handleFile = (file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return alert('File must be under 5 MB');
+    onChange(file);
+    setPreview(URL.createObjectURL(file));
+  };
   return (
-    <div className={`${padding} bg-white rounded-xl border border-[#E6E8EB] shadow-sm`}>
-      <div className={`flex items-center gap-2 mb-1.5 ${titleSize} text-[#707A8A]`}>
-        <Icon className="w-3.5 h-3.5" />
-        {title}
-      </div>
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className={`font-bold ${valueSize} text-[#1E2026]`}>{value}</span>
-        <div className={`p-1.5 rounded-md ${bgColor}`}>
-          <Icon className={`w-3 h-3 ${iconColor}`} />
-        </div>
+        <label className="fi text-[13px] font-medium text-[#A0A0A6] flex items-center gap-1.5">
+          <Icon size={14} className="text-[#C6A15B]" />{label}{required && <span className="text-[#E2A896]">*</span>}
+        </label>
+        {description && <span className="fi text-[10.5px] text-[#6F6F76]">{description}</span>}
       </div>
-      <p className={`${subtitleSize} text-[#707A8A] mt-1`}>{subtitle}</p>
-    </div>
-  );
-};
-
-// ✅ Enhanced Progress Bar
-const ProgressBar = ({ current, required, label, showPercentage = true }) => {
-  const percentage = required ? Math.min(100, (current / required) * 100) : 0;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#1E2026]">{label}</span>
-        {showPercentage && (
-          <span className="text-sm font-bold text-[#F0B90B]">{Math.round(percentage)}%</span>
+      <label
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }}
+        className={`relative flex flex-col items-center justify-center w-full h-32 rounded-xl ring-1 transition-all cursor-pointer group overflow-hidden ${
+          error ? 'ring-[#E2A896]/40 bg-[#241619]/40'
+            : isDragging ? 'ring-[#C6A15B] bg-[#C6A15B]/[0.06]'
+            : preview ? 'ring-[#8FC7A0]/30'
+            : 'ring-white/[0.06] bg-[#1B1B1E] hover:ring-[#C6A15B]/25'
+        }`}
+      >
+        {preview ? (
+          <>
+            <img src={preview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Upload size={22} className="text-white" />
+            </div>
+            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#8FC7A0] flex items-center justify-center">
+              <Check size={12} className="text-[#161618]" strokeWidth={3} />
+            </span>
+          </>
+        ) : (
+          <div className="text-center p-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors ${isDragging ? 'bg-[#C6A15B]/20' : 'bg-[#212125]'}`}>
+              <Icon size={18} className={isDragging ? 'text-[#C6A15B]' : 'text-[#6F6F76]'} />
+            </div>
+            <p className="fi text-[12.5px] font-medium text-[#EDEDEE]">{isDragging ? 'Drop file here' : 'Click or drag to upload'}</p>
+            <p className="fi text-[10.5px] text-[#6F6F76] mt-0.5">PNG, JPG up to 5MB</p>
+          </div>
         )}
-      </div>
-      <div className="h-2.5 bg-[#F0F0F0] rounded-full overflow-hidden border border-[#E6E8EB]">
-        <div
-          className="h-full bg-[#F0B90B] rounded-full transition-all duration-1000 ease-out"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <div className="flex justify-between text-xs text-[#707A8A]">
-        <span>{current} members</span>
-        <span>{required} required</span>
+        <input type="file" accept={accept} onChange={(e) => handleFile(e.target.files?.[0])} className="hidden" required={required} />
+      </label>
+      {error && <div className="fi flex items-center gap-1.5 text-[12px] text-[#E2A896]"><AlertTriangle size={13} />{error}</div>}
+    </div>
+  );
+};
+
+/* ── Phone input ── */
+const PhoneInput = ({ value, onChange, placeholder, countryCode, onCountryChange, countryOptions, icon: Icon = Smartphone }) => {
+  const handlePhoneChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 15) val = val.slice(0, 15);
+    onChange(val);
+  };
+  const formatPhone = (num) => {
+    if (!num) return '';
+    if (num.length <= 3) return num;
+    if (num.length <= 6) return `(${num.slice(0, 3)}) ${num.slice(3)}`;
+    return `(${num.slice(0, 3)}) ${num.slice(3, 6)}-${num.slice(6, 10)}`;
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="fi text-[13px] font-medium text-[#A0A0A6] flex items-center gap-1.5">
+        <Icon size={14} className="text-[#C6A15B]" />{placeholder}
+      </label>
+      <div className="flex gap-2">
+        <div className="relative flex-shrink-0">
+          <select value={countryCode} onChange={(e) => onCountryChange(e.target.value)}
+            className="appearance-none h-12 pl-3 pr-8 rounded-xl bg-[#212125] text-[#EDEDEE] text-[13px] outline-none focus:ring-2 focus:ring-[#C6A15B]/40 cursor-pointer">
+            {countryOptions.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6F6F76] pointer-events-none" />
+        </div>
+        <input type="tel" value={formatPhone(value)} onChange={handlePhoneChange} placeholder="Phone number" inputMode="numeric" required
+          className="flex-1 min-w-0 h-12 px-3.5 rounded-xl bg-[#212125] text-[#EDEDEE] text-[14px] outline-none focus:ring-2 focus:ring-[#C6A15B]/40 placeholder:text-[#57575D]" />
       </div>
     </div>
   );
 };
 
-// ✅ Main Component
+const inputCls = 'fi w-full h-12 px-4 text-[14px] text-[#EDEDEE] bg-[#212125] rounded-xl outline-none transition-all focus:bg-[#27272C] focus:ring-2 focus:ring-[#C6A15B]/40 placeholder:text-[#57575D]';
+
+/* ── Main ── */
 const MonthlySalary = () => {
   const { Userid } = useContext(UserContext);
   const API = import.meta.env.VITE_API_BASE_URL;
@@ -363,33 +204,18 @@ const MonthlySalary = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [uploadErrors, setUploadErrors] = useState({});
-  const [form, setForm] = useState({
-    fullName: '',
-    documentType: 'nic',
-    documentNumber: '',
-    phoneCountryCode: '+1',
-    phoneNumber: '',
-    whatsappCountryCode: '+1',
-    whatsappNumber: '',
-    identityFront: null,
-    identityBack: null,
-    selfie: null,
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    fullName: '', documentType: 'nic', documentNumber: '',
+    phoneCountryCode: '+1', phoneNumber: '', whatsappCountryCode: '+1', whatsappNumber: '',
+    identityFront: null, identityBack: null, selfie: null,
+  });
 
   const countryOptions = [
-    { code: '+1', name: 'United States' },
-    { code: '+44', name: 'United Kingdom' },
-    { code: '+91', name: 'India' },
-    { code: '+86', name: 'China' },
-    { code: '+81', name: 'Japan' },
-    { code: '+49', name: 'Germany' },
-    { code: '+33', name: 'France' },
-    { code: '+61', name: 'Australia' },
-    { code: '+971', name: 'UAE' },
-    { code: '+966', name: 'Saudi Arabia' },
-    { code: '+92', name: 'Pakistan' },
-    { code: '+94', name: 'Sri Lanka' },
+    { code: '+1', name: 'United States' }, { code: '+44', name: 'United Kingdom' }, { code: '+91', name: 'India' },
+    { code: '+86', name: 'China' }, { code: '+81', name: 'Japan' }, { code: '+49', name: 'Germany' },
+    { code: '+33', name: 'France' }, { code: '+61', name: 'Australia' }, { code: '+971', name: 'UAE' },
+    { code: '+966', name: 'Saudi Arabia' }, { code: '+92', name: 'Pakistan' }, { code: '+94', name: 'Sri Lanka' },
   ].sort((a, b) => a.name.localeCompare(b.name));
 
   const fetchStatus = useCallback(async () => {
@@ -399,12 +225,14 @@ const MonthlySalary = () => {
     try {
       const res = await axios.get(`${API}/api/monthly-salary/status`, { withCredentials: true });
       setStatus(res.data);
-    } catch (err) {
+    } catch {
       setError('Unable to load salary status. Please try again.');
     } finally {
       setLoading(false);
     }
   }, [Userid, API]);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
   const validateForm = () => {
     const errors = {};
@@ -417,36 +245,15 @@ const MonthlySalary = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      setError('Please fill all required fields');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-    setSuccess('');
-
+    if (!validateForm()) return setError('Please fill all required fields');
+    setIsSubmitting(true); setError(''); setSuccess('');
     const formData = new FormData();
-    Object.entries(form).forEach(([k, v]) => {
-      if (v) formData.append(k, v);
-    });
-
+    Object.entries(form).forEach(([k, v]) => { if (v) formData.append(k, v); });
     try {
       await axios.post(`${API}/api/monthly-salary/apply`, formData, { withCredentials: true });
       setSuccess('Application submitted successfully! Verification usually takes 24-48 hours.');
       fetchStatus();
-      setForm({
-        fullName: '',
-        documentType: 'nic',
-        documentNumber: '',
-        phoneCountryCode: '+1',
-        phoneNumber: '',
-        whatsappCountryCode: '+1',
-        whatsappNumber: '',
-        identityFront: null,
-        identityBack: null,
-        selfie: null,
-      });
+      setForm({ fullName: '', documentType: 'nic', documentNumber: '', phoneCountryCode: '+1', phoneNumber: '', whatsappCountryCode: '+1', whatsappNumber: '', identityFront: null, identityBack: null, selfie: null });
     } catch (err) {
       setError(err.response?.data?.error || 'Submission failed. Please try again.');
     } finally {
@@ -457,7 +264,7 @@ const MonthlySalary = () => {
   const handleCollect = async () => {
     try {
       const res = await axios.post(`${API}/api/monthly-salary/collect`, {}, { withCredentials: true });
-      setSuccess(`Successfully collected $${RemoveTrailingZeros(res.data.amount)}! Funds have been added to your balance.`);
+      setSuccess(`Successfully collected $${RemoveTrailingZeros(res.data.amount)}!`);
       triggerConfetti();
       fetchStatus();
     } catch (err) {
@@ -465,385 +272,232 @@ const MonthlySalary = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
-
-  const renderLoading = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F5F5F5]">
-      <div className="relative">
-        <div className="w-16 h-16 rounded-full border-4 border-[#E6E8EB]"></div>
-        <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-[#F0B90B] border-t-transparent animate-spin"></div>
-        <Coins className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-[#F0B90B]" />
-      </div>
-      <p className="mt-4 text-[#707A8A] animate-pulse">Loading salary dashboard...</p>
-    </div>
-  );
-
-  const renderNotEligible = () => (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl p-4 border border-[#E6E8EB] shadow-sm">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-[#F0B90B]/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#F0B90B]/20">
-            <Coins className="w-10 h-10 text-[#F0B90B]" />
-          </div>
-          <h1 className="text-2xl font-bold text-[#1E2026] mb-2">Monthly Salary Program</h1>
-          <p className="text-[#707A8A]">Unlock guaranteed monthly income by building your team</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-[#F5F5F5] rounded-xl p-4 border border-[#E6E8EB]">
-            <p className="text-sm text-[#707A8A] mb-1">Current Team</p>
-            <p className="text-2xl font-bold text-[#1E2026]">{status?.currentTeam || 0}</p>
-          </div>
-          <div className="bg-[#F5F5F5] rounded-xl p-4 border border-[#E6E8EB]">
-            <p className="text-sm text-[#707A8A] mb-1">Required Team</p>
-            <p className="text-2xl font-bold text-[#F0B90B]">{status?.requiredTeam || 0}</p>
-          </div>
-        </div>
-
-        <ProgressBar
-          current={status?.currentTeam || 0}
-          required={status?.requiredTeam || 1}
-          label="Team Progress"
-        />
-
-        <div className="mt-8 p-4 bg-[#F0B90B]/10 rounded-xl border border-[#F0B90B]/20">
-          <div className="flex items-center gap-3">
-            <Target className="w-5 h-5 text-[#F0B90B]" />
-            <div>
-              <p className="font-medium text-[#1E2026]">Your Potential Earnings</p>
-              <p className="text-3xl font-bold text-[#F0B90B]">${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}</p>
-              <p className="text-sm text-[#707A8A]">per month upon approval</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderApplicationForm = () => (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl p-4 border border-[#E6E8EB] shadow-sm">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 bg-[#F0B90B]/10 rounded-lg">
-            <BadgeCheck className="w-5 h-5 text-[#F0B90B]" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-[#1E2026]">Complete Your Application</h2>
-            <p className="text-xs text-[#707A8A] mt-0.5">Verify your identity to activate salary benefits</p>
-          </div>
-        </div>
-
-        {(error || success) && (
-          <div className={`mb-5 p-3 rounded-lg ${
-            success ? 'bg-emerald-50 border border-emerald-200' : 'bg-rose-50 border border-rose-200'
-          }`}>
-            <div className="flex items-start gap-2.5">
-              {success ? (
-                <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-              ) : (
-                <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
-              )}
-              <p className={`text-sm ${success ? 'text-emerald-600' : 'text-rose-500'}`}>
-                {success || error}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Full Name */}
-          <div>
-            <label className="block text-xs text-[#707A8A] mb-1.5 font-medium">Full Legal Name</label>
-            <input
-              type="text"
-              value={form.fullName}
-              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              className="w-full bg-white border border-[#E6E8EB] rounded-lg px-3 py-2.5 text-[#1E2026] placeholder:text-[#C5C8CE]
-                         focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B]
-                         transition-colors"
-              placeholder="Enter your full name as on ID"
-              required
-            />
-          </div>
-
-          {/* Document Type & Number */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-[#707A8A] mb-1.5 font-medium">Document Type</label>
-              <select
-                value={form.documentType}
-                onChange={(e) => setForm({ ...form, documentType: e.target.value })}
-                className="w-full bg-white border border-[#E6E8EB] rounded-lg px-3 py-2.5 text-[#1E2026] appearance-none
-                           focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B]
-                           transition-colors"
-                required
-              >
-                <option value="nic" className="bg-white">National ID</option>
-                <option value="passport" className="bg-white">Passport</option>
-                <option value="driving_license" className="bg-white">Driving License</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-[#707A8A] mb-1.5 font-medium">Document Number</label>
-              <input
-                type="text"
-                value={form.documentNumber}
-                onChange={(e) => setForm({ ...form, documentNumber: e.target.value })}
-                className="w-full bg-white border border-[#E6E8EB] rounded-lg px-3 py-2.5 text-[#1E2026] placeholder:text-[#C5C8CE]
-                           focus:outline-none focus:ring-2 focus:ring-[#F0B90B]/30 focus:border-[#F0B90B]
-                           transition-colors"
-                placeholder="ID number"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Phone Inputs */}
-          <PhoneInput
-            value={form.phoneNumber}
-            onChange={(val) => setForm({ ...form, phoneNumber: val })}
-            placeholder="Phone Number"
-            countryCode={form.phoneCountryCode}
-            onCountryChange={(code) => setForm({ ...form, phoneCountryCode: code })}
-            countryOptions={countryOptions}
-          />
-
-          <PhoneInput
-            value={form.whatsappNumber}
-            onChange={(val) => setForm({ ...form, whatsappNumber: val })}
-            placeholder="WhatsApp Number"
-            countryCode={form.whatsappCountryCode}
-            onCountryChange={(code) => setForm({ ...form, whatsappCountryCode: code })}
-            countryOptions={countryOptions}
-            icon={MessageCircle}
-          />
-
-          {/* Upload Fields */}
-          <div className="space-y-4 pt-1">
-            <h3 className="text-base font-medium text-[#1E2026]">Verification Documents</h3>
-            <p className="text-xs text-[#707A8A] -mt-1">Upload clear images for verification</p>
-
-            <UploadField
-              label="ID Front Side"
-              description="Clear image of front side"
-              accept="image/*"
-              onChange={(file) => setForm({ ...form, identityFront: file })}
-              required
-              error={uploadErrors.identityFront}
-              icon={CreditCard}
-            />
-
-            <UploadField
-              label="ID Back Side"
-              description="Clear image of back side"
-              accept="image/*"
-              onChange={(file) => setForm({ ...form, identityBack: file })}
-              required
-              error={uploadErrors.identityBack}
-              icon={CreditCard}
-            />
-
-            <UploadField
-              label="Selfie with ID"
-              description="Your face with ID in same frame"
-              accept="image/*"
-              onChange={(file) => setForm({ ...form, selfie: file })}
-              required
-              error={uploadErrors.selfie}
-              icon={User}
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3 bg-[#F0B90B] text-[#1E2026] font-semibold rounded-lg
-                       flex items-center justify-center gap-2
-                       hover:bg-[#E5AC00] active:scale-[0.99] transition-all
-                       disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          >
-            {isSubmitting ? (
-              <>
-                <RotateCw className="w-4 h-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="w-4 h-4" />
-                Submit Application
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-
-  const renderApprovedDashboard = () => (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="font-bold text-[#1E2026] text-xl">Monthly Salary</h1>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {navigate('/month-salary-history')}}
-              className='px-4 py-2 rounded-xl font-medium transition-all bg-[#F0B90B] text-[#1E2026] hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm text-sm'
-            >
-              Show History
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {/* 4 Stat Cards */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard
-              icon={Users}
-              title="Team"
-              value={`${status?.currentTeam || 0}/${status?.requiredTeam || 0}`}
-              subtitle="members"
-              size="sm"
-            />
-            <StatCard
-              icon={Trophy}
-              title="Salary"
-              value={`$${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}`}
-              subtitle="monthly"
-              size="sm"
-            />
-            <StatCard
-              icon={FileText}
-              title="Status"
-              value="Active"
-              subtitle="approved"
-              color="emerald"
-              size="sm"
-            />
-            <StatCard
-              icon={Calendar}
-              title="Collect"
-              value={status?.hasCollectedThisMonth ? "Done" : "Ready"}
-              subtitle={status?.hasCollectedThisMonth ? "this month" : "now"}
-              color={status?.hasCollectedThisMonth ? "blue" : "emerald"}
-              size="sm"
-            />
-          </div>
-
-          {/* Countdown */}
-          {status?.hasCollectedThisMonth && status?.nextCollectionWindowStart && (
-            <CountdownTimer nextWindowStart={status.nextCollectionWindowStart} />
-          )}
-
-          {/* Collection Action */}
-          <div className="bg-white rounded-xl p-4 border border-[#E6E8EB] shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-[#1E2026] font-medium text-sm">Salary Collection</h3>
-                <p className="text-[#707A8A] text-xs mt-0.5">
-                  {status?.hasCollectedThisMonth 
-                    ? "Collected for this cycle" 
-                    : "Ready to receive your income"}
-                </p>
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-1 rounded ${
-                status?.hasCollectedThisMonth
-                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                  : 'bg-[#F0B90B]/15 text-[#F0B90B]'
-              }`}>
-                {status?.hasCollectedThisMonth ? 'Collected' : 'Available'}
-              </span>
-            </div>
-
-            <button
-              onClick={handleCollect}
-              disabled={status?.hasCollectedThisMonth}
-              className={`w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                status?.hasCollectedThisMonth
-                  ? 'bg-[#F5F5F5] text-[#C5C8CE] cursor-not-allowed border border-[#E6E8EB]'
-                  : 'bg-[#F0B90B] text-[#1E2026] hover:bg-[#E5AC00] active:scale-[0.98] shadow-sm'
-              }`}
-            >
-              {status?.hasCollectedThisMonth ? (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  Collected
-                </>
-              ) : (
-                <>
-                  <Coins className="w-4 h-4" />
-                  Collect ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPendingReview = () => (
-    <div className="max-w-md mx-auto">
-      <div className="bg-white rounded-2xl p-5 text-center border border-[#E6E8EB] shadow-sm">
-        <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-200">
-          <Clock className="w-10 h-10 text-amber-500" />
-        </div>
-        <h2 className="text-2xl font-bold text-[#1E2026] mb-2">Application Under Review</h2>
-        <p className="text-[#707A8A] mb-6">
-          Your application is being verified. This usually takes 24-48 hours.
-          You'll receive a notification once approved.
-        </p>
-        <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-            <p className="text-amber-600 font-medium">Verification in Progress</p>
-          </div>
-          <p className="text-sm text-[#707A8A]">Check back later for updates</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (loading) return renderLoading();
+  const pct = status?.requiredTeam ? Math.min(100, ((status.currentTeam || 0) / status.requiredTeam) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <BalanceCard />
+    <div className="min-h-screen bg-[#161618]">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
+        .fd { font-family: 'Cormorant', serif; }
+        .fi { font-family: 'Inter', sans-serif; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .rise { animation: rise 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes auraBreathe { 0%,100% { opacity: 0.5; transform: scale(0.96); } 50% { opacity: 0.9; transform: scale(1.05); } }
+        .aura-breathe { animation: auraBreathe 4s ease-in-out infinite; }
+        @keyframes spinSlower { to { transform: rotate(360deg); } }
+        .spin-slower { animation: spinSlower 26s linear infinite; }
+        @keyframes amountBreathe { 0%,100% { opacity: 1; } 50% { opacity: 0.85; } }
+        .amount-breathe { animation: amountBreathe 3s ease-in-out infinite; }
+      `}</style>
 
-      <div className="p-4 md:p-6">
-        {!status?.isEligible && renderNotEligible()}
-        {status?.isEligible && (!status?.applicationStatus || status?.applicationStatus === 'rejected') && renderApplicationForm()}
-        {status?.applicationStatus === 'pending' && renderPendingReview()}
-        {status?.applicationStatus === 'approved' && renderApprovedDashboard()}
+      <NavBar />
 
-        {(error || success) && (status?.applicationStatus === 'approved') && (
-          <div className={`fixed bottom-4 right-4 max-w-md p-4 rounded-xl shadow-2xl border transition-all duration-300 animate-slideIn ${
-            success 
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
-              : 'bg-rose-50 border-rose-200 text-rose-500'
-          }`}>
-            <div className="flex items-center gap-3">
-              {success ? (
-                <CheckCircle className="w-5 h-5 flex-shrink-0" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              )}
-              <p className="text-sm">{success || error}</p>
-              <button
-                onClick={() => { setSuccess(''); setError(''); }}
-                className="ml-4 p-1 hover:bg-[#F5F5F5] rounded transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      <main className="lg:pl-[120px] pb-28 lg:pb-12">
+        <div className="relative max-w-2xl mx-auto px-3 sm:px-6 pt-4 lg:pt-10">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-64"
+            style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }} />
+
+          {loading ? (
+            <div className="flex items-center justify-center py-32">
+              <div className="w-7 h-7 border-2 border-[#2E2E33] border-t-[#C6A15B] rounded-full animate-spin" />
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <>
+              {/* ══ LOCKED — build your team ══ */}
+              {!status?.isEligible && (
+                <>
+                  <div className="rise relative flex flex-col items-center text-center">
+                    <div className="relative w-32 h-32 flex items-center justify-center">
+                      <div className="aura-breathe absolute inset-0 rounded-full blur-2xl" style={{ background: 'radial-gradient(circle, rgba(198,161,91,0.22), transparent 70%)' }} />
+                      <div className="absolute inset-2 rounded-full border border-dashed border-[#C6A15B]/20 spin-slower" />
+                      <div className="relative w-16 h-16 rounded-2xl bg-[#C6A15B]/10 ring-1 ring-[#C6A15B]/30 flex items-center justify-center">
+                        <Trophy size={26} strokeWidth={1.8} className="text-[#C6A15B]" />
+                      </div>
+                    </div>
+                    <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] mt-5">Monthly Salary</h1>
+                    <p className="fi text-[13px] text-[#A0A0A6] mt-1 max-w-[300px]">Build your team to unlock a guaranteed monthly income</p>
+                  </div>
+
+                  <div className="rise relative mt-6 rounded-2xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-5 text-center overflow-hidden" style={{ animationDelay: '0.06s' }}>
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-24" style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.07), transparent 70%)' }} />
+                    <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6F6F76]">Your potential earnings</p>
+                    <p className="tnum amount-breathe text-[40px] font-semibold text-[#C6A15B] mt-1 leading-none">
+                      ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}<span className="text-[18px] text-[#A0A0A6]">/mo</span>
+                    </p>
+                    <p className="fi text-[11px] text-[#6F6F76] mt-1.5">upon approval</p>
+                  </div>
+
+                  <div className="rise relative mt-4 rounded-2xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-5 flex items-center gap-5" style={{ animationDelay: '0.1s' }}>
+                    <TeamGauge current={status?.currentTeam || 0} required={status?.requiredTeam || 1} />
+                    <div className="flex-1 min-w-0">
+                      <p className="fi text-[13.5px] font-semibold text-[#EDEDEE]">Team progress</p>
+                      <p className="fi text-[11.5px] text-[#A0A0A6] mt-1">{status?.currentTeam || 0} of {status?.requiredTeam || 0} members · {Math.round(pct)}% there</p>
+                      <button onClick={() => navigate('/team')} className="fi mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#C6A15B] hover:text-[#D8BA7C] transition-colors">
+                        <Users size={14} /> Grow your team
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ══ APPLICATION FORM ══ */}
+              {status?.isEligible && (!status?.applicationStatus || status?.applicationStatus === 'rejected') && (
+                <>
+                  <div className="rise relative">
+                    <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">Verify your identity</h1>
+                    <p className="fi text-[13px] text-[#A0A0A6] mt-0.5">Complete your application to activate salary benefits</p>
+                  </div>
+
+                  <div className="rise relative flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-[#C6A15B]/[0.06] ring-1 ring-[#C6A15B]/15 mt-5" style={{ animationDelay: '0.05s' }}>
+                    <ShieldCheck size={15} className="text-[#C6A15B] flex-shrink-0" />
+                    <p className="fi text-[11.5px] text-[#A0A0A6]">Your documents are encrypted and reviewed securely.</p>
+                  </div>
+
+                  {(error || success) && (
+                    <div className={`rise relative flex items-start gap-2.5 px-3.5 py-3 rounded-xl mt-4 ring-1 ${success ? 'bg-[#1E2A22] ring-[#8FC7A0]/20' : 'bg-[#241619] ring-[#E2A896]/20'}`}>
+                      {success ? <CheckCircle size={16} className="text-[#8FC7A0] flex-shrink-0 mt-[1px]" /> : <AlertTriangle size={16} className="text-[#E2A896] flex-shrink-0 mt-[1px]" />}
+                      <p className={`fi text-[13px] leading-snug ${success ? 'text-[#8FC7A0]' : 'text-[#E2A896]'}`}>{success || error}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="relative mt-5 flex flex-col gap-5" style={{ animationDelay: '0.1s' }}>
+                    <div className="flex flex-col gap-2">
+                      <label className="fi text-[13px] font-medium text-[#A0A0A6]">Full legal name</label>
+                      <input type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Name as it appears on your ID" className={inputCls} required />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="fi text-[13px] font-medium text-[#A0A0A6]">Document type</label>
+                        <div className="relative">
+                          <select value={form.documentType} onChange={(e) => setForm({ ...form, documentType: e.target.value })} className={`${inputCls} appearance-none pr-10 cursor-pointer`} required>
+                            <option value="nic">National ID</option>
+                            <option value="passport">Passport</option>
+                            <option value="driving_license">Driving License</option>
+                          </select>
+                          <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6F6F76] pointer-events-none" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="fi text-[13px] font-medium text-[#A0A0A6]">Document number</label>
+                        <input type="text" value={form.documentNumber} onChange={(e) => setForm({ ...form, documentNumber: e.target.value })} placeholder="ID number" className={inputCls} required />
+                      </div>
+                    </div>
+
+                    <PhoneInput value={form.phoneNumber} onChange={(val) => setForm({ ...form, phoneNumber: val })} placeholder="Phone number" countryCode={form.phoneCountryCode} onCountryChange={(code) => setForm({ ...form, phoneCountryCode: code })} countryOptions={countryOptions} />
+                    <PhoneInput value={form.whatsappNumber} onChange={(val) => setForm({ ...form, whatsappNumber: val })} placeholder="WhatsApp number" countryCode={form.whatsappCountryCode} onCountryChange={(code) => setForm({ ...form, whatsappCountryCode: code })} countryOptions={countryOptions} icon={MessageCircle} />
+
+                    <div className="flex flex-col gap-4 pt-1">
+                      <div>
+                        <h3 className="fi text-[14px] font-semibold text-[#EDEDEE]">Verification documents</h3>
+                        <p className="fi text-[11px] text-[#6F6F76] mt-0.5">Upload clear images for verification</p>
+                      </div>
+                      <UploadField label="ID front side" description="Clear image of front" accept="image/*" onChange={(file) => setForm({ ...form, identityFront: file })} required error={uploadErrors.identityFront} icon={CreditCard} />
+                      <UploadField label="ID back side" description="Clear image of back" accept="image/*" onChange={(file) => setForm({ ...form, identityBack: file })} required error={uploadErrors.identityBack} icon={CreditCard} />
+                      <UploadField label="Selfie with ID" description="Face + ID in one frame" accept="image/*" onChange={(file) => setForm({ ...form, selfie: file })} required error={uploadErrors.selfie} icon={User} />
+                    </div>
+
+                    <button type="submit" disabled={isSubmitting}
+                      className={`fi w-full h-12 rounded-xl flex items-center justify-center gap-2 text-[14px] font-semibold transition-all active:scale-[0.99] ${isSubmitting ? 'bg-[#A9884A] text-[#161618] cursor-not-allowed' : 'bg-[#C6A15B] text-[#161618] hover:bg-[#D8BA7C] shadow-[0_10px_28px_rgba(198,161,91,0.14)]'}`}>
+                      {isSubmitting ? <><RotateCw size={16} className="animate-spin" /> Processing…</> : <><ShieldCheck size={16} /> Submit application</>}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {/* ══ PENDING REVIEW ══ */}
+              {status?.applicationStatus === 'pending' && (
+                <div className="rise relative flex flex-col items-center text-center py-10">
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <div className="aura-breathe absolute inset-0 rounded-full blur-2xl" style={{ background: 'radial-gradient(circle, rgba(198,161,91,0.20), transparent 70%)' }} />
+                    <div className="absolute inset-1 rounded-full border border-dashed border-[#C6A15B]/20 spin-slower" />
+                    <div className="relative w-16 h-16 rounded-full bg-[#C6A15B]/10 ring-1 ring-[#C6A15B]/30 flex items-center justify-center">
+                      <Clock size={26} strokeWidth={1.8} className="text-[#C6A15B]" />
+                    </div>
+                  </div>
+                  <h2 className="fd text-[24px] font-medium text-[#EDEDEE] mt-5">Application under review</h2>
+                  <p className="fi text-[12.5px] text-[#A0A0A6] mt-1.5 max-w-[280px] leading-relaxed">
+                    Your application is being verified. This usually takes 24–48 hours — we'll notify you once approved.
+                  </p>
+                  <div className="flex items-center gap-2 mt-6 px-3.5 py-2 rounded-full bg-[#C6A15B]/[0.08] ring-1 ring-[#C6A15B]/20">
+                    <span className="relative flex w-1.5 h-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C6A15B] opacity-60" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#C6A15B]" />
+                    </span>
+                    <span className="fi text-[11px] font-medium text-[#C6A15B]">Verification in progress</span>
+                  </div>
+                </div>
+              )}
+
+              {/* ══ APPROVED DASHBOARD ══ */}
+              {status?.applicationStatus === 'approved' && (
+                <>
+                  <div className="rise relative flex items-center justify-between gap-3">
+                    <div>
+                      <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">Monthly Salary</h1>
+                      <p className="fi text-[13px] text-[#A0A0A6] mt-0.5">Your guaranteed monthly income</p>
+                    </div>
+                    <button onClick={() => navigate('/month-salary-history')} className="fi flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#1B1B1E] ring-1 ring-white/[0.05] text-[#A0A0A6] hover:text-[#EDEDEE] hover:ring-[#C6A15B]/20 text-[12px] font-medium transition-all flex-shrink-0">
+                      <History size={14} /> History
+                    </button>
+                  </div>
+
+                  {(error || success) && (
+                    <div className={`rise relative flex items-start gap-2.5 px-3.5 py-3 rounded-xl mt-4 ring-1 ${success ? 'bg-[#1E2A22] ring-[#8FC7A0]/20' : 'bg-[#241619] ring-[#E2A896]/20'}`}>
+                      {success ? <CheckCircle size={16} className="text-[#8FC7A0] flex-shrink-0 mt-[1px]" /> : <AlertTriangle size={16} className="text-[#E2A896] flex-shrink-0 mt-[1px]" />}
+                      <p className={`fi text-[13px] leading-snug ${success ? 'text-[#8FC7A0]' : 'text-[#E2A896]'}`}>{success || error}</p>
+                    </div>
+                  )}
+
+                  {/* Salary hero */}
+                  <div className="rise relative mt-3 rounded-2xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-4 overflow-hidden" style={{ animationDelay: '0.06s' }}>
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.08), transparent 70%)' }} />
+                    <div className="relative flex items-start justify-between">
+                      <div>
+                        <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6F6F76]">Your monthly salary</p>
+                        <p className="tnum amount-breathe text-[42px] font-semibold text-[#C6A15B] mt-1 leading-none">
+                          ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}
+                        </p>
+                        <span className="fi inline-flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full bg-[#1E2A22] ring-1 ring-[#8FC7A0]/20 text-[10px] font-semibold text-[#8FC7A0]">
+                          <BadgeCheck size={12} /> Active
+                        </span>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-[#C6A15B]/10 ring-1 ring-[#C6A15B]/20 flex items-center justify-center flex-shrink-0">
+                        <Trophy size={22} strokeWidth={1.8} className="text-[#C6A15B]" />
+                      </div>
+                    </div>
+                    <button onClick={handleCollect} disabled={status?.hasCollectedThisMonth}
+                      className={`relative fi w-full h-12 rounded-xl mt-5 flex items-center justify-center gap-2 text-[14px] font-semibold transition-all active:scale-[0.99] ${
+                        status?.hasCollectedThisMonth ? 'bg-[#212125] text-[#57575D] cursor-not-allowed' : 'bg-[#C6A15B] text-[#161618] hover:bg-[#D8BA7C] shadow-[0_10px_28px_rgba(198,161,91,0.14)]'
+                      }`}>
+                      {status?.hasCollectedThisMonth ? <><CheckCircle size={16} /> Collected this month</> : <><Coins size={16} /> Collect ${RemoveTrailingZeros(status?.salaryAmount) || '0.00'}</>}
+                    </button>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="rise relative grid grid-cols-2 gap-3 mt-4" style={{ animationDelay: '0.1s' }}>
+                    <div className="rounded-xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-3.5">
+                      <div className="flex items-center gap-1.5 text-[#6F6F76]"><Users size={13} /><span className="fi text-[10px] font-semibold uppercase tracking-[0.12em]">Team</span></div>
+                      <p className="tnum text-[16px] font-semibold text-[#EDEDEE] mt-1.5">{status?.currentTeam || 0}/{status?.requiredTeam || 0}</p>
+                      <p className="fi text-[10px] text-[#6F6F76] mt-0.5">members</p>
+                    </div>
+                    <div className="rounded-xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-3.5">
+                      <div className="flex items-center gap-1.5 text-[#6F6F76]"><Calendar size={13} /><span className="fi text-[10px] font-semibold uppercase tracking-[0.12em]">This month</span></div>
+                      <p className={`tnum text-[16px] font-semibold mt-1.5 ${status?.hasCollectedThisMonth ? 'text-[#A0A0A6]' : 'text-[#8FC7A0]'}`}>{status?.hasCollectedThisMonth ? 'Collected' : 'Ready'}</p>
+                      <p className="fi text-[10px] text-[#6F6F76] mt-0.5">{status?.hasCollectedThisMonth ? 'see you next cycle' : 'collect now'}</p>
+                    </div>
+                  </div>
+
+                  {status?.hasCollectedThisMonth && status?.nextCollectionWindowStart && (
+                    <CountdownTimer nextWindowStart={status.nextCollectionWindowStart} />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 };
