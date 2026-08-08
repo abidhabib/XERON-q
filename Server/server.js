@@ -2482,19 +2482,7 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
 
 
 
-if (process.env.USE_SSL === 'true') {
-    console.log('🔒 HTTPS Server running on port ' + process.env.PORT);
-    
-  const options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/rovexking.com/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/rovexking.com/fullchain.pem')
-  };
 
-  https.createServer(options, app).listen(process.env.PORT, () => {
-    console.log('🔒 HTTPS Server running on port ' + process.env.PORT);
-  });
-} else {
   app.listen( process.env.PORT, () => {
     console.log('⚠️  HTTP Server running on port ' +  process.env.PORT);
   });
-} 
