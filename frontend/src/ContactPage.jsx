@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Star, BadgeCheck, AlertTriangle, Phone, ArrowUpRight } from 'lucide-react';
+/* eslint-disable react/prop-types */
+import { useState, useEffect, useContext } from 'react';
+import { Star, BadgeCheck, AlertTriangle, Phone, ArrowUpRight, Bell, BriefcaseBusiness, CalendarDays, ShieldCheck, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from './UserContext/UserContext';
 import NavBar from './NavBar';
@@ -16,7 +18,7 @@ const WHATSAPP_PATH =
   'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z';
 
 const SectionLabel = ({ children, className = '' }) => (
-  <p className={`fd text-[18px] font-semibold uppercase tracking-[0.16em] text-white ${className}`}>{children}</p>
+  <p className={`fi text-[11px] font-semibold uppercase tracking-[0.14em] text-[#778497] ${className}`}>{children}</p>
 );
 
 /* ── Star row (display) ── */
@@ -34,7 +36,8 @@ const Stars = ({ value, size = 14 }) => (
 );
 
 const ContactPage = () => {
-  const { Userid } = useContext(UserContext);
+  const { Userid, NewName, currBalance, total_withdrawal, backend_wallet } = useContext(UserContext);
+  const navigate = useNavigate();
   const [contactInfo, setContactInfo] = useState(null);
   const [parentId, setParentId] = useState(null);
   const [isVerified, setIsVerified] = useState(false);
@@ -104,9 +107,12 @@ setParentId(res.data.contact?.id ?? null);
     : 'M';
   const avg = contactInfo ? parseFloat(contactInfo.average_rating) || 0 : 0;
   const activeRating = hoverRating || selectedRating;
+  const progress = backend_wallet ? Math.min(Math.round((Number(backend_wallet) / 3) * 100), 100) : 0;
+  const available = Number(currBalance || 0).toFixed(1).replace(/\.0$/, '');
+  const cashout = Number(total_withdrawal || 0).toFixed(1).replace(/\.0$/, '');
 
   return (
-    <div className="min-h-screen bg-[#161618]">
+    <div className="mx-auto min-h-dvh max-w-md bg-[#f5f5f4] shadow-[0_0_40px_rgba(19,25,32,0.06)]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
         .fd { font-family: 'Cormorant', serif; }
@@ -116,13 +122,23 @@ setParentId(res.data.contact?.id ?? null);
         .rise { animation: rise 0.45s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      <NavBar />
+      <header className="relative min-h-[300px] overflow-hidden rounded-b-[14px] bg-[#20262d] px-[25px] pt-[14px] shadow-[0_8px_20px_rgba(22,28,35,0.16)]">
+        <NavBar />
+        <div className="mt-[25px] flex items-center justify-between gap-3">
+          <p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white"><span className="truncate">{NewName || 'Member'}</span><ShieldCheck size={17} className="shrink-0 text-[#e3b900]" /></p>
+          <span className="shrink-0 rounded-full bg-[#4c4330] px-2.5 py-1 text-[10px] font-semibold text-[#f5c927]">{progress}% Progress</span>
+        </div>
+        <div className="mt-[18px] grid grid-cols-2">
+          <div><p className="text-[27px] font-semibold leading-none tracking-[-0.04em] text-white"><span className="mr-0.5 text-[20px] text-[#dce4ee]">$</span>{available}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Available balance</p></div>
+          <div className="pt-[8px] text-right"><p className="text-[19px] font-semibold leading-none tracking-[-0.03em] text-[#c7d1dc]"><span className="mr-0.5 text-[14px]">$</span>{cashout}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Total cashout</p></div>
+        </div>
+        <div className="mt-[31px] grid grid-cols-4 gap-5">
+          {[["Wallet", BriefcaseBusiness, "/wallet"], ["Salary", CalendarDays, "/salaryofMonth"], ["Team", Users, "/team"], ["Alert", Bell, "/alerts"]].map(([label, Icon, path]) => <button key={label} type="button" onClick={() => navigate(path)} className="flex min-w-0 flex-col items-center gap-1.5 text-[#93a1b3]"><span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#303943]"><Icon size={19} strokeWidth={2} /></span><span className="text-[10px] font-medium">{label}</span></button>)}
+        </div>
+      </header>
 
-      <main className="lg:pl-[300px] pb-28 lg:pb-12">
-        <div className="relative max-w-2xl mx-auto px-3 sm:px-6 pt-3 lg:pt-10">
-
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64"
-            style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }} />
+      <main className="pb-8">
+        <div className="relative mx-auto max-w-md px-4 pt-3">
 
           {loading ? (
             <div className="flex items-center justify-center py-32">
@@ -145,7 +161,7 @@ setParentId(res.data.contact?.id ?? null);
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h1 className="fd text-[24px] sm:text-[26px] font-medium text-[#EDEDEE] leading-tight truncate">
+                    <h1 className="fi text-[22px] font-bold text-[#20262d] leading-tight truncate">
                       {contactInfo.name}
                     </h1>
                     <p className="fi text-[11px] font-semibold uppercase tracking-[0.12em] text-[#C6A15B] mt-1">
@@ -158,14 +174,14 @@ setParentId(res.data.contact?.id ?? null);
               {/* Rating moment */}
               <div className="rise relative flex items-center gap-5 mt-6" style={{ animationDelay: '0.06s' }}>
                 <div className="flex items-end gap-1">
-                  <span className="tnum text-[42px] font-semibold text-[#C6A15B] leading-[0.8]">
+                  <span className="tnum text-[38px] font-bold text-[#20262d] leading-[0.8]">
                     {avg > 0 ? avg.toFixed(1) : '—'}
                   </span>
-                  <span className="fi text-[13px] text-[#6F6F76] mb-1">/ 5</span>
+                  <span className="fi text-[13px] text-[#7b8797] mb-1">/ 5</span>
                 </div>
                 <div className="pb-0.5">
                   <Stars value={avg} size={15} />
-                  <p className="fi text-[11px] text-[#A0A0A6] mt-1.5">
+                  <p className="fi text-[11px] text-[#778497] mt-1.5">
                     {userRating > 0 ? (
                       <>You rated <span className="tnum font-semibold text-[#C6A15B]">{userRating}/5</span></>
                     ) : avg > 0 ? (
@@ -181,7 +197,7 @@ setParentId(res.data.contact?.id ?? null);
               <div className="rise relative mt-7 pl-4" style={{ animationDelay: '0.1s' }}>
                 <span className="absolute left-0 top-1 bottom-1 w-[2px] rounded-full bg-[#C6A15B]/40" />
                 <SectionLabel>About</SectionLabel>
-                <p className="fi text-[13.5px] text-[#A0A0A6] leading-relaxed mt-2">
+                <p className="fi text-[13.5px] text-[#6d7d90] leading-relaxed mt-2">
                   {contactInfo.mentor_description ||
                     'This mentor provides guidance, onboarding help, and support related to your account growth and salary eligibility.'}
                 </p>
@@ -190,20 +206,20 @@ setParentId(res.data.contact?.id ?? null);
               {/* Contact */}
               <div className="relative mt-7">
                 <SectionLabel>Get in touch</SectionLabel>
-                <div className="flex flex-col gap-0.5 mt-3">
+                <div className="flex flex-col gap-3 mt-3">
                   <a
                     href={`https://wa.me/${contactInfo.whatsapp_country_code.replace('+', '')}${contactInfo.whatsapp_number}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rise group flex items-center gap-3 rounded-lg px-2 py-3 -mx-2 hover:bg-[#1B1B1E] transition-colors"
+                    className="rise group flex items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 shadow-[0_3px_10px_rgba(22,28,35,0.04)] transition-colors"
                     style={{ animationDelay: '0.14s' }}
                   >
                     <span className="w-10 h-10 rounded-lg bg-[#1E2A22] text-[#7FD8A0] flex items-center justify-center flex-shrink-0">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d={WHATSAPP_PATH} /></svg>
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="fi text-[11px] text-[#6F6F76]">WhatsApp</p>
-                      <p className="fi tnum text-[14px] font-semibold text-[#EDEDEE] truncate mt-0.5">
+                      <p className="fi text-[11px] text-[#778497]">WhatsApp</p>
+                      <p className="fi tnum text-[14px] font-semibold text-[#20262d] truncate mt-0.5">
                         {formatPhone(contactInfo.whatsapp_number, contactInfo.whatsapp_country_code)}
                       </p>
                     </div>
@@ -213,13 +229,13 @@ setParentId(res.data.contact?.id ?? null);
                   </a>
 
                   {contactInfo.phone_number && (
-                    <div className="rise group flex items-center gap-3 rounded-lg px-2 py-3 -mx-2 hover:bg-[#1B1B1E] transition-colors" style={{ animationDelay: '0.18s' }}>
-                      <span className="w-10 h-10 rounded-lg bg-[#212125] text-[#A0A0A6] flex items-center justify-center flex-shrink-0">
+                    <div className="rise group flex items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 shadow-[0_3px_10px_rgba(22,28,35,0.04)]" style={{ animationDelay: '0.18s' }}>
+                      <span className="w-10 h-10 rounded-lg bg-[#eef1f4] text-[#778497] flex items-center justify-center flex-shrink-0">
                         <Phone size={17} strokeWidth={2} />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="fi text-[11px] text-[#6F6F76]">Phone</p>
-                        <p className="fi tnum text-[14px] font-semibold text-[#EDEDEE] truncate mt-0.5">
+                        <p className="fi text-[11px] text-[#778497]">Phone</p>
+                        <p className="fi tnum text-[14px] font-semibold text-[#20262d] truncate mt-0.5">
                           {formatPhone(contactInfo.phone_number, contactInfo.phone_country_code)}
                         </p>
                       </div>
@@ -232,7 +248,7 @@ setParentId(res.data.contact?.id ?? null);
 {canReview && contactInfo?.id && (
                   <div className="relative mt-8">
                   <SectionLabel>Rate your mentor</SectionLabel>
-                  <p className="fi text-[12px] text-[#A0A0A6] mt-1.5">Based on guidance, availability, and honesty.</p>
+                  <p className="fi text-[12px] text-[#778497] mt-1.5">Based on guidance, availability, and honesty.</p>
 
                   <div className="flex items-center justify-center gap-2 mt-5" onMouseLeave={() => setHoverRating(0)}>
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -266,7 +282,7 @@ setParentId(res.data.contact?.id ?? null);
                     className={`fi w-full h-11 rounded-xl mt-4 text-[13.5px] font-semibold transition-all duration-200 ${
                       selectedRating && !submitting
                         ? 'bg-[#C6A15B] text-[#161618] hover:bg-[#D8BA7C] shadow-[0_10px_28px_rgba(198,161,91,0.14)] active:scale-[0.99]'
-                        : 'bg-[#212125] text-[#57575D] cursor-not-allowed'
+                        : 'bg-[#e5e7eb] text-[#9aa4b2] cursor-not-allowed'
                     }`}
                   >
                     {submitting ? 'Submitting…' : 'Submit review'}
@@ -277,11 +293,11 @@ setParentId(res.data.contact?.id ?? null);
           ) : (
             /* Empty state */
             <div className="rise relative mt-10 text-center py-12 px-6">
-              <div className="w-12 h-12 mx-auto rounded-xl bg-[#212125] flex items-center justify-center text-[#C6A15B] mb-3.5">
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#C6A15B] shadow-sm mb-3.5">
                 <AlertTriangle size={22} strokeWidth={1.8} />
               </div>
-              <h3 className="fi text-[14.5px] font-semibold text-[#EDEDEE]">No mentor available</h3>
-              <p className="fi text-[12.5px] text-[#A0A0A6] mt-1 max-w-[220px] mx-auto leading-relaxed">
+              <h3 className="fi text-[14.5px] font-semibold text-[#20262d]">No mentor available</h3>
+              <p className="fi text-[12.5px] text-[#778497] mt-1 max-w-[220px] mx-auto leading-relaxed">
                 Your monthly salary isn't unlocked yet.
               </p>
             </div>
@@ -293,14 +309,14 @@ setParentId(res.data.contact?.id ?? null);
       {toast.show && (
         <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
           <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl ring-1 shadow-[0_12px_32px_rgba(0,0,0,0.4)] ${
-            toast.type === 'success' ? 'bg-[#1E2A22] ring-[#8FC7A0]/20' : 'bg-[#241619] ring-[#E2A896]/20'
+            toast.type === 'success' ? 'bg-white ring-[#8FC7A0]/30' : 'bg-white ring-[#E2A896]/30'
           }`}>
             <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[11px] font-bold ${
               toast.type === 'success' ? 'bg-[#8FC7A0]/15 text-[#8FC7A0]' : 'bg-[#E2A896]/15 text-[#E2A896]'
             }`}>
               {toast.type === 'success' ? '✓' : '✕'}
             </span>
-            <span className="fi text-[13px] text-[#EDEDEE] font-medium">{toast.message}</span>
+            <span className="fi text-[13px] text-[#20262d] font-medium">{toast.message}</span>
           </div>
         </div>
       )}

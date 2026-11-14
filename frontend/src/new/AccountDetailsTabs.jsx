@@ -1,192 +1,96 @@
-import { useState, useEffect, useContext } from 'react';
-import { UserContext } from '../UserContext/UserContext';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
+import { AlertTriangle, CheckCircle2, Copy, Loader2, Wallet, X } from 'lucide-react';
+import { UserContext } from '../UserContext/UserContext';
 import NavBar from '../NavBar';
-import { Copy, AlertTriangle, RotateCw, DollarSign } from 'lucide-react';
-import { FaEthereum } from 'react-icons/fa';
-import { BiBitcoin, BiSolidCoin } from 'react-icons/bi';
 
-const CHAINS = {
-  bep20: { name: 'BEP20 (BSC)', icon: DollarSign, pattern: /^0x[a-fA-F0-9]{40}$/ },
-  trc20: { name: 'TRC20 (TRON)', icon: BiSolidCoin, pattern: /^T[a-zA-Z0-9]{33}$/ },
-  eth:   { name: 'ETH (Ethereum)', icon: FaEthereum, pattern: /^0x[a-fA-F0-9]{40}$/ },
-  btc:   { name: 'BTC (Bitcoin)', icon: BiBitcoin, pattern: /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/ },
-};
+const API = import.meta.env.VITE_API_BASE_URL;
+const CHAINS = { bep20: { name: 'BEP20 (BSC)', pattern: /^0x[a-fA-F0-9]{40}$/ } };
 
-const WalletManager = () => {
+export default function WalletManager() {
   const { Userid } = useContext(UserContext);
   const [wallets, setWallets] = useState({});
   const [inputs, setInputs] = useState({});
-  const [loading, setLoading] = useState({});
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [saving, setSaving] = useState({});
+  const [fetching, setFetching] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [notice, setNotice] = useState(null);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2500);
-  };
-
-  useEffect(() => {
+  const loadWallets = useCallback(async () => {
     if (!Userid) return;
-    axios
-      .get(`${import.meta.env.VITE_API_BASE_URL}/api/wallets`, { withCredentials: true })
-      .then((res) => {
-        if (res.data.success) setWallets(res.data.wallets || {});
-      })
-      .catch(() => showToast('Failed to load wallets', 'error'));
-  }, [Userid]);
-
-  const validate = (chain, address) => CHAINS[chain]?.pattern.test(address.trim());
-
-  const handleSave = async (chain) => {
-    const address = inputs[chain]?.trim();
-    if (!address || !validate(chain, address)) return showToast('Invalid address format', 'error');
-    setLoading((prev) => ({ ...prev, [chain]: true }));
+    setFetching(true); setLoadError('');
     try {
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/wallets`, { chain, address }, { withCredentials: true });
-      setWallets((prev) => ({ ...prev, [chain]: address }));
-      showToast('Address saved successfully', 'success');
-    } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to save address', 'error');
-    } finally {
-      setLoading((prev) => ({ ...prev, [chain]: false }));
+      const { data } = await axios.get(`${API}/api/wallets`, { withCredentials: true });
+      if (!data.success) throw new Error(data.error || 'Unable to load your wallet');
+      setWallets(data.wallets || {});
+      setInputs(data.wallets || {});
+    } catch (error) {
+      setLoadError(error.response?.data?.error || error.message || 'Unable to load your wallet');
+    } finally { setFetching(false); }
+  }, [Userid]);
+  useEffect(() => { loadWallets(); }, [loadWallets]);
+
+  const saveAddress = async (event, chain) => {
+    event.preventDefault();
+    const address = (inputs[chain] || '').trim();
+    if (saving[chain] || fetching || loadError) return;
+    if (!CHAINS[chain].pattern.test(address)) {
+      setNotice({ type: 'error', message: 'Enter a valid BEP20 address starting with 0x.' }); return;
     }
+    if (address === (wallets[chain] || '')) return;
+    setSaving(previous => ({ ...previous, [chain]: true })); setNotice(null);
+    try {
+      const { data } = await axios.put(`${API}/api/wallets`, { chain, address }, { withCredentials: true });
+      if (!data.success) throw new Error(data.error || 'Unable to save your address');
+      setWallets(previous => ({ ...previous, [chain]: address }));
+      setInputs(previous => ({ ...previous, [chain]: address }));
+      setNotice({ type: 'success', message: 'Withdrawal address saved.' });
+    } catch (error) {
+      setNotice({ type: 'error', message: error.response?.data?.error || error.message || 'Unable to save your address' });
+    } finally { setSaving(previous => ({ ...previous, [chain]: false })); }
+  };
+  const copyAddress = async address => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Copy is unavailable. Select and copy the address below.');
+      await navigator.clipboard.writeText(address);
+      setNotice({ type: 'success', message: 'Address copied.' });
+    } catch { setNotice({ type: 'error', message: 'Could not copy. Select and copy the address below.' }); }
   };
 
-  const copyAddress = (address) => {
-    navigator.clipboard.writeText(address);
-    showToast('Copied to clipboard', 'success');
-  };
-
-  return (
-    <div className="min-h-screen bg-[#161618]">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
-        .fd { font-family: 'Cormorant', serif; }
-        .fi { font-family: 'Inter', sans-serif; }
-        @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .rise { animation: rise 0.45s cubic-bezier(0.22,1,0.36,1) both; }
-      `}</style>
-
-      <NavBar />
-
-      <main className="lg:pl-[300px] pb-28 lg:pb-12">
-        <div className="relative max-w-md mx-auto px-4 sm:px-6 pt-3 lg:pt-10">
-
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-56"
-            style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }} />
-
-          {/* Header */}
-          <div className="rise relative">
-            <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">Wallet Addresses</h1>
-            <p className="fi text-[13px] text-[#A0A0A6] mt-0.5">Manage your withdrawal address for each network</p>
-          </div>
-
-          {/* Security note */}
-          <div className="rise relative flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[#C6A15B]/[0.06] ring-1 ring-[#C6A15B]/15 mt-5" style={{ animationDelay: '0.05s' }}>
-            <AlertTriangle size={15} className="text-[#C6A15B] flex-shrink-0 mt-[1px]" />
-            <p className="fi text-[11.5px] text-[#A0A0A6] leading-relaxed">
-              Always double-check the network. Funds sent to an incorrect address cannot be recovered.
-            </p>
-          </div>
-
-          {/* Chains */}
-          <div className="relative flex flex-col gap-3 mt-4">
-            {Object.entries(CHAINS).map(([chain, config], i) => {
-              const Icon = config.icon;
-              const savedAddress = wallets[chain] || '';
-              const inputVal = inputs[chain] || '';
-              const isDirty = inputVal !== savedAddress;
-              const isValid = inputVal ? validate(chain, inputVal) : true;
-              const canSave = isDirty && isValid && inputVal.trim();
-              const ringCls = !isValid && inputVal ? 'ring-2 ring-[#E2A896]/40' : 'focus:ring-2 focus:ring-[#C6A15B]/30';
-
-              return (
-                <div key={chain} className="rise rounded-xl bg-[#1B1B1E] ring-1 ring-white/[0.04] p-4" style={{ animationDelay: `${0.08 + i * 0.05}s` }}>
-                  {/* Chain header */}
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-lg bg-[#212125] flex items-center justify-center text-[#C6A15B] flex-shrink-0">
-                      <Icon className="w-[17px] h-[17px]" />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="fi text-[13.5px] font-semibold text-[#EDEDEE] leading-tight">{config.name}</h3>
-                      {savedAddress ? (
-                        <span className="fi flex items-center gap-1.5 text-[10px] font-medium text-[#8FC7A0] mt-0.5">
-                          <span className="w-1 h-1 rounded-full bg-[#8FC7A0]" /> Linked
-                        </span>
-                      ) : (
-                        <span className="fi flex items-center gap-1.5 text-[10px] font-medium text-[#6F6F76] mt-0.5">
-                          <span className="w-1 h-1 rounded-full bg-[#6F6F76]" /> Not set
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Current address */}
-                  {savedAddress && (
-                    <div className="mt-3 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#161618] ring-1 ring-white/[0.04]">
-                      <span className="fi font-mono text-[11px] text-[#A0A0A6] truncate flex-1">{savedAddress}</span>
-                      <button
-                        onClick={() => copyAddress(savedAddress)}
-                        className="w-7 h-7 rounded-md flex items-center justify-center text-[#6F6F76] hover:text-[#C6A15B] hover:bg-[#212125] transition-colors flex-shrink-0"
-                        aria-label="Copy address"
-                      >
-                        <Copy size={13} />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Input + save */}
-                  <div className="mt-3 flex gap-2">
-                    <input
-                      type="text"
-                      value={inputVal}
-                      onChange={(e) => setInputs((prev) => ({ ...prev, [chain]: e.target.value }))}
-                      placeholder={`Enter ${config.name} address`}
-                      spellCheck={false}
-                      className={`fi flex-1 min-w-0 h-11 px-3.5 text-[12.5px] font-mono text-[#EDEDEE] bg-[#212125] rounded-xl outline-none transition-all placeholder:text-[#57575D] placeholder:font-sans focus:bg-[#27272C] ${ringCls}`}
-                    />
-                    <button
-                      onClick={() => handleSave(chain)}
-                      disabled={loading[chain] || !canSave}
-                      className={`fi h-11 px-4 rounded-xl text-[12.5px] font-semibold flex-shrink-0 flex items-center justify-center transition-all ${
-                        canSave && !loading[chain]
-                          ? 'bg-[#C6A15B] text-[#161618] hover:bg-[#D8BA7C] active:scale-[0.98]'
-                          : 'bg-[#212125] text-[#57575D] cursor-not-allowed'
-                      }`}
-                    >
-                      {loading[chain] ? <RotateCw size={14} className="animate-spin" /> : 'Save'}
-                    </button>
-                  </div>
-
-                  {!isValid && inputVal && (
-                    <p className="fi flex items-center gap-1.5 text-[11.5px] text-[#E2A896] mt-2">
-                      <AlertTriangle size={12} className="flex-shrink-0" /> Invalid {config.name} address format
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+  return <div className="min-h-dvh bg-[#f5f5f4] text-[#17212b]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="mx-auto min-h-dvh max-w-md">
+      <header className="rounded-b-[14px] bg-[#20262d] px-3 pb-3 pt-2 text-white shadow-[0_3px_10px_rgba(22,28,35,0.12)]">
+        <NavBar />
+        <div className="mt-3 flex items-center gap-2.5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#303943] text-[#f5c927]"><Wallet size={19} aria-hidden="true" /></span>
+          <div className="min-w-0 flex-1"><h1 className="text-[15px] font-semibold">Withdrawal wallet</h1><p className="mt-0.5 text-xs leading-5 text-[#b4c0ce]">Manage your withdrawal address.</p></div>
+          <span className="rounded-full bg-[#4c4330] px-2 py-1 text-[11px] font-semibold text-[#f5c927]">BEP20</span>
         </div>
+      </header>
+      <main className="space-y-2.5 px-2.5 pb-5 pt-2.5">
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-700" aria-hidden="true" /><p className="text-xs leading-5 text-amber-900">Use a BEP20 address on BNB Smart Chain. Check the address and network before saving.</p></div>
+        {notice && <div role={notice.type === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs leading-5 ${notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
+          {notice.type === 'success' ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true" /> : <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />}
+          <p className="flex-1">{notice.message}</p><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss message" className="grid min-h-8 min-w-8 shrink-0 place-items-center rounded-lg hover:bg-black/5"><X size={14} /></button>
+        </div>}
+        {loadError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-800">{loadError}<button onClick={loadWallets} className="ml-2 inline-flex min-h-9 items-center font-semibold underline">Retry</button></div>}
+        {fetching ? <div role="status" className="flex items-center gap-2 rounded-xl bg-white p-3 text-xs text-[#526277]"><Loader2 size={17} className="animate-spin motion-reduce:animate-none" />Loading your wallet…</div> : !loadError && Object.entries(CHAINS).map(([chain, config]) => {
+          const saved = wallets[chain] || '';
+          const input = inputs[chain] || '';
+          const address = input.trim();
+          const invalid = Boolean(address) && !config.pattern.test(address);
+          const canSave = Boolean(address) && !invalid && address !== saved;
+          return <form key={chain} onSubmit={event => saveAddress(event, chain)} className="space-y-3 rounded-xl bg-white p-3 shadow-[0_2px_5px_rgba(27,38,49,0.06)] ring-1 ring-black/[0.02]">
+            <div className="flex items-center justify-between gap-2"><div><h2 className="text-[13px] font-semibold">{config.name}</h2><p className="mt-0.5 text-[11px] text-[#526277]">BNB Smart Chain</p></div><span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${saved ? 'bg-emerald-50 text-emerald-800' : 'bg-[#edf1f5] text-[#526277]'}`}>{saved ? 'Linked' : 'Not set'}</span></div>
+            {saved && <div className="rounded-lg bg-[#f5f7f9] px-2.5 py-2"><p className="text-[11px] font-medium text-[#526277]">Current address</p><div className="flex items-center gap-2"><p className="min-w-0 flex-1 select-all break-all font-mono text-xs leading-5 text-[#263545]">{saved}</p><button type="button" onClick={() => copyAddress(saved)} aria-label="Copy address" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[#526277] hover:bg-[#e7ecf1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#20262d]"><Copy size={16} /></button></div></div>}
+            <div><label htmlFor={`address-${chain}`} className="block text-xs font-semibold">{saved ? 'Update withdrawal address' : 'Withdrawal address'}</label><textarea id={`address-${chain}`} value={input} onChange={event => { setInputs(previous => ({ ...previous, [chain]: event.target.value })); setNotice(null); }} placeholder="0x…" spellCheck={false} autoCapitalize="none" autoCorrect="off" autoComplete="off" rows={2} disabled={saving[chain]} aria-invalid={invalid} aria-describedby={`address-help-${chain}${invalid ? ` address-error-${chain}` : ''}`} className={`mt-1.5 block w-full resize-none rounded-lg border bg-white px-2.5 py-2 font-mono text-sm leading-5 text-[#263545] outline-none disabled:opacity-60 ${invalid ? 'border-red-400 focus:ring-2 focus:ring-red-200' : 'border-[#dce4ec] focus:border-[#b89512] focus:ring-2 focus:ring-[#f5c927]/25'}`} />
+              <p id={`address-help-${chain}`} className="mt-1 text-[11px] leading-4 text-[#526277]">42 characters, starting with 0x.</p>
+              {invalid && <p id={`address-error-${chain}`} className="mt-1 text-xs leading-5 text-red-700">Enter a valid BEP20 address.</p>}
+            </div>
+            <button type="submit" disabled={!canSave || saving[chain]} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#f5c927] px-3 text-xs font-semibold text-[#20262d] transition-colors hover:bg-[#e6ba17] disabled:cursor-not-allowed disabled:bg-[#edf1f5] disabled:text-[#68788b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#20262d]">{saving[chain] && <Loader2 size={15} className="animate-spin motion-reduce:animate-none" />}{saving[chain] ? 'Saving…' : 'Save address'}</button>
+          </form>;
+        })}
       </main>
-
-      {/* Toast */}
-      {toast.show && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100]">
-          <div className={`fi flex items-center gap-2.5 px-4 py-2.5 rounded-xl ring-1 shadow-[0_12px_32px_rgba(0,0,0,0.4)] ${
-            toast.type === 'success' ? 'bg-[#1E2A22] ring-[#8FC7A0]/20' : 'bg-[#241619] ring-[#E2A896]/20'
-          }`}>
-            <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[11px] font-bold ${
-              toast.type === 'success' ? 'bg-[#8FC7A0]/15 text-[#8FC7A0]' : 'bg-[#E2A896]/15 text-[#E2A896]'
-            }`}>
-              {toast.type === 'success' ? '✓' : '✕'}
-            </span>
-            <span className="fi text-[13px] text-[#EDEDEE] font-medium">{toast.message}</span>
-          </div>
-        </div>
-      )}
     </div>
-  );
-};
-
-export default WalletManager;
+  </div>;
+}

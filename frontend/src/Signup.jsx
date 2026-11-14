@@ -1,439 +1,137 @@
-import React, { useEffect, useState, useCallback, memo, useMemo } from "react";
-import axios from "axios";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Check, CircleCheck, Eye, EyeOff, LockKeyhole, Mail, MapPin, Phone, ShieldCheck, UserRound } from 'lucide-react';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL,
-    timeout: 10000,
-    withCredentials: true,
-    headers: { 'Content-Type': 'application/json' }
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 10_000,
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' }
 });
 
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.code === 'ECONNABORTED') return Promise.reject(new Error('Request timeout. Please try again.'));
-        if (!error.response) return Promise.reject(new Error('Network error. Please check your connection.'));
-        return Promise.reject(error);
-    }
+  response => response,
+  error => {
+    if (error.code === 'ECONNABORTED') return Promise.reject(new Error('Request timed out. Please try again.'));
+    if (!error.response) return Promise.reject(new Error('Network error. Please check your connection.'));
+    return Promise.reject(error);
+  }
 );
 
-// ── Input ──────────────────────────────────────────────
-const InputField = memo(({ label, name, type = "text", placeholder, required = true, error, value, onChange, disabled, ...props }) => (
-    <div className="flex flex-col gap-2">
-        <label className="fi text-[13px] font-medium text-[#A0A0A6]">
-            {label} {required && <span className="text-[#C6A15B]/70">*</span>}
-        </label>
-        <input
-            type={type}
-            name={name}
-            placeholder={placeholder}
-            value={value}
-            onChange={onChange}
-            disabled={disabled}
-            className={`fi w-full h-12 px-4 text-[14.5px] text-[#EDEDEE] bg-[#212125] rounded-xl outline-none transition-all duration-200 placeholder:text-[#57575D] disabled:opacity-50 disabled:cursor-not-allowed ${
-                error ? 'ring-2 ring-[#E2A896]/40' : 'focus:bg-[#27272C] focus:ring-2 focus:ring-[#C6A15B]/30'
-            }`}
-            required={required}
-            {...props}
-        />
-        {error && <p className="fi text-[12px] text-[#E2A896]">{error}</p>}
-    </div>
-));
-InputField.displayName = 'InputField';
+const passwordScore = password => {
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+  return score;
+};
 
-// ── Password ───────────────────────────────────────────
-const PasswordField = memo(({ label, name, showPassword, onTogglePassword, value, onChange, error, disabled, showStrength = false, passwordStrength, showMatchIndicator = false, isMatch = null }) => {
-    const strengthStyles = {
-        1: { bar: 'w-1/5 bg-[#5C5348]', text: 'text-[#6F6F76]' },
-        2: { bar: 'w-2/5 bg-[#8A744F]', text: 'text-[#A0A0A6]' },
-        3: { bar: 'w-3/5 bg-[#B0925C]', text: 'text-[#A0A0A6]' },
-        4: { bar: 'w-4/5 bg-[#C6A15B]', text: 'text-[#C6A15B]' },
-        5: { bar: 'w-full bg-[#D8BA7C]', text: 'text-[#D8BA7C]' },
-    };
-    const level = Math.max(1, Math.min(passwordStrength?.score || 1, 5));
-    const s = strengthStyles[level];
-
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="fi text-[13px] font-medium text-[#A0A0A6]">
-                {label} <span className="text-[#C6A15B]/70">*</span>
-            </label>
-            <div className="relative">
-                <input
-                    type={showPassword ? "text" : "password"}
-                    name={name}
-                    placeholder="••••••••"
-                    value={value}
-                    onChange={onChange}
-                    disabled={disabled}
-                    className={`fi w-full h-12 px-4 pr-11 text-[14.5px] text-[#EDEDEE] bg-[#212125] rounded-xl outline-none transition-all duration-200 placeholder:text-[#57575D] disabled:opacity-50 disabled:cursor-not-allowed ${
-                        error ? 'ring-2 ring-[#E2A896]/40' :
-                        showMatchIndicator && isMatch === false ? 'ring-2 ring-[#E2A896]/40' :
-                        'focus:bg-[#27272C] focus:ring-2 focus:ring-[#C6A15B]/30'
-                    }`}
-                    required
-                    minLength={8}
-                />
-                {showMatchIndicator && isMatch !== null && name === 'confirmPassword' && (
-                    <div className="absolute right-11 top-1/2 -translate-y-1/2">
-                        {isMatch ? (
-                            <svg className="w-4 h-4 text-[#C6A15B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        ) : (
-                            <svg className="w-4 h-4 text-[#E2A896]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        )}
-                    </div>
-                )}
-                <button
-                    type="button"
-                    onClick={onTogglePassword}
-                    disabled={disabled}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6F6F76] hover:text-[#C6A15B] transition-colors disabled:opacity-50"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                    {showPassword ? <EyeOff className="w-[17px] h-[17px]" /> : <Eye className="w-[17px] h-[17px]" />}
-                </button>
-            </div>
-
-            {showStrength && value && (
-                <div className="mt-0.5">
-                    <div className="flex items-center gap-2.5">
-                        <div className="flex-1 h-1 bg-[#212125] rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all duration-300 ${s.bar}`} />
-                        </div>
-                        <span className={`fi text-[11px] ${s.text}`}>{passwordStrength.message}</span>
-                    </div>
-                    <p className="fi text-[11px] text-[#6F6F76] mt-1.5">Min 8 characters, with uppercase, number & symbol</p>
-                </div>
-            )}
-
-            {error && <p className="fi text-[12px] text-[#E2A896]">{error}</p>}
-            {showMatchIndicator && name === 'confirmPassword' && isMatch === false && !error && (
-                <p className="fi text-[12px] text-[#E2A896]">Passwords do not match</p>
-            )}
-        </div>
-    );
-});
-PasswordField.displayName = 'PasswordField';
-
-// ── Main ───────────────────────────────────────────────
 const Signup = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [formData, setFormData] = useState({ name: '', email: '', phoneNumber: '', password: '', confirmPassword: '', city: '', completeAddress: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [referrer, setReferrer] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [status, setStatus] = useState('idle');
+  const [message, setMessage] = useState('');
 
-    const [formData, setFormData] = useState({
-        name: "", email: "", phoneNumber: "", password: "", confirmPassword: "", city: "", completeAddress: "",
-    });
+  useEffect(() => {
+    const ref = new URLSearchParams(location.search).get('ref');
+    if (ref && /^\d+$/.test(ref)) setReferrer(ref);
+  }, [location.search]);
 
-    const [uiState, setUiState] = useState({
-        isLoading: false, referrer: "", acceptTerms: false, showPassword: false, showConfirmPassword: false,
-        buttonText: "Create Account", buttonStatus: "idle", fieldErrors: {}
-    });
+  const strength = useMemo(() => passwordScore(formData.password), [formData.password]);
+  const passwordsMatch = formData.confirmPassword ? formData.password === formData.confirmPassword : null;
+  const isLoading = status === 'loading';
 
-    const [passwordStrength, setPasswordStrength] = useState({ score: 0, message: '', color: 'gray' });
+  const updateField = useCallback(event => {
+    const { name, value } = event.target;
+    setFormData(previous => ({ ...previous, [name]: value }));
+    setFieldErrors(previous => ({ ...previous, [name]: '' }));
+    setMessage('');
+  }, []);
 
-    const passwordMatch = useMemo(() => {
-        if (!formData.confirmPassword) return null;
-        return formData.password === formData.confirmPassword;
-    }, [formData.password, formData.confirmPassword]);
+  const validate = () => {
+    const errors = {};
+    if (!formData.name.trim()) errors.name = 'Enter your full name.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Enter a valid email address.';
+    if (!/^03\d{9}$/.test(formData.phoneNumber.replace(/\s/g, ''))) errors.phoneNumber = 'Use a Pakistani number: 03xxxxxxxxx.';
+    if (formData.password.length < 8) errors.password = 'Use at least 8 characters.';
+    if (formData.password !== formData.confirmPassword) errors.confirmPassword = 'Passwords do not match.';
+    if (!formData.city.trim()) errors.city = 'Enter your state.';
+    if (!formData.completeAddress.trim()) errors.completeAddress = 'Enter your city.';
+    if (!acceptTerms) errors.terms = 'Please accept the terms to continue.';
+    return errors;
+  };
 
-    useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        const ref = params.get("ref");
-        if (ref && /^\d+$/.test(ref)) setUiState(prev => ({ ...prev, referrer: ref }));
-    }, [location]);
+  const handleSubmit = async event => {
+    event.preventDefault();
+    const errors = validate();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setStatus('error');
+      setMessage('Review the highlighted fields and try again.');
+      return;
+    }
+    setStatus('loading');
+    setMessage('');
+    try {
+      const url = referrer ? `/register?ref=${referrer}` : '/register';
+      const response = await api.post(url, formData);
+      if (response.data.status !== 'success') throw new Error(response.data.error || 'Registration failed.');
+      localStorage.setItem('Userid', response.data.userId);
+      setStatus('success');
+      setMessage('Account created. Taking you to secure payment…');
+      window.setTimeout(() => navigate('/payment'), 1200);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error.response?.data?.error || error.message || 'Unable to create your account.');
+    }
+  };
 
-    const calculatePasswordStrength = useCallback((password) => {
-        let score = 0;
-        if (password.length >= 8) score++;
-        if (password.length >= 12) score++;
-        if (/[A-Z]/.test(password)) score++;
-        if (/[0-9]/.test(password)) score++;
-        if (/[^A-Za-z0-9]/.test(password)) score++;
-        const strengthMap = {
-            0: { message: 'Too weak', color: 'red' },
-            1: { message: 'Weak', color: 'orange' },
-            2: { message: 'Fair', color: 'yellow' },
-            3: { message: 'Good', color: 'blue' },
-            4: { message: 'Strong', color: 'green' },
-            5: { message: 'Very Strong', color: 'emerald' }
-        };
-        return { score, ...strengthMap[score] };
-    }, []);
+  const inputClass = error => `h-12 w-full rounded-xl border bg-slate-50 px-11 pr-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 ${error ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-100' : 'border-slate-200 focus:border-[#d5a927] focus:ring-[#d5a927]/15'} disabled:cursor-not-allowed disabled:opacity-60`;
+  const fieldIcon = icon => <span aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>;
 
-    const handleInputChange = useCallback((e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        setUiState(prev => ({ ...prev, fieldErrors: { ...prev.fieldErrors, [name]: '' } }));
-        if (name === 'password') setPasswordStrength(calculatePasswordStrength(value));
-    }, [calculatePasswordStrength]);
+  return (
+    <div className="min-h-dvh bg-[#f5f5f3] text-slate-900">
+      <header className="relative overflow-hidden rounded-b-[8px] bg-[#20252b] px-3 pb-8 pt-3 shadow-[0_10px_30px_rgba(25,31,38,0.16)] sm:rounded-b-[36px] sm:pb-10">
+        <div className="mx-auto flex max-w-md justify-center"><img src="/logo.png" alt="Rovexking" className="h-12 w-auto object-contain sm:h-14" /></div>
+        <div className="mx-auto mt-6 max-w-md text-center"><div className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-[#efbf34] ring-1 ring-white/10"><ShieldCheck size={20} /></div><p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#efbf34]">Member registration</p><h1 className="mt-1.5 text-2xl font-bold tracking-tight text-white">Create your account</h1><p className="mt-1.5 text-sm leading-6 text-slate-300">A few details and you’ll be ready to begin.</p></div>
+      </header>
 
-    const validateForm = useCallback(() => {
-        const errors = {};
-        const { name, email, phoneNumber, password, confirmPassword, city, completeAddress } = formData;
-        const { acceptTerms } = uiState;
+      <main className="mx-auto w-full max-w-md px-4 pb-10 pt-5 sm:pt-7">
+        <form onSubmit={handleSubmit} noValidate className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+          <div className="mb-6 flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold">Your details</h2><p className="mt-1 text-sm text-slate-500">Fields marked with <span className="font-bold text-[#ad8200]">*</span> are required.</p></div>{referrer && <span className="shrink-0 rounded-full bg-[#f9f1d5] px-2.5 py-1 text-xs font-semibold text-[#8a6800]">Invited</span>}</div>
 
-        if (!name.trim()) errors.name = 'Full name is required';
-        if (!email.trim()) errors.email = 'Email is required';
-        if (!phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
-        if (!password) errors.password = 'Password is required';
-        if (!confirmPassword) errors.confirmPassword = 'Please confirm your password';
-        if (!city.trim()) errors.city = 'State is required';
-        if (!completeAddress.trim()) errors.completeAddress = 'City is required';
+          {message && <div className={`mb-5 flex items-start gap-2.5 rounded-xl border px-3 py-3 text-sm ${status === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`} role="alert">{status === 'success' ? <CircleCheck aria-hidden="true" size={18} className="mt-0.5 shrink-0" /> : <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-current" />}{message}</div>}
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (email && !emailRegex.test(email)) errors.email = 'Please enter a valid email address';
-        if (password && password.length < 8) errors.password = 'Password must be at least 8 characters';
-        if (password && confirmPassword && password !== confirmPassword) errors.confirmPassword = 'Passwords do not match';
+          <div className="space-y-4">
+            <div><label htmlFor="signup-name" className="mb-1.5 block text-sm font-medium text-slate-700">Full name <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<UserRound size={18} />)}<input id="signup-name" name="name" autoComplete="name" value={formData.name} onChange={updateField} disabled={isLoading} placeholder="Your full name" className={inputClass(fieldErrors.name)} /></div>{fieldErrors.name && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.name}</p>}</div>
+            <div><label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-slate-700">Email address <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<Mail size={18} />)}<input id="signup-email" name="email" type="email" autoComplete="email" value={formData.email} onChange={updateField} disabled={isLoading} placeholder="Enter Eamil Address" className={inputClass(fieldErrors.email)} /></div>{fieldErrors.email && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.email}</p>}</div>
+            <div><label htmlFor="signup-phone" className="mb-1.5 block text-sm font-medium text-slate-700">Mobile number <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<Phone size={18} />)}<input id="signup-phone" name="phoneNumber" type="tel" autoComplete="tel" inputMode="numeric" value={formData.phoneNumber} onChange={updateField} disabled={isLoading} placeholder="03xxxxxxxxx" className={inputClass(fieldErrors.phoneNumber)} /></div>{fieldErrors.phoneNumber && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.phoneNumber}</p>}</div>
+          </div>
 
-        const phoneRegex = /^03\d{9}$/;
-        if (phoneNumber && !phoneRegex.test(phoneNumber.replace(/\s/g, ''))) errors.phoneNumber = 'Enter valid Pakistani mobile number (03xxxxxxxxx)';
-        if (!acceptTerms) errors.terms = 'You must accept the terms and conditions';
+          <div className="my-6 border-t border-slate-100 pt-6"><div className="mt-2 grid gap-4 sm:grid-cols-2"><div><label htmlFor="signup-state" className="mb-1.5 block text-sm font-medium text-slate-700">State <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<MapPin size={18} />)}<input id="signup-state" name="city" autoComplete="address-level1" value={formData.city} onChange={updateField} disabled={isLoading} placeholder="Your state" className={inputClass(fieldErrors.city)} /></div>{fieldErrors.city && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.city}</p>}</div><div><label htmlFor="signup-city" className="mb-1.5 block text-sm font-medium text-slate-700">City <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<MapPin size={18} />)}<input id="signup-city" name="completeAddress" autoComplete="address-level2" value={formData.completeAddress} onChange={updateField} disabled={isLoading} placeholder="Your city" className={inputClass(fieldErrors.completeAddress)} /></div>{fieldErrors.completeAddress && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.completeAddress}</p>}</div></div></div>
 
-        return errors;
-    }, [formData, uiState.acceptTerms]);
+          <div className="my-6 border-t border-slate-100 pt-6"><h3 className="text-base font-bold">Secure your account</h3><p className="mt-1 text-sm text-slate-500">Use a strong password you don’t use elsewhere.</p><div className="mt-4 space-y-4"><div><label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-slate-700">Password <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<LockKeyhole size={18} />)}<input id="signup-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={formData.password} onChange={updateField} disabled={isLoading} placeholder="At least 8 characters" className={inputClass(fieldErrors.password)} /><button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:text-[#ad8200] focus:outline-none focus:ring-2 focus:ring-[#d5a927]/30">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>{formData.password && <div className="mt-2"><div className="flex h-1.5 gap-1" aria-label={`Password strength: ${strength} of 5`}><span className={`flex-1 rounded-full ${strength >= 1 ? 'bg-rose-400' : 'bg-slate-100'}`} /><span className={`flex-1 rounded-full ${strength >= 2 ? 'bg-amber-400' : 'bg-slate-100'}`} /><span className={`flex-1 rounded-full ${strength >= 3 ? 'bg-[#d5a927]' : 'bg-slate-100'}`} /><span className={`flex-1 rounded-full ${strength >= 4 ? 'bg-emerald-400' : 'bg-slate-100'}`} /><span className={`flex-1 rounded-full ${strength >= 5 ? 'bg-emerald-600' : 'bg-slate-100'}`} /></div><p className="mt-1.5 text-xs text-slate-500">Use 8+ characters, uppercase letters, numbers, and symbols.</p></div>}{fieldErrors.password && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.password}</p>}</div>
+            <div><label htmlFor="signup-confirm-password" className="mb-1.5 block text-sm font-medium text-slate-700">Confirm password <span className="text-[#ad8200]">*</span></label><div className="relative">{fieldIcon(<LockKeyhole size={18} />)}<input id="signup-confirm-password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={formData.confirmPassword} onChange={updateField} disabled={isLoading} placeholder="Repeat your password" className={inputClass(fieldErrors.confirmPassword || passwordsMatch === false)} /><button type="button" onClick={() => setShowConfirmPassword(value => !value)} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'} className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:text-[#ad8200] focus:outline-none focus:ring-2 focus:ring-[#d5a927]/30">{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>{passwordsMatch === true && <p className="mt-1.5 flex items-center gap-1 text-xs text-emerald-700"><Check aria-hidden="true" size={14} /> Passwords match</p>}{fieldErrors.confirmPassword && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.confirmPassword}</p>}</div></div></div>
 
-    const handleSubmit = useCallback(async (e) => {
-        e.preventDefault();
-        setUiState(prev => ({ ...prev, isLoading: true, buttonStatus: "loading", buttonText: "Creating Account...", fieldErrors: {} }));
+          <div className="flex items-start gap-3"><input id="signup-terms" type="checkbox" checked={acceptTerms} onChange={event => { setAcceptTerms(event.target.checked); setFieldErrors(previous => ({ ...previous, terms: '' })); }} disabled={isLoading} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-[#ad8200] focus:ring-[#d5a927]" /><label htmlFor="signup-terms" className="text-sm leading-6 text-slate-600">I agree to the <a className="font-semibold text-[#8a6800] underline-offset-2 hover:underline" href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and <a className="font-semibold text-[#8a6800] underline-offset-2 hover:underline" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</label></div>
+          {fieldErrors.terms && <p className="mt-1.5 text-xs text-rose-600">{fieldErrors.terms}</p>}
 
-        const validationErrors = validateForm();
-        if (Object.keys(validationErrors).length > 0) {
-            const firstError = Object.values(validationErrors)[0];
-            setUiState(prev => ({ ...prev, isLoading: false, buttonStatus: "error", buttonText: firstError, fieldErrors: validationErrors }));
-            setTimeout(() => setUiState(prev => ({ ...prev, buttonStatus: "idle", buttonText: "Create Account" })), 3000);
-            return;
-        }
-
-        const { ...payload } = formData;
-        const url = uiState.referrer ? `/register?ref=${uiState.referrer}` : '/register';
-
-        try {
-            const response = await api.post(url, payload);
-            if (response.data.status === "success") {
-                localStorage.setItem("Userid", response.data.userId);
-                setUiState(prev => ({ ...prev, buttonStatus: "success", buttonText: "Account Created! Redirecting..." }));
-                setTimeout(() => navigate("/payment"), 1500);
-            } else {
-                throw new Error(response.data.error || 'Registration failed');
-            }
-        } catch (error) {
-            const errorMessage = error.response?.data?.error || error.message || 'An error occurred during registration';
-            setUiState(prev => ({ ...prev, isLoading: false, buttonStatus: "error", buttonText: errorMessage, fieldErrors: {} }));
-            setTimeout(() => setUiState(prev => ({ ...prev, buttonStatus: "idle", buttonText: "Create Account" })), 3000);
-        }
-    }, [formData, uiState.referrer, validateForm, navigate]);
-
-    const getButtonStyles = useCallback(() => {
-        const base = "fi w-full h-12 rounded-xl text-[14.5px] font-semibold flex items-center justify-center transition-all duration-200 mt-2 disabled:cursor-not-allowed";
-        switch (uiState.buttonStatus) {
-            case "loading": return `${base} bg-[#A9884A] text-[#161618] cursor-not-allowed`;
-            case "success": return `${base} bg-[#1E2A22] text-[#8FC7A0]`;
-            case "error":   return `${base} bg-[#241619] text-[#E2A896]`;
-            default:        return `${base} bg-[#C6A15B] text-[#161618] hover:bg-[#D8BA7C] shadow-[0_10px_28px_rgba(198,161,91,0.14)] active:scale-[0.99]`;
-        }
-    }, [uiState.buttonStatus]);
-
-    const getButtonIcon = useCallback(() => {
-        switch (uiState.buttonStatus) {
-            case "loading":
-                return <div className="animate-spin w-4 h-4 border-2 border-[#161618]/25 border-t-[#161618] rounded-full mr-2" />;
-            case "success":
-                return <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>;
-            case "error":
-                return <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>;
-            default:
-                return null;
-        }
-    }, [uiState.buttonStatus]);
-
-    const SecureBadge = () => (
-        <div className="flex items-center gap-2 h-8 px-3 rounded-full bg-[#212125]">
-            <span className="relative flex w-1.5 h-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C6A15B] opacity-60" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#C6A15B]" />
-            </span>
-            <span className="fi text-[11px] font-medium text-[#A0A0A6]">Secure</span>
-        </div>
-    );
-
-    // Shared form
-    const formContent = (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-            <InputField label="Full Name" name="name" placeholder="Enter your full name" value={formData.name} onChange={handleInputChange} disabled={uiState.isLoading} error={uiState.fieldErrors.name} />
-            <InputField label="Email Address" name="email" type="email" placeholder="your@email.com" value={formData.email} onChange={handleInputChange} disabled={uiState.isLoading} error={uiState.fieldErrors.email} />
-            <InputField label="Phone Number" name="phoneNumber" type="tel" placeholder="03xxxxxxxxx" value={formData.phoneNumber} onChange={handleInputChange} disabled={uiState.isLoading} error={uiState.fieldErrors.phoneNumber} pattern="03[0-9]{9}" inputMode="numeric" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <InputField label="State" name="city" placeholder="Enter your state" value={formData.city} onChange={handleInputChange} disabled={uiState.isLoading} error={uiState.fieldErrors.city} />
-                <InputField label="City" name="completeAddress" placeholder="Enter your city" value={formData.completeAddress} onChange={handleInputChange} disabled={uiState.isLoading} error={uiState.fieldErrors.completeAddress} />
-            </div>
-
-            <PasswordField label="Password" name="password" value={formData.password} onChange={handleInputChange} showPassword={uiState.showPassword} onTogglePassword={() => setUiState(prev => ({ ...prev, showPassword: !prev.showPassword }))} disabled={uiState.isLoading} error={uiState.fieldErrors.password} showStrength={true} passwordStrength={passwordStrength} />
-            <PasswordField label="Confirm Password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} showPassword={uiState.showConfirmPassword} onTogglePassword={() => setUiState(prev => ({ ...prev, showConfirmPassword: !prev.showConfirmPassword }))} disabled={uiState.isLoading} error={uiState.fieldErrors.confirmPassword} showMatchIndicator={true} isMatch={passwordMatch} />
-
-            <div>
-                <div className="flex items-start gap-2.5">
-                    <input
-                        id="terms"
-                        type="checkbox"
-                        checked={uiState.acceptTerms}
-                        onChange={() => setUiState(prev => ({ ...prev, acceptTerms: !prev.acceptTerms }))}
-                        disabled={uiState.isLoading}
-                        className="mt-0.5 w-4 h-4 rounded accent-[#C6A15B] bg-[#212125] focus:ring-0 focus:ring-offset-0 disabled:opacity-50"
-                    />
-                    <label htmlFor="terms" className="fi text-[13px] leading-relaxed text-[#A0A0A6]">
-                        I agree to the{" "}
-                        <a href="/terms" className="text-[#C6A15B] hover:text-[#D8BA7C] transition-colors" target="_blank" rel="noopener noreferrer">Terms of Service</a>{" "}
-                        and{" "}
-                        <a href="/privacy" className="text-[#C6A15B] hover:text-[#D8BA7C] transition-colors" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
-                    </label>
-                </div>
-                {uiState.fieldErrors.terms && <p className="fi text-[12px] text-[#E2A896] mt-1.5">{uiState.fieldErrors.terms}</p>}
-            </div>
-
-            <button type="submit" disabled={uiState.isLoading} className={getButtonStyles()}>
-                {getButtonIcon()}
-                {uiState.buttonText}
-            </button>
-
-            <div className="fi text-center text-[13.5px] text-[#A0A0A6] mt-1">
-                Already have an account?{" "}
-                <a href="/login" className="font-semibold text-[#C6A15B] hover:text-[#D8BA7C] transition-colors">Sign in</a>
-            </div>
+          <button type="submit" disabled={isLoading || status === 'success'} className="mt-6 flex h-12 w-full items-center justify-center rounded-xl bg-[#20252b] text-sm font-bold text-white shadow-sm transition hover:bg-[#313840] focus:outline-none focus:ring-4 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-70">{isLoading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Creating account…</span> : status === 'success' ? 'Account created' : 'Create account'}</button>
+          <p className="mt-6 text-center text-sm text-slate-500">Already a member? <Link to="/" className="font-bold text-[#8a6800] hover:text-[#614b00]">Sign in</Link></p>
         </form>
-    );
-
-    const benefits = [
-        { title: 'Secure holdings tracking', desc: 'Your assets, monitored and protected.' },
-        { title: 'Real-time insights', desc: 'Balance and history, always current.' },
-        { title: 'Private member access', desc: 'A higher standard of service.' },
-    ];
-
-    return (
-        <div className="min-h-screen bg-[#161618]">
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600&display=swap');
-                .fd { font-family: 'Cormorant', serif; }
-                .fi { font-family: 'Inter', sans-serif; }
-                ::selection { background: rgba(198,161,91,0.28); color: #EDEDEE; }
-                input:-webkit-autofill,
-                input:-webkit-autofill:hover,
-                input:-webkit-autofill:focus {
-                    -webkit-box-shadow: 0 0 0 1000px #212125 inset;
-                    -webkit-text-fill-color: #EDEDEE;
-                    caret-color: #EDEDEE;
-                    transition: background-color 9999s ease-in-out 0s;
-                }
-                @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-                .rise { animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) both; }
-            `}</style>
-
-            {/* ══════════ DESKTOP ══════════ */}
-            <div className="hidden lg:flex items-stretch justify-center min-h-screen">
-                <div className="w-full flex">
-
-                    {/* Left panel */}
-                    <div className="hidden lg:flex lg:w-[44%] bg-[#1B1B1E] flex-col px-12 py-10 relative overflow-hidden">
-                        <div
-                            className="absolute -right-32 bottom-[-140px] w-[460px] h-[460px] pointer-events-none"
-                            style={{ background: 'repeating-radial-gradient(circle at center, transparent 0, transparent 15px, rgba(198,161,91,0.05) 15px, rgba(198,161,91,0.05) 16px)' }}
-                        />
-
-                        <div className="relative flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-[#212125] ring-1 ring-[#C6A15B]/10 flex items-center justify-center p-2">
-                                    <img src="./logo.png" alt="Logo" className="w-full h-full object-contain" />
-                                </div>
-                                <div className="leading-none">
-                                    <div className="fi text-[13px] font-semibold tracking-[0.2em] text-[#EDEDEE]">WEBTHREE</div>
-                                    <div className="fi text-[9.5px] tracking-[0.16em] uppercase text-[#6F6F76] mt-1">Working Around the World</div>
-                                </div>
-                            </div>
-                            <SecureBadge />
-                        </div>
-
-                        <div className="rise relative flex-1 flex flex-col justify-center py-10">
-                            <h1 className="fd text-[40px] leading-[1.08] font-medium text-[#EDEDEE] max-w-[340px]">
-                                Join a private standard of wealth.
-                            </h1>
-                            <p className="fi text-[14px] leading-relaxed text-[#A0A0A6] mt-5 max-w-[300px]">
-                                Create your account and take control of your holdings in one considered place.
-                            </p>
-
-                            <div className="mt-10 space-y-5 max-w-[320px]">
-                                {benefits.map((b, i) => (
-                                    <div key={i} className="flex gap-3.5">
-                                        <div className="w-8 h-8 rounded-lg bg-[#212125] flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <svg className="w-4 h-4 text-[#C6A15B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div className="fi text-[14px] font-medium text-[#EDEDEE]">{b.title}</div>
-                                            <div className="fi text-[13px] text-[#A0A0A6] mt-0.5">{b.desc}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right panel */}
-                    <div className="flex-1 flex px-6 py-12 sm:px-10">
-                        <div className="rise w-full max-w-[380px] m-auto">
-                            <h2 className="fd text-[32px] leading-tight font-medium text-[#EDEDEE]">Create account</h2>
-                            <p className="fi text-[14px] text-[#A0A0A6] mt-1.5 mb-8">It only takes a minute to get started.</p>
-                            {formContent}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ══════════ MOBILE ══════════ */}
-            <div className="lg:hidden relative min-h-screen overflow-hidden">
-                <div className="pointer-events-none absolute inset-0">
-                    <div
-                        className="absolute -top-20 -right-24 w-[320px] h-[320px]"
-                        style={{ background: 'repeating-radial-gradient(circle at center, transparent 0, transparent 14px, rgba(198,161,91,0.05) 14px, rgba(198,161,91,0.05) 15px)' }}
-                    />
-                    <div
-                        className="absolute inset-x-0 top-0 h-72"
-                        style={{ background: 'radial-gradient(80% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }}
-                    />
-                </div>
-
-                <div className="relative px-6 pt-7 pb-12">
-                    <div className="rise flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-[#212125] ring-1 ring-[#C6A15B]/10 flex items-center justify-center p-2">
-                                <img src="./logo.png" alt="Logo" className="w-full h-full object-contain" />
-                            </div>
-                            <div className="leading-none">
-                                <div className="fi text-[13px] font-semibold tracking-[0.2em] text-[#EDEDEE]">WEBTHREE</div>
-                                <div className="fi text-[9.5px] tracking-[0.16em] uppercase text-[#6F6F76] mt-1">Working Around the World</div>
-                            </div>
-                        </div>
-                        <SecureBadge />
-                    </div>
-
-                    <div className="mt-9">
-                        <h2 className="rise fd text-[32px] leading-tight font-medium text-[#EDEDEE]" style={{ animationDelay: '0.08s' }}>Create account</h2>
-                        <p className="rise fi text-[14px] text-[#A0A0A6] mt-1.5" style={{ animationDelay: '0.14s' }}>Join a private standard of wealth.</p>
-                    </div>
-
-                    <div className="rise mt-8" style={{ animationDelay: '0.2s' }}>
-                        {formContent}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+        <p className="mt-5 text-center text-xs leading-5 text-slate-400">Your account information is used only to provide and secure your membership.</p>
+      </main>
+    </div>
+  );
 };
 
 export default Signup;

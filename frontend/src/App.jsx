@@ -37,7 +37,6 @@ import Level from './Dashboard/Levels/Levels';
 import {WithdrawLimits} from './Dashboard/WithdrawLimits/WithdrawLimits';
 import Commission from './Dashboard/Commission/Commission';
 import Bonus from './Dashboard/BonusSetting/Bonus';
-import Bep20Settings from './Dashboard/AdminWallet/AdminWallet';
 import Settings from './Dashboard/Setting/InitialSettings';
 import SubAdminsManagement from './Dashboard/Subadmin/SubAdmin';
 import FindUser from './Dashboard/FindUser/FindUser';
@@ -53,7 +52,6 @@ import { SidebarProvider } from './Dashboard/SidebarContext';
 
 // Import UserLayout
 import UserLayout from './UserLayout';
-import MiningHistory from './MiningHistory';
 import SalaryHistory from './SalaryHistory';
 import MonthlySalaryAdmin from './Dashboard/MonthlySalaryAdmin/MonthlySalaryAdmin';
 import MonthSalaryHistory from './MonthSalaryHistory';
@@ -178,9 +176,7 @@ function App() {
             <Route path="/bonussettingforusers" element={
               adminAuthenticated ? <AdminLayout><Bonus /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
-            <Route path="/accounts" element={
-              adminAuthenticated ? <AdminLayout><Bep20Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
-            } />
+         
             <Route path="/initialSettings" element={
               adminAuthenticated ? <AdminLayout><Settings /></AdminLayout> : <Navigate to="/admin/login" replace />
             } />
@@ -222,7 +218,6 @@ function App() {
               <Route path='/alerts' element={approved === 1 ? <Notifications /> : <Navigate to="/work" replace />} />
               <Route path='/SalaryofMonth' element={approved === 1 ? <MonthlySalaryDashboard /> : <Navigate to="/work" replace />} />
               <Route path='/admin-profile/:token' element={approved === 1 ? <ProfileCard /> : <Navigate to="/work" replace />} />
-              <Route path='/mining-history' element={approved === 1 ? <MiningHistory /> : <Navigate to="/work" replace />} />
 {/* -----------------------New */}
         <Route path="/salary-history" element={<SalaryHistory />} />
                 <Route path="/month-salary-history" element={<MonthSalaryHistory />} />

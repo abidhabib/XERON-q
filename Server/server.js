@@ -11,8 +11,10 @@ import { dirname } from 'path'
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import con from './config/db.js';
+import productTaskRoutes from './routes/productTasks.js';
 import './cron/index.js';
 import userRoutes from './routes/userRoutes.js';
+import cryptoInvoiceRoutes, { startCryptoWatcher } from './routes/cryptoInvoiceRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import notificationRoutes from './routes/notifications.js';
 import setupWebPush from './utils/setupWebPush.js';
@@ -21,8 +23,6 @@ import UserLogin from './routes/UserLogin.js';
 import registerUser from './routes/UserRegisterRoute.js';
 import getUserWallet from './routes/GetUserWalletRoute.js';
 import getUserData from './routes/UserContextDataRoute.js';
-import getBep20Account from './routes/AdminWalletAddress.js';
-import getBep20Addresses from './routes/AllAdminWallet.js';
 import getAllAdmins from './routes/getAllAdmin.js';
 import getToadyApprovedUsers from './routes/GetToadyApprovedUsers.js';
 import getUserIdFromSession from './utils/getSessionMiddleware.js';
@@ -91,13 +91,12 @@ app.use('/', dashboardRoutes);
 app.use('/', UserLogin);
 app.use('/', notificationRoutes); 
 app.use('/', userRoutes);
+app.use('/api', cryptoInvoiceRoutes);
 app.get('/getUserIdFromSession', getUserIdFromSession);
 app.use('/', MonthData);
 app.use('/',registerUser);
 app.use('/',getUserWallet);
 app.use('/',getUserData);
-app.use('/',getBep20Account);
-app.use('/',getBep20Addresses);
 app.use('/',getAllAdmins)
 app.use('/',getPendingForApproveUsers)
 app.use('/',getToadyApprovedUsers)
@@ -159,25 +158,7 @@ app.get('/', (req, res) => {
 
 
 
-const bep20Storage = multer.diskStorage({
-    destination: './uploads/bep20/',
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'bep20-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
 
-const bep20Upload = multer({
-    storage: bep20Storage,
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'), false);
-        }
-    }
-});
 // Helper function for async queries
 const dbQuery = (sql, params) => {
     return new Promise((resolve, reject) => {
@@ -191,214 +172,6 @@ const dbQuery = (sql, params) => {
 
 
 
-
-// 2. Create new BEP20 address
-app.post('/bep20', bep20Upload.single('qr_code_image'), async (req, res) => {
-    const { bep20_address, is_active } = req.body;
-    const file = req.file;
-
-    if (!bep20_address || !file) {
-        return res.status(400).json({ error: 'BEP20 address and QR code are required' });
-    }
-
-    try {
-        const qr_code_image = `/uploads/bep20/${file.filename}`;
-        const activeStatus = is_active === 'true';
-
-        // Start transaction
-        await dbQuery('START TRANSACTION');
-
-        // Insert new address
-        const result = await dbQuery(
-            'INSERT INTO bep20_settings (bep20_address, qr_code_image, is_active) VALUES (?, ?, ?)',
-            [bep20_address, qr_code_image, activeStatus]
-        );
-
-        // If setting as active, deactivate others
-        if (activeStatus) {
-            await dbQuery(
-                'UPDATE bep20_settings SET is_active = 0 WHERE id != ?',
-                [result.insertId]
-            );
-        }
-
-        await dbQuery('COMMIT');
-
-        res.json({
-            id: result.insertId,
-            bep20_address,
-            qr_code_image,
-            is_active: activeStatus
-        });
-    } catch (err) {
-        await dbQuery('ROLLBACK');
-
-        // Delete uploaded file if insertion failed
-        if (req.file) {
-            fs.unlink(req.file.path, () => { });
-        }
-
-        console.error('Error creating address:', err);
-
-        if (err.code === 'ER_DUP_ENTRY') {
-            res.status(400).json({ error: 'This address already exists' });
-        } else {
-            res.status(500).json({ error: 'Failed to create address' });
-        }
-    }
-});
-
-// 3. Update BEP20 address
-app.put('/bep20/:id', bep20Upload.single('qr_code_image'), async (req, res) => {
-    const { id } = req.params;
-    const { bep20_address, is_active } = req.body;
-    const file = req.file;
-
-    if (!bep20_address) {
-        return res.status(400).json({ error: 'BEP20 address is required' });
-    }
-
-    try {
-        // Get existing record
-        const [existing] = await dbQuery('SELECT * FROM bep20_settings WHERE id = ?', [id]);
-        if (!existing) {
-            return res.status(404).json({ error: 'Address not found' });
-        }
-
-        let qr_code_image = existing.qr_code_image;
-
-        // Start transaction
-        await dbQuery('START TRANSACTION');
-
-        // Handle new file upload
-        if (file) {
-            const newImagePath = `/uploads/bep20/${file.filename}`;
-
-            // Delete old file
-            if (existing.qr_code_image) {
-                const oldFilePath = path.join(__dirname, 'uploads', 'bep20', path.basename(existing.qr_code_image));
-                if (fs.existsSync(oldFilePath)) {
-                    fs.unlink(oldFilePath, () => { });
-                }
-            }
-
-            qr_code_image = newImagePath;
-        }
-
-        const activeStatus = is_active === 'true';
-
-        // Update the address
-        await dbQuery(
-            'UPDATE bep20_settings SET bep20_address = ?, qr_code_image = ?, is_active = ? WHERE id = ?',
-            [bep20_address, qr_code_image, activeStatus, id]
-        );
-
-        // If setting as active, deactivate others
-        if (activeStatus) {
-            await dbQuery(
-                'UPDATE bep20_settings SET is_active = 0 WHERE id != ?',
-                [id]
-            );
-        }
-
-        await dbQuery('COMMIT');
-
-        res.json({
-            id,
-            bep20_address,
-            qr_code_image,
-            is_active: activeStatus
-        });
-    } catch (err) {
-        await dbQuery('ROLLBACK');
-
-        // Delete uploaded file if update failed
-        if (req.file) {
-            fs.unlink(req.file.path, () => { });
-        }
-
-        console.error('Error updating address:', err);
-
-        if (err.code === 'ER_DUP_ENTRY') {
-            res.status(400).json({ error: 'This address already exists' });
-        } else {
-            res.status(500).json({ error: 'Failed to update address' });
-        }
-    }
-});
-
-// 4. Delete BEP20 address
-app.delete('/bep20/:id', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        // Get the address
-        const [address] = await dbQuery('SELECT * FROM bep20_settings WHERE id = ?', [id]);
-        if (!address) {
-            return res.status(404).json({ error: 'Address not found' });
-        }
-
-        // Start transaction
-        await dbQuery('START TRANSACTION');
-
-        // Delete the record
-        await dbQuery('DELETE FROM bep20_settings WHERE id = ?', [id]);
-
-        // If it was active, activate the most recent one
-        if (address.is_active) {
-            const [newActive] = await dbQuery(
-                'SELECT * FROM bep20_settings ORDER BY created_at DESC LIMIT 1'
-            );
-
-            if (newActive) {
-                await dbQuery(
-                    'UPDATE bep20_settings SET is_active = 1 WHERE id = ?',
-                    [newActive.id]
-                );
-            }
-        }
-
-        // Delete the QR code file
-        if (address.qr_code_image) {
-            const filePath = path.join(__dirname, 'uploads', 'bep20', path.basename(address.qr_code_image));
-            if (fs.existsSync(filePath)) {
-                fs.unlink(filePath, () => { });
-            }
-        }
-
-        await dbQuery('COMMIT');
-
-        res.json({ success: true });
-    } catch (err) {
-        await dbQuery('ROLLBACK');
-        console.error('Error deleting address:', err);
-        res.status(500).json({ error: 'Failed to delete address' });
-    }
-});
-
-// 5. Activate BEP20 address
-app.patch('/bep20/:id/activate', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        // Start transaction
-        await dbQuery('START TRANSACTION');
-
-        // Deactivate all addresses
-        await dbQuery('UPDATE bep20_settings SET is_active = 0');
-
-        // Activate the selected address
-        await dbQuery('UPDATE bep20_settings SET is_active = 1 WHERE id = ?', [id]);
-
-        await dbQuery('COMMIT');
-
-        res.json({ success: true });
-    } catch (err) {
-        await dbQuery('ROLLBACK');
-        console.error('Error activating address:', err);
-        res.status(500).json({ error: 'Failed to activate address' });
-    }
-});
 
 
 app.post('/changePassword', (req, res) => {
@@ -1589,88 +1362,8 @@ app.delete('/delete-rejected-withdrawals', (req, res) => {
     });
 });
 
-app.get('/products', (req, res) => {
-    const sql = 'SELECT * FROM products';
-
-    con.query(sql, (err, results) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'An error occurred while fetching the products.' });
-        }
-
-        res.status(200).json({ success: true, data: results });
-    });
-});
-
-
-
-
-
-app.post('/products', (req, res) => {
-    const { description, link, reward, imgLink } = req.body;
-    console.log(req.body);
-    if (!description || !link || !imgLink) {
-        return res.status(400).json({ success: false, message: 'All fields are required.' });
-    }
-
-    const product = { description, link, imgLink };
-    const sql = 'INSERT INTO products SET ?';
-
-    con.query(sql, product, (err, result) => {
-        if (err) {
-            console.log(err);
-
-            return res.status(500).json({ success: false, message: 'An error occurred while adding the product.' }
-
-            );
-
-        }
-        res.status(201).json({ success: true, message: 'Product added successfully.' });
-    });
-});
-
-app.delete('/products/:id', (req, res) => {
-    const id = req.params.id;
-
-    if (!id) {
-        return res.status(400).json({ success: false, message: 'ID is required.' });
-    }
-
-    const sql = 'DELETE FROM products WHERE id = ?';
-    con.query(sql, [id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'An error occurred while deleting the product.' });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Product not found.' });
-        }
-
-        res.status(200).json({ success: true, message: 'Product deleted successfully.' });
-    });
-});
-
-app.put('/products/:id', (req, res) => {
-    const id = req.params.id;
-    const { description, link, imgLink } = req.body;
-    console.log(req.body);
-    if (!description || !link || !imgLink) {
-        return res.status(400).json({ success: false, message: 'All fields are required.' });
-    }
-
-    const sql = 'UPDATE products SET description = ?, link = ?,  imgLink = ? WHERE id = ?';
-
-    con.query(sql, [description, link, imgLink, id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'An error occurred while updating the product.' });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Product not found.' });
-        }
-
-        res.status(200).json({ success: true, message: 'Product updated successfully.' });
-    });
-});
+// Product administration and daily sharing rewards.
+app.use('/', productTaskRoutes(verifyToken));
 
 app.get('/user/:id', (req, res) => {
     const userId = req.params.id;
@@ -1699,7 +1392,6 @@ app.get('/settings', async (req, res) => {
         web_backend_fee_percent AS webBackendFeePercent,
         initial_percent AS percentage,
         offer,
-        coin_value AS coinValue,
         week_salary_person_require AS weekSalaryPersonRequire,
         month_salary_person_require AS monthSalaryPersonRequire,
         month_salary_amount AS monthSalaryAmount
@@ -1718,7 +1410,6 @@ app.get('/settings', async (req, res) => {
         webBackendFeePercent: "0",
         percentage: "0",
         offer: "",
-        coinValue: "0.0",
         weekSalaryPersonRequire: "0.0",
         monthSalaryPersonRequire: "0.0",
         monthSalaryAmount: "0.0"
@@ -1732,7 +1423,6 @@ app.get('/settings', async (req, res) => {
       webBackendFeePercent: settings.webBackendFeePercent?.toString() || "0",
       percentage: settings.percentage?.toString() || "0",
       offer: settings.offer || "",
-      coinValue: settings.coinValue?.toString() || "0.0",
       weekSalaryPersonRequire: settings.weekSalaryPersonRequire?.toString() || "0.0",
       monthSalaryPersonRequire: settings.monthSalaryPersonRequire?.toString() || "0.0",
       monthSalaryAmount: settings.monthSalaryAmount?.toString() || "0.0"
@@ -1750,7 +1440,6 @@ app.post('/settings', async (req, res) => {
     webBackendFeePercent,
     percentage,
     offer,
-    coinValue,
     weekSalaryPersonRequire,
     monthSalaryPersonRequire,
     monthSalaryAmount
@@ -1762,7 +1451,6 @@ app.post('/settings', async (req, res) => {
     webBackendFeePercent == null ||
     percentage == null ||
     offer == null ||
-    coinValue == null ||
     weekSalaryPersonRequire == null ||
     monthSalaryPersonRequire == null ||
     monthSalaryAmount == null
@@ -1777,7 +1465,6 @@ app.post('/settings', async (req, res) => {
         web_backend_fee_percent = ?,
         initial_percent = ?,
         offer = ?,
-        coin_value = ?,
         week_salary_person_require = ?,
         month_salary_person_require = ?,
         month_salary_amount = ?
@@ -1787,7 +1474,6 @@ app.post('/settings', async (req, res) => {
         parseFloat(webBackendFeePercent) || 0,
         parseFloat(percentage) || 0,
         offer,
-        parseFloat(coinValue) || 0.0,
         parseFloat(weekSalaryPersonRequire) || 0.0,
         parseFloat(monthSalaryPersonRequire) || 0.0,
         parseFloat(monthSalaryAmount) || 0.0
@@ -1804,239 +1490,6 @@ app.post('/settings', async (req, res) => {
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
-app.post('/exchange-coin', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-
-    const userId = req.session.userId;
-    const connection = con.promise();
-
-    try {
-        await connection.query('START TRANSACTION');
-
-        const [valueResult] = await connection.query(
-            `SELECT coin_value AS value FROM settings WHERE id = 1`
-        );
-        
-        if (!valueResult.length) {
-            await connection.query('ROLLBACK');
-            return res.status(404).json({ error: 'Coin value not configured' });
-        }
-        
-        const currentValue = parseFloat(valueResult[0].value);
-        if (currentValue <= 0) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'Invalid coin value' });
-        }
-
-        // Get user coins with lock
-        const [user] = await connection.query(
-            `SELECT coin FROM users WHERE id = ? FOR UPDATE`,
-            [userId]
-        );
-
-        if (!user.length) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'User not found' });
-        }
-
-        const coins = parseFloat(user[0].coin) || 0;
-        if (coins <= 0) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'No coins to exchange' });
-        }
-
-        // Calculate USD amount
-        const usdAmount = coins / currentValue;
-
-        // Update user balance and reset coins
-        await connection.query(
-            `UPDATE users SET balance = balance + ?, coin = 0 WHERE id = ?`,
-            [usdAmount, userId]
-        );
-
-        // Insert into history
-        await connection.query(
-            `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'exchange', ?, ?)`,
-            [userId, usdAmount, coins]
-        );
-
-        // Get updated user data
-        const [updatedUser] = await connection.query(
-            `SELECT balance, coin FROM users WHERE id = ?`,
-            [userId]
-        );
-
-        await connection.query('COMMIT');
-
-        res.json({
-            success: true,
-            balance: updatedUser[0].balance,
-            coin: updatedUser[0].coin,
-            usd_amount: usdAmount
-        });
-    } catch (error) {
-        await connection.query('ROLLBACK');
-        console.error('Exchange error:', error);
-        res.status(500).json({ error: 'Exchange failed' });
-    }
-});
-
-app.get('/user-data', async (req, res) => {
-  if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-
-  try {
-    const userId = req.session.userId;
-
-    // Get current date from DB (avoids client timezone issues)
-    const [dateRow] = await con.promise().query(`SELECT CURRENT_DATE() AS today`);
-    const today = dateRow[0].today;
-
-    const [results] = await con.promise().query(
-      `SELECT 
-        backend_wallet, 
-        coin, 
-        balance, 
-        last_collect_date,
-        CASE 
-          WHEN last_collect_date IS NULL OR last_collect_date < ? THEN 1
-          ELSE 0
-        END AS is_eligible_to_collect
-       FROM users 
-       WHERE id = ?`,
-      [today, userId]
-    );
-
-    if (!results.length) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json(results[0]);
-  } catch (error) {
-    console.error('User data error:', error);
-    res.status(500).json({ error: 'Database error' });
-  }
-});
-
-app.get('/coin-collect-history', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-
-    try {
-        const [results] = await con.promise().query(
-            `SELECT id, type, amount, usd_value, created_at FROM coin_collect_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
-            [req.session.userId]
-        );
-
-        res.json(results);
-    } catch (error) {
-        console.error('History error:', error);
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-app.post('/collect-coin', async (req, res) => {
-    if (!req.session.userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const userId = req.session.userId;
-    const connection = con.promise();
-
-    try {
-        await connection.query('START TRANSACTION');
-
-        // 1. Fetch user data with lock
-        const [userRows] = await connection.query(
-            `SELECT backend_wallet, last_collect_date FROM users WHERE id = ? FOR UPDATE`,
-            [userId]
-        );
-
-        if (!userRows.length) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'User not found' });
-        }
-
-        const user = userRows[0];
-
-        // 2. Get current date
-        const [currentDateRows] = await connection.query(
-            `SELECT CURRENT_DATE() AS today`
-        );
-        const today = currentDateRows[0].today;
-
-        if (user.last_collect_date >= today) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'Already collected today' });
-        }
-
-        const backendWallet = parseFloat(user.backend_wallet) || 0;
-        if (backendWallet <= 0) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'Insufficient funds' });
-        }
-
-        // 3. Calculate collect amount (10% of backend wallet)
-        const collectAmount = backendWallet * 0.1 ;
-        const newWallet = backendWallet - collectAmount;
-
-        // ✅ Get current coin value from `settings`
-        const [valueResult] = await connection.query(
-            `SELECT coin_value AS value FROM settings WHERE id = 1`
-        );
-        
-        if (!valueResult.length) {
-            await connection.query('ROLLBACK');
-            return res.status(500).json({ error: 'Coin value not configured' });
-        }
-
-        const coinValue = parseFloat(valueResult[0].value);
-        if (coinValue <= 0) {
-            await connection.query('ROLLBACK');
-            return res.status(400).json({ error: 'Invalid coin value' });
-        }
-
-        // 4. Update user
-        await connection.query(
-            `UPDATE users SET 
-                backend_wallet = ?, 
-                coin = coin + ?, 
-                last_collect_date = CURDATE() 
-             WHERE id = ?`,
-            [newWallet, collectAmount*coinValue, userId]
-        );
-
-        // 5. Insert into history
-        await connection.query(
-            `INSERT INTO coin_collect_history (user_id, type, amount, usd_value) VALUES (?, 'collect', ?, ?)`,
-            [userId, collectAmount, collectAmount * coinValue]
-        );
-
-        // 6. Get updated user data
-        const [updatedUserRows] = await connection.query(
-            `SELECT backend_wallet, coin, last_collect_date FROM users WHERE id = ?`,
-            [userId]
-        );
-
-        const updatedUser = updatedUserRows[0];
-
-        await connection.query('COMMIT');
-
-        res.json({
-            success: true,
-            backend_wallet: updatedUser.backend_wallet,
-            coin: updatedUser.coin,
-            collected_amount: collectAmount,
-            current_value: coinValue,
-            last_collect_date: updatedUser.last_collect_date
-        });
-    } catch (error) {
-        await connection.query('ROLLBACK');
-        console.error('Collect error:', error);
-        res.status(500).json({ error: 'Collection failed' });
-    }
-});
-
-
-
 // Create subadmins table if not exists
 const createSubAdminsTable = `
 CREATE TABLE IF NOT EXISTS subadmins (
@@ -2368,40 +1821,9 @@ app.post('/update-password', (req, res) => {
 });
 
 
-app.post('/payment', (req, res) => {
-    const { trx_id, id } = req.body;
-
-    const payment_ok = 1;
-    const rejected = 0;
-    console.log(req.body);
-    console.log();
-
-
-    const checkQuery = 'SELECT COUNT(*) AS count FROM users WHERE trx_id = ?';
-    con.query(checkQuery, [trx_id], (checkErr, checkResults) => {
-        if (checkErr) {
-            return res.status(500).json({ status: 'error', error: 'Database error' });
-        }
-
-        if (checkResults[0].count > 0) {
-            return res.status(400).json({ status: 'error', error: 'Transaction ID already in use' });
-        }
-
-        const sql = 'UPDATE users SET trx_id = ?, payment_ok = ?, rejected = ? WHERE id = ?';
-
-        con.query(sql, [trx_id, payment_ok, rejected, id], (err, result) => {
-            if (err) {
-                console.error('Database update error:', err);
-                return res.status(500).json({ status: 'error', error: 'Failed to update payment data' });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ status: 'error', error: 'User not found' });
-            }
-
-            res.json({ status: 'success' });
-        });
-    });
+// Manual hashes are disabled. Users pay to their unique authenticated invoice.
+app.post('/payment', (_req, res) => {
+    res.status(410).json({ status: 'error', error: 'Manual payment confirmation is disabled. Use your BEP20 invoice address.' });
 });
 app.get('/notifications/:userId', async (req, res) => {
   try {
@@ -2485,4 +1907,5 @@ app.get('/notifications/:userId/unread-count', async (req, res) => {
 
   app.listen( process.env.PORT, () => {
     console.log('⚠️  HTTP Server running on port ' +  process.env.PORT);
+    startCryptoWatcher();
   });

@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+/* eslint-disable react/prop-types */
+import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavBar from './NavBar';
 import { UserContext } from './UserContext/UserContext';
-import { Copy, CheckCircle, Link2, Check } from 'lucide-react';
+import { Copy, CheckCircle, Link2, Check, Bell, BriefcaseBusiness, CalendarDays, ShieldCheck, Users } from 'lucide-react';
 
 /* Real brand marks (currentColor) */
 const platforms = [
@@ -18,16 +20,20 @@ const perks = [
 ];
 
 const SectionLabel = ({ children }) => (
-  <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6F6F76]">{children}</p>
+  <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7f91a7]">{children}</p>
 );
 
 const ReferralProgram = () => {
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const { Userid } = useContext(UserContext);
+  const { Userid, NewName, currBalance, total_withdrawal, backend_wallet } = useContext(UserContext);
+  const navigate = useNavigate();
+  const progress = backend_wallet ? Math.min(Math.round((Number(backend_wallet) / 3) * 100), 100) : 0;
+  const available = Number(currBalance || 0).toFixed(1).replace(/\.0$/, '');
+  const cashout = Number(total_withdrawal || 0).toFixed(1).replace(/\.0$/, '');
 
   useEffect(() => {
-    if (Userid) setInviteLink(`https://webthree.run.place/signup?ref=${Userid}`);
+    if (Userid) setInviteLink(`https://rovexking.com/signup?ref=${Userid}`);
   }, [Userid]);
 
   const copyLink = () => {
@@ -50,7 +56,7 @@ const ReferralProgram = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#161618]">
+    <div className="min-h-dvh bg-[#f5f5f4]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
         .fd { font-family: 'Cormorant', serif; }
@@ -62,35 +68,35 @@ const ReferralProgram = () => {
         .copied-pop { animation: copiedPop 0.35s ease-out; }
       `}</style>
 
-      <NavBar />
-
-      <main className="lg:pl-[300px] pb-28 lg:pb-12">
-        <div className="relative max-w-2xl mx-auto px-3 sm:px-6 pt-3 lg:pt-10">
-
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64"
-            style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }} />
+      <div className="mx-auto min-h-dvh max-w-md overflow-hidden bg-[#f5f5f4]">
+        <header className="min-h-[300px] rounded-b-[14px] bg-[#20262d] px-[25px] pt-[14px] shadow-[0_8px_20px_rgba(22,28,35,0.16)]"><NavBar />
+          <div className="mt-[25px] flex items-center justify-between gap-3"><p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white"><span className="truncate">{NewName || 'Member'}</span><ShieldCheck size={17} className="shrink-0 text-[#e3b900]" /></p><span className="shrink-0 rounded-full bg-[#4c4330] px-2.5 py-1 text-[10px] font-semibold text-[#f5c927]">{progress}% Progress</span></div>
+          <div className="mt-[18px] grid grid-cols-2"><div><p className="text-[27px] font-semibold leading-none tracking-[-0.04em] text-white"><span className="mr-0.5 text-[20px] text-[#dce4ee]">$</span>{available}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Available balance</p></div><div className="pt-[8px] text-right"><p className="text-[19px] font-semibold leading-none tracking-[-0.03em] text-[#c7d1dc]"><span className="mr-0.5 text-[14px]">$</span>{cashout}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Total cashout</p></div></div>
+          <div className="mt-[31px] grid grid-cols-4 gap-5">{[["Wallet", BriefcaseBusiness, "/wallet"], ["Salary", CalendarDays, "/SalaryofMonth"], ["Team", Users, "/team"], ["Alert", Bell, "/alerts"]].map(([label, Icon, path]) => <button key={label} type="button" onClick={() => navigate(path)} className="flex min-w-0 flex-col items-center gap-1.5 text-[#93a1b3]"><span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#303943]"><Icon size={19} strokeWidth={2} /></span><span className="text-[10px] font-medium">{label}</span></button>)}</div>
+        </header>
+      <main className="pb-8"><div className="relative mx-auto max-w-md px-4 pt-3">
 
           {/* Header */}
           <div className="rise relative flex items-start justify-between gap-4">
             <div>
-              <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">Invite &amp; earn</h1>
-              <p className="fi text-[13px] text-[#A0A0A6] mt-0.5">Share your link, earn from every friend who joins.</p>
+              <h1 className="fi text-[21px] font-semibold text-[#17212b] leading-tight">Invite &amp; earn</h1>
+              <p className="fi text-[13px] text-[#7f91a7] mt-1">Share your link, earn from every friend who joins.</p>
             </div>
            
           </div>
 
           {/* The link — hero object */}
-          <div className="rise relative mt-4 rounded-xl bg-[#C6A15B]/[0.04] ring-1 ring-[#C6A15B]/15 p-4" style={{ animationDelay: '0.06s' }}>
+          <div className="rise relative mt-4 rounded-xl bg-white shadow-[0_2px_5px_rgba(27,38,49,0.08)] p-4" style={{ animationDelay: '0.06s' }}>
             <SectionLabel>Your referral link</SectionLabel>
-            <div className="flex items-center gap-2.5 mt-2.5 rounded-lg bg-[#161618] ring-1 ring-white/[0.05] px-3.5 h-12 overflow-hidden">
-              <Link2 size={15} className="text-[#6F6F76] flex-shrink-0" />
+            <div className="flex items-center gap-2.5 mt-2.5 rounded-lg bg-[#f5f7f9] ring-1 ring-[#dce4ec] px-3.5 h-12 overflow-hidden">
+              <Link2 size={15} className="text-[#718195] flex-shrink-0" />
               {inviteLink ? (
                 <p className="fi text-[12.5px] font-mono truncate">
-                  <span className="text-[#A0A0A6]">https://webthree.run.place/signup</span>
-                  <span className="text-[#C6A15B]">?ref={Userid}</span>
+                  <span className="text-[#52657b]">https://rovexking.com/signup</span>
+                  <span className="text-[#b58e00]">?ref={Userid}</span>
                 </p>
               ) : (
-                <p className="fi text-[12.5px] text-[#6F6F76]">Preparing your link…</p>
+                <p className="fi text-[12.5px] text-[#7f91a7]">Preparing your link…</p>
               )}
             </div>
             <button
@@ -118,48 +124,18 @@ const ReferralProgram = () => {
                   style={{ animationDelay: `${0.1 + i * 0.05}s` }}
                   aria-label={`Share on ${p.label}`}
                 >
-                  <span className="w-12 h-12 rounded-full bg-[#1B1B1E] ring-1 ring-white/[0.05] flex items-center justify-center text-[#A0A0A6] group-hover:text-[#C6A15B] group-hover:ring-[#C6A15B]/30 group-hover:-translate-y-0.5 transition-all duration-200">
+                  <span className="w-12 h-12 rounded-full bg-white shadow-[0_2px_5px_rgba(27,38,49,0.08)] flex items-center justify-center text-[#718195] group-hover:text-[#b58e00] transition-all duration-200">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d={p.path} /></svg>
                   </span>
-                  <span className="fi text-[10px] font-medium text-[#6F6F76] group-hover:text-[#A0A0A6] transition-colors">{p.label}</span>
+                  <span className="fi text-[10px] font-medium text-[#718195] transition-colors">{p.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* What you earn */}
-          <div className="relative mt-8">
-            <SectionLabel>What you earn</SectionLabel>
-
-            <div className="rise flex items-end gap-3.5 mt-3.5" style={{ animationDelay: '0.12s' }}>
-              <p className="tnum text-[44px] font-semibold text-[#C6A15B] leading-[0.85]">Monthly Salary</p>
-              <div className="pb-1">
-                <p className="fi text-[14px] font-semibold text-[#EDEDEE] leading-tight">Decent earnings</p>
-                <p className="fi text-[11.5px] text-[#A0A0A6] mt-0.5">From every friend who joins and earns.</p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-0.5">
-              {perks.map((perk, i) => (
-                <div
-                  key={perk.title}
-                  className="rise group flex items-center gap-3 rounded-lg px-2 py-2.5 -mx-2 transition-colors duration-200 hover:bg-[#1B1B1E]"
-                  style={{ animationDelay: `${0.16 + i * 0.05}s` }}
-                >
-                  <span className="w-7 h-7 rounded-lg bg-[#C6A15B]/10 text-[#C6A15B] flex items-center justify-center flex-shrink-0">
-                    <Check size={14} strokeWidth={2.5} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="fi text-[13px] font-semibold text-[#EDEDEE] leading-tight">{perk.title}</p>
-                    <p className="fi text-[11px] text-[#A0A0A6] mt-0.5">{perk.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+   
         </div>
-      </main>
+      </main></div>
     </div>
   );
 };

@@ -1,9 +1,10 @@
+/* eslint-disable react/prop-types, no-unused-vars */
 import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from '../UserContext/UserContext';
 import { RemoveTrailingZeros } from '../../utils/utils';
-import { Clipboard, CheckCircle2, ShieldCheck, X, Clock, Settings, Check, History, Landmark, Wallet, ArrowUpRight } from 'lucide-react';
+import { Clipboard, CheckCircle2, ShieldCheck, X, Clock, Settings, Check, History, Landmark, Wallet, ArrowUpRight, Home, Bell, CalendarDays, Users } from 'lucide-react';
 import NavBar from '../NavBar';
 
 const chainInfo = {
@@ -25,7 +26,7 @@ const FlowHero = ({ chain, hasAddress }) => (
       <div className="vault-breathe w-12 h-12 rounded-full bg-[#C6A15B]/10 ring-1 ring-[#C6A15B]/25 flex items-center justify-center">
         <Landmark size={20} strokeWidth={1.8} className="text-[#C6A15B]" />
       </div>
-      <p className="fi text-[8.5px] font-semibold uppercase tracking-[0.12em] text-[#6F6F76]">WEBTHREE</p>
+      <p className="fi text-[8.5px] font-semibold uppercase tracking-[0.12em] text-[#6F6F76]">RovexKing</p>
     </div>
 
     <div className="relative flex-1 mx-2 h-6 flex items-center">
@@ -81,7 +82,7 @@ const SuccessModal = ({ amount, onClose }) => (
 );
 
 const WithdrawPage = () => {
-  const { Userid, userData, fetchUserData, team, level, currBalance } = useContext(UserContext);
+  const { Userid, userData, fetchUserData, team, level, currBalance, NewName, total_withdrawal, backend_wallet } = useContext(UserContext);
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -129,6 +130,8 @@ const WithdrawPage = () => {
   }, [availableWallets, selectedChain]);
 
   const balance = currBalance ?? 0;
+  const accountProgress = backend_wallet ? Math.min(Math.round((Number(backend_wallet) / 3) * 100), 100) : 0;
+  const cashout = Number(total_withdrawal || 0).toFixed(1).replace(/\.0$/, '');
   const amtNum = amount ? Number(RemoveTrailingZeros(amount)) : 0;
   const balNum = Number(RemoveTrailingZeros(balance)) || 0;
   const overBalance = amount !== '' && amtNum > balNum;
@@ -195,7 +198,7 @@ const WithdrawPage = () => {
   const canSubmit = !submitting && !!selectedChain && !!amount && !overBalance;
 
   return (
-    <div className="min-h-screen bg-[#161618]">
+    <div className="min-h-dvh bg-[#f5f5f4]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
         .fd { font-family: 'Cormorant', serif; }
@@ -224,23 +227,27 @@ const WithdrawPage = () => {
         .vault-breathe { animation: vaultBreathe 3s ease-in-out infinite; }
       `}</style>
 
-      <NavBar />
-
-      <main className="lg:pl-[120px] pb-28 lg:pb-12">
-        <div className="relative max-w-md mx-auto px-4 sm:px-6 pt-3 lg:pt-10">
+      <div className="mx-auto min-h-dvh max-w-md overflow-hidden bg-[#f5f5f4]">
+      <header className="min-h-[300px] rounded-b-[14px] bg-[#20262d] px-[25px] pt-[14px] shadow-[0_8px_20px_rgba(22,28,35,0.16)]">
+        <NavBar />
+        <div className="mt-[25px] flex items-center justify-between gap-3"><p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white"><span className="truncate">{NewName || 'Member'}</span><ShieldCheck size={17} className="shrink-0 text-[#e3b900]" /></p><span className="shrink-0 rounded-full bg-[#4c4330] px-2.5 py-1 text-[10px] font-semibold text-[#f5c927]">{accountProgress}% Progress</span></div>
+        <div className="mt-[18px] grid grid-cols-2"><div><p className="text-[27px] font-semibold leading-none tracking-[-0.04em] text-white"><span className="mr-0.5 text-[20px] text-[#dce4ee]">$</span>{RemoveTrailingZeros(balance)}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Available balance</p></div><div className="pt-[8px] text-right"><p className="text-[19px] font-semibold leading-none tracking-[-0.03em] text-[#c7d1dc]"><span className="mr-0.5 text-[14px]">$</span>{cashout}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Total cashout</p></div></div>
+        <div className="mt-[31px] grid grid-cols-4 gap-5">{[["Home", Home, "/wallet-page"], ["Salary", CalendarDays, "/SalaryofMonth"], ["Team", Users, "/team"], ["Alert", Bell, "/alerts"]].map(([label, Icon, path]) => <button key={label} type="button" onClick={() => navigate(path)} className="flex min-w-0 flex-col items-center gap-1.5 text-[#93a1b3]"><span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#303943]"><Icon size={19} strokeWidth={2} /></span><span className="text-[10px] font-medium">{label}</span></button>)}</div>
+      </header>
+      <main className="pb-8">
+        <div className="relative max-w-md mx-auto px-4 pt-3">
 
           <div className="pointer-events-none absolute inset-x-0 top-0 h-56"
             style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }} />
 
-          {/* Header */}
           <div className="rise relative flex items-center justify-between gap-4">
             <div>
-              <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">Withdraw</h1>
-              <p className="fi text-[13px] text-[#A0A0A6] mt-0.5">Send funds to your wallet</p>
+              <h1 className="fi text-[21px] font-semibold text-[#17212b] leading-tight">Withdraw</h1>
+              <p className="fi text-[12px] text-[#7f91a7] mt-1">Cash out to your BEP20 wallet</p>
             </div>
             <button
               onClick={() => navigate('/wallet')}
-              className="fi flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#1B1B1E] ring-1 ring-white/[0.05] text-[#A0A0A6] hover:text-[#EDEDEE] hover:ring-[#C6A15B]/20 text-[12px] font-medium transition-all flex-shrink-0"
+              className="fi flex items-center gap-1.5 h-9 px-3 rounded-lg bg-white shadow-[0_2px_5px_rgba(27,38,49,0.08)] text-[#64758a] text-[12px] font-medium transition-all flex-shrink-0"
             >
               <History size={14} /> History
             </button>
@@ -264,17 +271,11 @@ const WithdrawPage = () => {
             </div>
           ) : (
             <>
-              {/* The flow — living centerpiece */}
-              <div className="rise relative mt-6 rounded-xl bg-[#1B1B1E]/60 ring-1 ring-white/[0.04] px-4 py-5" style={{ animationDelay: '0.04s' }}>
-                <FlowHero chain={selectedChain} hasAddress={!!selectedAddress} />
-              </div>
-
-              {/* Amount — hero */}
-              <div className="rise relative mt-4" style={{ animationDelay: '0.08s' }}>
-                <SectionLabel>Amount</SectionLabel>
-                <div className={`mt-3 rounded-xl bg-[#1B1B1E] ring-1 transition-all ${overBalance ? 'ring-[#E2A896]/40' : 'ring-white/[0.05] focus-within:ring-[#C6A15B]/40'}`}>
-                  <div className="flex items-center gap-2.5 px-4 h-16">
-                    <span className="fi text-[22px] font-medium text-[#6F6F76]">$</span>
+              <div className="rise relative mt-4 rounded-xl bg-white p-4 shadow-[0_2px_5px_rgba(27,38,49,0.08)]" style={{ animationDelay: '0.08s' }}>
+                <div className="flex items-center justify-between"><SectionLabel>Withdrawal amount</SectionLabel><p className="fi text-[11px] text-[#7f91a7]">Available ${RemoveTrailingZeros(balance)}</p></div>
+                <div className={`mt-3 rounded-xl bg-white ring-1 transition-all ${overBalance ? 'ring-[#d7515b]/40' : 'ring-[#dce4ec] focus-within:ring-[#d6a800]/40'}`}>
+                  <div className="flex items-center gap-2.5 px-4 h-14">
+                    <span className="fi text-[22px] font-medium text-[#718195]">$</span>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -287,41 +288,26 @@ const WithdrawPage = () => {
                         setAmount(value);
                       }}
                       placeholder="0.00"
-                      className="fi tnum flex-1 min-w-0 bg-transparent outline-none text-[26px] font-semibold text-[#EDEDEE] placeholder:text-[#3A3A40]"
+                      className="fi tnum flex-1 min-w-0 bg-transparent outline-none text-[26px] font-semibold text-[#17212b] placeholder:text-[#9ba8b8]"
                       disabled={submitting}
                     />
                   </div>
                   {/* live % of balance meter */}
                   <div className="px-4 pb-3.5">
-                    <div className="h-1 bg-[#212125] rounded-full overflow-hidden">
+                    <div className="h-1 bg-[#edf1f5] rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all duration-300 ${overBalance ? 'bg-[#E2A896]' : 'bg-[#C6A15B]'}`} style={{ width: `${pctOfBalance}%` }} />
                     </div>
-                    <p className={`fi tnum text-[9.5px] mt-1.5 text-right ${overBalance ? 'text-[#E2A896]' : 'text-[#6F6F76]'}`}>
-                      {rawPct.toFixed(0)}% of balance
-                    </p>
+                 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 mt-2.5">
-                  {[25, 50, 75, 100].map((pct) => (
-                    <button key={pct} type="button" onClick={() => setPreset(pct)} disabled={submitting}
-                      className="fi h-8 rounded-lg text-[11px] font-semibold bg-[#212125] text-[#A0A0A6] hover:bg-[#27272C] hover:text-[#EDEDEE] transition-colors disabled:opacity-50">
-                      {pct === 100 ? 'Max' : `${pct}%`}
-                    </button>
-                  ))}
-                </div>
+               
 
-                <div className="flex items-center justify-between mt-2.5">
-                  <p className={`fi text-[11px] ${overBalance ? 'text-[#E2A896]' : 'text-[#6F6F76]'}`}>
-                    Available: <span className="tnum font-medium">${RemoveTrailingZeros(balance)}</span>
-                  </p>
-                  <p className="fi text-[11px] text-[#6F6F76]">Fee: <span className="text-[#A0A0A6]">$0</span></p>
-                </div>
               </div>
 
               {/* Network selector */}
               {availableWallets.length > 1 && (
-                <div className="rise relative mt-5" style={{ animationDelay: '0.12s' }}>
+                <div className="rise relative mt-3" style={{ animationDelay: '0.12s' }}>
                   <SectionLabel>Network</SectionLabel>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
                     {availableWallets.map(([chain]) => {
@@ -345,7 +331,7 @@ const WithdrawPage = () => {
               )}
 
               {/* Destination */}
-              <div className="rise relative mt-5" style={{ animationDelay: '0.16s' }}>
+              <div className="rise relative mt-3" style={{ animationDelay: '0.16s' }}>
                 <div className="flex items-center justify-between">
                   <SectionLabel>Destination</SectionLabel>
                   <Link to="/userWalletSettings" className="fi flex items-center gap-1 text-[11px] font-medium text-[#6F6F76] hover:text-[#C6A15B] transition-colors">
@@ -371,19 +357,13 @@ const WithdrawPage = () => {
                 </div>
               </div>
 
-              {/* Processing note */}
-              <div className="rise relative mt-4 flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-[#1B1B1E]/60 ring-1 ring-white/[0.04]" style={{ animationDelay: '0.2s' }}>
-                <Clock size={15} className="text-[#C6A15B] flex-shrink-0" />
-                <p className="fi text-[11.5px] text-[#A0A0A6]">
-                  Processed within 24 hours{currentLimit ? ` · Min $${currentLimit}` : ''}
-                </p>
-              </div>
+              <p className="fi mt-3 text-center text-[11px] text-[#7f91a7]">{currentLimit ? `Minimum $${currentLimit} · ` : ''}Processed within 24 hours</p>
 
               {/* Submit */}
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className={`rise group relative fi w-full h-12 rounded-xl mt-5 flex items-center justify-center gap-2 text-[14px] font-semibold transition-all active:scale-[0.99] ${
+                className={`rise group relative fi w-full h-12 rounded-xl mt-4 flex items-center justify-center gap-2 text-[14px] font-semibold transition-all active:scale-[0.99] ${
                   canSubmit
                     ? 'bg-[#C6A15B] text-[#161618] hover:bg-[#D8BA7C] shadow-[0_10px_28px_rgba(198,161,91,0.14)]'
                     : 'bg-[#212125] text-[#57575D] cursor-not-allowed'
@@ -405,7 +385,7 @@ const WithdrawPage = () => {
             </>
           )}
         </div>
-      </main>
+      </main></div>
 
       {showSuccessModal && <SuccessModal amount={withdrawnAmount} onClose={handleSuccessConfirm} />}
     </div>

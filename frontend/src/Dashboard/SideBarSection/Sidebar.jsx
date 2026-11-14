@@ -64,7 +64,6 @@ export const Sidebar = () => {
         { path: "/withdrwa", icon: <HiOutlineCash />, label: "Withdrawals" },
         { path: "/ApprovedWithdrwa", icon: <HiOutlineShieldCheck />, label: "Approved" },
         { path: "/rejectwithdrwa", icon: <HiOutlineDocumentText />, label: "Rejected" },
-        { path: "/accounts", icon: <HiDocumentDuplicate />, label: "Admin Wallet" },
         { path: "/commission", icon: <HiOutlineCash />, label: "Commission" },
       ],
     },

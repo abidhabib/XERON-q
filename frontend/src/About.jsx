@@ -1,113 +1,64 @@
 import { useContext } from "react";
-import NavBar from "./NavBar";
-import BalanceCard from "./new/BalanceCard";
+import { useNavigate } from "react-router-dom";
+import {
+  Bell,
+  BriefcaseBusiness,
+  CalendarDays,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { UserContext } from "./UserContext/UserContext";
-import { Activity, Gift, ShieldCheck, ArrowUpRight, Lock } from "lucide-react";
-import InviteCard from "./new/InviteCard";
+import NavBar from "./NavBar";
 
-/* ── Live "Live" indicator ── */
-const LiveDot = () => (
-  <span className="flex items-center gap-1 flex-shrink-0">
-    <span className="relative flex w-1.5 h-1.5">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C6A15B] opacity-60" />
-      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#C6A15B]" />
-    </span>
-    <span className="fi text-[8.5px] font-semibold uppercase tracking-[0.1em] text-[#C6A15B]">Live</span>
-  </span>
-);
-
-/* ── Animated sparkline ── */
-const Sparkline = () => (
-  <svg width="64" height="28" viewBox="0 0 64 28" fill="none" className="hidden sm:block flex-shrink-0">
-    <path
-      className="spark-draw"
-      d="M0 23 L10 19 L20 21 L30 13 L40 16 L50 8 L64 4"
-      stroke="#C6A15B"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-/* ── Featured Activity row ── */
-const ActivityFeature = () => (
-  <div
-    className="rise group relative flex items-center gap-4 p-4 rounded-xl bg-[#1B1B1E] ring-1 ring-white/[0.04] hover:ring-[#C6A15B]/20 transition-all duration-200 overflow-hidden"
-    style={{ animationDelay: "0.14s" }}
-  >
-    <div className="w-11 h-11 rounded-lg bg-[#C6A15B]/10 text-[#C6A15B] flex items-center justify-center flex-shrink-0 group-hover:bg-[#C6A15B]/15 transition-colors">
-      <Activity size={18} strokeWidth={2} />
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2.5">
-        <h3 className="fi text-[14.5px] font-semibold text-[#EDEDEE] leading-tight">Activity</h3>
-      </div>
-      <p className="fi text-[12px] text-[#A0A0A6] mt-1 leading-relaxed">
-        Track your transactions, interactions, and progress.
-      </p>
-    </div>
-    <Sparkline />
-  </div>
-);
-
+const featureCards = [
+  { title: "Activity", description: "Track your transactions, interactions, and progress.", path: "/wallet" },
+  { title: "Rewards", description: "Earn benefits based on your activities and contributions.", path: "/salaryofMonth" },
+  { title: "About", description: "Secure platform for managing your financial progress.", path: "/setting" },
+];
 
 const About = () => {
-  const { NewName } = useContext(UserContext);
-  const first = (NewName || "").split(" ")[0];
-
-  const hour = new Date().getHours();
-  const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const { NewName, currBalance, total_withdrawal, backend_wallet } = useContext(UserContext);
+  const navigate = useNavigate();
+  const progress = backend_wallet ? Math.min(Math.round((Number(backend_wallet) / 3) * 100), 100) : 0;
+  const available = Number(currBalance || 0).toFixed(1).replace(/\.0$/, "");
+  const cashout = Number(total_withdrawal || 0).toFixed(1).replace(/\.0$/, "");
 
   return (
-    <div className="min-h-screen bg-[#161618]">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
-        .fd { font-family: 'Cormorant', serif; }
-        .fi { font-family: 'Inter', sans-serif; }
-        .tnum { font-variant-numeric: tabular-nums; }
-        @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .rise { animation: rise 0.45s cubic-bezier(0.22,1,0.36,1) both; }
-        @keyframes drawLine { to { stroke-dashoffset: 0; } }
-        .spark-draw { stroke-dasharray: 90; stroke-dashoffset: 90; animation: drawLine 1.4s ease-out 0.5s forwards; }
-      `}</style>
+    <div className="min-h-dvh bg-[#f5f5f4] text-[#1d2631]">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'); .about-ui { font-family: 'Inter', sans-serif; }`}</style>
 
-      <NavBar />
-
-      <main className="lg:pl-[300px] pb-28 lg:pb-12">
-        <div className="relative max-w-2xl mx-auto px-3 sm:px-6 pt-3 lg:pt-10">
-
-          {/* ambient light behind the opening */}
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-64"
-            style={{ background: "radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)" }}
-          />
-
-          {/* Greeting */}
-          <div className="rise relative">
-            <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">
-              {greeting}
-              {first ? `, ${first}` : ""}
-            </h1>
-            <p className="fi text-[12.5px] text-[#A0A0A6] mt-0.5">{dateStr}</p>
+      <div className="about-ui mx-auto min-h-dvh max-w-md overflow-hidden bg-[#f5f5f4] shadow-[0_0_40px_rgba(19,25,32,0.06)]">
+        <header className="relative min-h-[300px] overflow-hidden rounded-b-[14px] bg-[#20262d] px-[25px] pt-[14px] shadow-[0_8px_20px_rgba(22,28,35,0.16)]">
+          <NavBar />
+          <div className="mt-[25px] flex items-center justify-between gap-3">
+            <p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white"><span className="truncate">{NewName || "Member"}</span><ShieldCheck size={17} className="shrink-0 text-[#e3b900]" /></p>
+            <span className="shrink-0 rounded-full bg-[#4c4330] px-2.5 py-1 text-[10px] font-semibold text-[#f5c927]">{progress}% Progress</span>
           </div>
-
-          {/* Balance hero */}
-          <div className="relative mt-4">
-            <BalanceCard />
+          <div className="mt-[18px] grid grid-cols-2">
+            <div><p className="text-[27px] font-semibold leading-none tracking-[-0.04em] text-white"><span className="mr-0.5 text-[20px] text-[#dce4ee]">$</span>{available}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Available balance</p></div>
+            <div className="pt-[8px] text-right"><p className="text-[19px] font-semibold leading-none tracking-[-0.03em] text-[#c7d1dc]"><span className="mr-0.5 text-[14px]">$</span>{cashout}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Total cashout</p></div>
           </div>
-          {/* Features — asymmetric 1 + 2 */}
-          <div className="relative mt-4">
-            <ActivityFeature />
-            <InviteCard/>
-
-            
+          <div className="mt-[31px] grid grid-cols-4 gap-5">
+            {[
+              ["Wallet", BriefcaseBusiness, "/wallet"], ["Salary", CalendarDays, "/salaryofMonth"], ["Team", Users, "/team"], ["Alert", Bell, "/alerts"],
+            ].map(([label, Icon, path]) => <button key={label} type="button" onClick={() => navigate(path)} className="flex min-w-0 flex-col items-center gap-1.5 text-[#93a1b3]"><span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#303943]"><Icon size={19} strokeWidth={2} /></span><span className="text-[10px] font-medium">{label}</span></button>)}
           </div>
+        </header>
 
-         
-        </div>
-      </main>
+        <main className="px-4 py-4">
+          <div className="space-y-3.5">
+            {featureCards.map((item) => {
+              return (
+                <button key={item.title} type="button" onClick={() => navigate(item.path)} className="block w-full rounded-xl bg-white px-6 py-[20px] text-left shadow-[0_2px_5px_rgba(27,38,49,0.08)] ring-1 ring-black/[0.02] transition-transform active:scale-[0.99]">
+                  <span className="block text-[15px] font-semibold text-[#17212b]">{item.title}</span>
+                  <span className="mt-2 block text-[13px] leading-[1.7] text-[#7f91a7]">{item.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </main>
+      </div>
+
     </div>
   );
 };

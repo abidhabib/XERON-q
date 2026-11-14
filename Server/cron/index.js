@@ -1,12 +1,10 @@
 import cron from 'node-cron';
-import { checkAndApproveUsers } from './approveUsers.js';
 import { resetDailyStats } from './resetDailyStats.js';
 import { distributeWebBackendEarnings } from './distributeWebBackendEarnings.js';
 
-cron.schedule('*/10 * * * *', () => {
-    console.log('🔄 Running scheduled user payment check...');
-    checkAndApproveUsers();
-});
+// Crypto activation is watched continuously by cryptoInvoiceRoutes. The old
+// hash-based payment cron is intentionally disabled: it trusted a hash entered
+// by the user and could reject a legitimate payment on an RPC failure.
 
 cron.schedule('44 03 * * *', () => {
     console.log('🕒 Running daily stats reset...');

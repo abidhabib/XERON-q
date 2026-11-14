@@ -38,16 +38,6 @@ const SETTINGS_CONFIG = {
     placeholder: "e.g. 10.0",
     section: "financial"
   },
-  coinValue: {
-    title: "Coin Value",
-    subtitle: "1 WBE3 Coin equals how many USD",
-    icon: HiCurrencyDollar,
-    color: "purple",
-    type: "number",
-    prefix: "$",
-    step: "0.01",
-    section: "financial"
-  },
   percentage: {
     title: "New User Backend",
     subtitle: "Percentage Backend given to new users on approve",
@@ -245,7 +235,6 @@ const Settings = () => {
     webBackendFeePercent: "",
     percentage: "",
     offer: "",
-    coinValue: "",
     weekSalaryPersonRequire: "",
     monthSalaryPersonRequire: "",
     monthSalaryAmount: ""
@@ -282,7 +271,6 @@ const Settings = () => {
         webBackendFeePercent: data.webBackendFeePercent?.toString() || "",
         percentage: data.percentage?.toString() || "",
         offer: data.offer || "",
-        coinValue: data.coinValue?.toString() || "",
         weekSalaryPersonRequire: data.weekSalaryPersonRequire?.toString() || "",
         monthSalaryPersonRequire: data.monthSalaryPersonRequire?.toString() || "",
         monthSalaryAmount: data.monthSalaryAmount?.toString() || ""

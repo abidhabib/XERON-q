@@ -1,8 +1,9 @@
-import React, { useContext, useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+/* eslint-disable react/prop-types */
+import { useContext, useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserContext } from './UserContext/UserContext';
 import NavBar from './NavBar';
-import { Users, Calendar, Crown, UserPlus, ArrowUpRight } from 'lucide-react';
+import { Users, Calendar, Crown, UserPlus, ArrowUpRight, Bell, BriefcaseBusiness, ShieldCheck } from 'lucide-react';
 import { SiWhatsapp } from 'react-icons/si';
 
 const formatDate = (d) =>
@@ -59,15 +60,15 @@ const LedgerRow = ({ member, rank, isTop }) => {
 
   return (
     <div
-      className={`rise relative flex items-center gap-3 py-3.5 ${isTop ? 'pl-4 pr-3' : 'pl-4 pr-1'}`}
+      className={`rise relative flex items-center gap-3 rounded-xl bg-white py-3.5 shadow-[0_2px_5px_rgba(27,38,49,0.08)] ${isTop ? 'pl-4 pr-3' : 'pl-4 pr-3'}`}
       style={{ animationDelay: `${Math.min(rank, 16) * 0.03}s` }}
     >
       {/* gold thread — the signature element, replaces boxed containers entirely */}
-      <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${isTop ? 'bg-[#C6A15B]' : 'bg-[#232327]'}`} />
+      <div className={`absolute left-0 top-3 bottom-3 w-[2px] ${isTop ? 'bg-[#d6a800]' : 'bg-[#dce4ec]'}`} />
 
       <Ring value={progress} size={isTop ? 46 : 36} stroke={isTop ? 3 : 2.25}>
         <div
-          className="rounded-full bg-[#1B1B1F] flex items-center justify-center font-semibold text-[#EDEDEE] fi"
+          className="rounded-full bg-[#edf1f5] flex items-center justify-center font-semibold text-[#52657b] fi"
           style={{ width: isTop ? 34 : 26, height: isTop ? 34 : 26, fontSize: isTop ? 14 : 11 }}
         >
           {initial}
@@ -77,14 +78,14 @@ const LedgerRow = ({ member, rank, isTop }) => {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           {isTop && <Crown size={12} strokeWidth={2} className="text-[#C6A15B] flex-shrink-0" />}
-          <h3 className={`fi font-semibold text-[#F2F2F5] truncate leading-tight ${isTop ? 'text-[15.5px]' : 'text-[13.5px]'}`}>
+          <h3 className={`fi font-semibold text-[#17212b] truncate leading-tight ${isTop ? 'text-[15.5px]' : 'text-[13.5px]'}`}>
             {member.name}
           </h3>
         </div>
-        <div className="fi flex items-center gap-2.5 mt-1 text-[11px] text-[#5A5A65]">
+        <div className="fi flex items-center gap-2.5 mt-1 text-[11px] text-[#7f91a7]">
           <span className="flex items-center gap-1">
             <Users size={10} strokeWidth={1.5} />
-            <span className="tnum font-medium text-[#7A7A85]">{member.team || 0}</span> team
+            <span className="tnum font-medium text-[#52657b]">{member.team || 0}</span> team
           </span>
           {isTop && (
             <span className="hidden xs:flex items-center gap-1">
@@ -94,14 +95,14 @@ const LedgerRow = ({ member, rank, isTop }) => {
         </div>
       </div>
 
-      <span className={`tnum font-semibold text-[#C6A15B] flex-shrink-0 ${isTop ? 'text-[17px]' : 'text-[13px]'}`}>
+      <span className={`tnum font-semibold text-[#b58e00] flex-shrink-0 ${isTop ? 'text-[17px]' : 'text-[13px]'}`}>
         {progress.toFixed(0)}%
       </span>
 
       <button
         onClick={() => window.open(`https://wa.me/${member.phoneNumber}`, '_blank')}
         aria-label={`Message ${first} on WhatsApp`}
-        className={`flex-shrink-0 flex items-center justify-center rounded-full text-[#5A5A65] hover:text-[#7FD8A0] active:scale-90 transition-all duration-150 ${isTop ? 'w-9 h-9 bg-[#18181B] text-[#7FD8A0]' : 'w-8 h-8 hover:bg-[#1B1B1F]'}`}
+        className={`flex-shrink-0 flex items-center justify-center rounded-full text-[#52657b] hover:text-[#258356] active:scale-90 transition-all duration-150 ${isTop ? 'w-9 h-9 bg-[#e9f7ef] text-[#258356]' : 'w-8 h-8 hover:bg-[#edf1f5]'}`}
       >
         <SiWhatsapp size={isTop ? 15 : 14} />
       </button>
@@ -113,7 +114,7 @@ const LedgerRow = ({ member, rank, isTop }) => {
 const ProgressSkyline = ({ members }) => {
   const bars = members.slice(0, 20);
   return (
-    <div className="flex items-end gap-[2.5px] h-9 mt-4">
+    <div className="flex items-end gap-[2.5px] h-9 mt-2">
       {bars.map((m, i) => {
         const p = memberProgress(m);
         return (
@@ -130,13 +131,13 @@ const ProgressSkyline = ({ members }) => {
 
 /* ── Skeletons ── */
 const SkeletonRow = ({ isTop }) => (
-  <div className="flex items-center gap-3 py-3.5 pl-4 pr-1">
-    <div className="rounded-full bg-[#1B1B1F] animate-pulse flex-shrink-0" style={{ width: isTop ? 46 : 36, height: isTop ? 46 : 36 }} />
+  <div className="flex items-center gap-3 rounded-xl bg-white py-3.5 pl-4 pr-3 shadow-[0_2px_5px_rgba(27,38,49,0.08)]">
+    <div className="rounded-full bg-[#edf1f5] animate-pulse flex-shrink-0" style={{ width: isTop ? 46 : 36, height: isTop ? 46 : 36 }} />
     <div className="flex-1 space-y-2">
-      <div className="h-3 rounded-md bg-[#1B1B1F] animate-pulse" style={{ width: isTop ? '55%' : '40%' }} />
-      <div className="h-2 w-1/3 rounded-md bg-[#1B1B1F] animate-pulse" />
+      <div className="h-3 rounded-md bg-[#edf1f5] animate-pulse" style={{ width: isTop ? '55%' : '40%' }} />
+      <div className="h-2 w-1/3 rounded-md bg-[#edf1f5] animate-pulse" />
     </div>
-    <div className="w-8 h-8 rounded-full bg-[#1B1B1F] animate-pulse flex-shrink-0" />
+    <div className="w-8 h-8 rounded-full bg-[#edf1f5] animate-pulse flex-shrink-0" />
   </div>
 );
 
@@ -159,7 +160,8 @@ const EmptyState = () => (
 
 /* ── Page ── */
 const Team = () => {
-  const { Userid } = useContext(UserContext);
+  const { Userid, NewName, currBalance, total_withdrawal, backend_wallet } = useContext(UserContext);
+  const navigate = useNavigate();
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -191,9 +193,12 @@ const Team = () => {
     const avg = count ? Math.round(teamMembers.reduce((s, m) => s + memberProgress(m), 0) / count) : 0;
     return { count, network, avg };
   }, [teamMembers]);
+  const accountProgress = backend_wallet ? Math.min(Math.round((Number(backend_wallet) / 3) * 100), 100) : 0;
+  const available = Number(currBalance || 0).toFixed(1).replace(/\.0$/, '');
+  const cashout = Number(total_withdrawal || 0).toFixed(1).replace(/\.0$/, '');
 
   return (
-    <div className="min-h-screen bg-[#0F0F11] text-[#EDEDEE] antialiased selection:bg-[#C6A15B]/20 selection:text-white">
+    <div className="min-h-dvh bg-[#f5f5f4] text-[#17212b] antialiased">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
         .fd { font-family: 'Cormorant', serif; }
@@ -206,17 +211,20 @@ const Team = () => {
         @media (min-width: 380px) { .xs\\:flex { display: flex; } }
       `}</style>
 
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#C6A15B]/[0.03] rounded-full blur-[100px] pointer-events-none" />
-
-      <NavBar />
-
-      <main className="lg:pl-[300px] pb-28 lg:pb-12 relative">
-        <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-6 lg:pt-10">
+      <div className="mx-auto min-h-dvh max-w-md overflow-hidden bg-[#f5f5f4]">
+        <header className="min-h-[300px] rounded-b-[14px] bg-[#20262d] px-[25px] pt-[14px] shadow-[0_8px_20px_rgba(22,28,35,0.16)]">
+          <NavBar />
+          <div className="mt-[25px] flex items-center justify-between gap-3"><p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white"><span className="truncate">{NewName || 'Member'}</span><ShieldCheck size={17} className="shrink-0 text-[#e3b900]" /></p><span className="shrink-0 rounded-full bg-[#4c4330] px-2.5 py-1 text-[10px] font-semibold text-[#f5c927]">{accountProgress}% Progress</span></div>
+          <div className="mt-[18px] grid grid-cols-2"><div><p className="text-[27px] font-semibold leading-none tracking-[-0.04em] text-white"><span className="mr-0.5 text-[20px] text-[#dce4ee]">$</span>{available}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Available balance</p></div><div className="pt-[8px] text-right"><p className="text-[19px] font-semibold leading-none tracking-[-0.03em] text-[#c7d1dc]"><span className="mr-0.5 text-[14px]">$</span>{cashout}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Total cashout</p></div></div>
+          <div className="mt-[31px] grid grid-cols-4 gap-5">{[["Wallet", BriefcaseBusiness, "/wallet"], ["Salary", Calendar, "/SalaryofMonth"], ["Team", Users, "/team"], ["Alert", Bell, "/alerts"]].map(([label, Icon, path]) => <button key={label} type="button" onClick={() => navigate(path)} className="flex min-w-0 flex-col items-center gap-1.5 text-[#93a1b3]"><span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#303943]"><Icon size={19} strokeWidth={2} /></span><span className="text-[10px] font-medium">{label}</span></button>)}</div>
+        </header>
+      <main className="relative pb-8">
+        <div className="mx-auto max-w-md px-4 pt-3">
 
           <div className="rise mb-1 flex items-end justify-between">
             <div>
-              <h1 className="fd text-[30px] sm:text-[38px] font-medium text-[#F2F2F5] tracking-tight leading-none">My Team</h1>
-              <p className="fi text-[13px] text-[#6B6B75] mt-2 leading-relaxed">The people growing alongside you.</p>
+              <h1 className="fi text-[21px] font-semibold text-[#17212b] tracking-tight leading-none">My Team</h1>
+              <p className="fi text-[13px] text-[#7f91a7] mt-2 leading-relaxed">The people growing alongside you.</p>
             </div>
           </div>
 
@@ -226,25 +234,10 @@ const Team = () => {
             </div>
           ) : teamMembers.length > 0 ? (
             <>
-              {/* Single continuous ledger — stats strip as the header row, no separate box */}
-              <div className="rise mt-7 flex items-center justify-between gap-4 pb-5 border-b border-[#1B1B1F]" style={{ animationDelay: '0.02s' }}>
-                <div>
-                  <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#5A5A65]">Network reach</p>
-                  <p className="tnum text-[36px] sm:text-[44px] font-semibold text-[#C6A15B] leading-none mt-2 tracking-tight">
-                    <CountUp value={stats.network} />
-                  </p>
-                  <p className="fi text-[12px] text-[#6B6B75] mt-2">
-                    <span className="tnum font-semibold text-[#B8B8C0]">{stats.count}</span> direct &middot; avg progress <span className="tnum font-semibold text-[#B8B8C0]">{stats.avg}%</span>
-                  </p>
-                </div>
-                <Ring value={stats.avg} size={50} stroke={3}>
-                  <span className="tnum text-[12px] font-semibold text-[#EDEDEE]">{stats.avg}%</span>
-                </Ring>
-              </div>
-
+           
               {ranked.length > 0 && <ProgressSkyline members={ranked} />}
 
-              <div className="rise mt-1 divide-y divide-[#1B1B1F]" style={{ animationDelay: '0.06s' }}>
+              <div className="rise mt-3 space-y-2" style={{ animationDelay: '0.06s' }}>
                 {ranked.map((m, i) => (
                   <LedgerRow key={m.id} member={m} rank={i} isTop={i === 0} />
                 ))}
@@ -256,6 +249,7 @@ const Team = () => {
 
         </div>
       </main>
+      </div>
     </div>
   );
 };

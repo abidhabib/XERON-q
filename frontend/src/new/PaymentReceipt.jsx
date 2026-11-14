@@ -8,8 +8,8 @@ import pendingAnimation from '../pendingAnimation.json';
 
 /* ── Receipt line-item ── */
 const DetailRow = ({ label, value, onCopy, onToggle, isHidden }) => (
-  <div className="flex justify-between items-center gap-3 py-3 border-b border-white/[0.05] last:border-0">
-    <span className="fi text-[10.5px] font-medium uppercase tracking-[0.12em] text-[#6F6F76] flex-shrink-0">{label}</span>
+  <div className="flex justify-between items-center gap-3 py-3 border-b border-[#edf1f5] last:border-0">
+    <span className="fi text-[10.5px] font-medium uppercase tracking-[0.12em] text-[#7f91a7] flex-shrink-0">{label}</span>
     <div className="flex items-center gap-1.5 min-w-0">
       {onToggle && (
         <button
@@ -20,7 +20,7 @@ const DetailRow = ({ label, value, onCopy, onToggle, isHidden }) => (
           {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
       )}
-      <span className="fi tnum text-[13px] font-medium text-[#EDEDEE] truncate">{value}</span>
+      <span className="fi tnum text-[13px] font-medium text-[#263545] truncate">{value}</span>
       {onCopy && (
         <button
           onClick={onCopy}
@@ -71,7 +71,7 @@ const PaymentReceipt = ({ selectedTransaction, setSelectedTransaction }) => {
   const { label: statusLabel, text: statusText, tint, ring, anim: animation } = getStatusConfig();
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 rounded-t-[24px] overflow-hidden max-h-[88vh] bg-[#1B1B1E] ring-1 ring-white/[0.06] shadow-[0_-16px_48px_rgba(0,0,0,0.5)] sheet-up">
+    <div className="absolute bottom-0 left-0 right-0 rounded-t-[24px] overflow-hidden max-h-[88vh] bg-[#f8f9fa] shadow-[0_-16px_48px_rgba(0,0,0,0.28)] sheet-up">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
         .fd { font-family: 'Cormorant', serif; }
@@ -83,19 +83,19 @@ const PaymentReceipt = ({ selectedTransaction, setSelectedTransaction }) => {
 
       {/* Grabber */}
       <div className="flex justify-center pt-3 pb-1">
-        <div className="w-10 h-1 bg-[#2A2A30] rounded-full" />
+        <div className="w-10 h-1 bg-[#dce4ec] rounded-full" />
       </div>
 
       <div className="px-4 pt-2 pb-6 overflow-y-auto max-h-[82vh]">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="fd text-[20px] font-medium text-[#EDEDEE] leading-tight">Payment Receipt</h1>
-            <p className="fi tnum text-[11px] text-[#6F6F76] mt-0.5">Receipt #{idStr}</p>
+            <h1 className="fi text-[20px] font-semibold text-[#17212b] leading-tight">Payment Receipt</h1>
+            <p className="fi tnum text-[11px] text-[#7f91a7] mt-0.5">Receipt #{idStr}</p>
           </div>
           <button
             onClick={() => setSelectedTransaction(null)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F76] hover:text-[#EDEDEE] hover:bg-[#212125] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#718195] hover:text-[#17212b] hover:bg-[#edf1f5] transition-colors"
             aria-label="Close"
           >
             <X size={16} />
@@ -103,7 +103,7 @@ const PaymentReceipt = ({ selectedTransaction, setSelectedTransaction }) => {
         </div>
 
         {/* Status animation */}
-        <div className="flex flex-col items-center mt-4">
+        <div className="flex flex-col items-center mt-3">
           <div className={`w-24 h-24 rounded-full flex items-center justify-center ring-1 ${tint} ${ring}`}>
             <Lottie loop={false} animationData={animation} play style={{ width: 80, height: 80 }} />
           </div>
@@ -111,16 +111,16 @@ const PaymentReceipt = ({ selectedTransaction, setSelectedTransaction }) => {
         </div>
 
         {/* Amount hero */}
-        <div className="text-center mt-5">
-          <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6F6F76]">Total Paid</p>
-          <p className="tnum text-[34px] font-semibold text-[#EDEDEE] mt-1.5 leading-none">
+        <div className="text-center mt-3">
+          <p className="fi text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7f91a7]">Total Paid</p>
+          <p className="tnum text-[34px] font-semibold text-[#17212b] mt-1.5 leading-none">
             <span className="text-[#A0A0A6] text-[22px] mr-0.5">$</span>
             {removeTrailingZeros(Number(tx.amount || 0))}
           </p>
         </div>
 
         {/* Details */}
-        <div className="mt-5 rounded-xl bg-[#161618] px-4">
+        <div className="mt-5 rounded-xl bg-white px-4 shadow-[0_2px_5px_rgba(27,38,49,0.08)]">
           <DetailRow label="Transaction ID" value={shortId} onCopy={() => copyToClipboard(tx.id)} />
           <DetailRow label="Date & Time" value={tx.date ? formatDateTime(tx.date) : '—'} />
           <DetailRow label="Wallet" value={tx.bank_name || 'Main Wallet'} />
@@ -133,21 +133,6 @@ const PaymentReceipt = ({ selectedTransaction, setSelectedTransaction }) => {
           />
         </div>
 
-        {/* Fee & total */}
-        <div className="mt-4">
-          <div className="flex justify-between items-center">
-            <span className="fi text-[11px] text-[#6F6F76]">Processing Fee</span>
-            <span className="tnum fi text-[13px] font-medium text-[#A0A0A6]">
-              ${removeTrailingZeros(Number(tx.fee || 0))}
-            </span>
-          </div>
-          <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/[0.05]">
-            <span className="fi text-[11px] font-semibold uppercase tracking-[0.12em] text-[#A0A0A6]">Grand Total</span>
-            <span className="tnum text-[18px] font-semibold text-[#C6A15B]">
-              ${removeTrailingZeros(Number(tx.amount || 0) + Number(tx.fee || 0))}
-            </span>
-          </div>
-        </div>
 
         {/* Trust footer */}
         <div className="flex items-center justify-center gap-1.5 mt-6">

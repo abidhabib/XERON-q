@@ -1,8 +1,7 @@
 import { useEffect, useContext } from 'react';
 import { UserContext } from './UserContext/UserContext';
 import { Toaster } from 'react-hot-toast';
-import  WithdrwaHistory  from './MyWithdrwal';
-import BalanceCard from './new/BalanceCard';
+import WithdrwaHistory from './MyWithdrwal';
 
 // ✅ Lucide Icons
 
@@ -11,7 +10,7 @@ const Wallet = () => {
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, [fetchUserData]);
 
   // ✅ Minimal, premium action card component
 

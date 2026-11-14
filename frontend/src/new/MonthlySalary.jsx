@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+/* eslint-disable react/prop-types, no-unused-vars, react/no-unescaped-entities */
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { UserContext } from '../UserContext/UserContext';
 import axios from 'axios';
 import {
   Coins, CheckCircle, RotateCw, History, Upload, User, Smartphone, MessageCircle,
   Trophy, Users, Calendar, AlertTriangle, FileText, ShieldCheck, ChevronDown,
-  CreditCard, BadgeCheck, Clock, Target, Check,
+  CreditCard, BadgeCheck, Clock, Target, Check, Bell, BriefcaseBusiness,
 } from 'lucide-react';
 import NavBar from '../NavBar';
 import { useNavigate } from 'react-router-dom';
@@ -116,20 +117,20 @@ const UploadField = ({ label, description, accept, onChange, required, error, ic
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <label className="fi text-[13px] font-medium text-[#A0A0A6] flex items-center gap-1.5">
+        <label className="fi text-[13px] font-medium text-[#52657b] flex items-center gap-1.5">
           <Icon size={14} className="text-[#C6A15B]" />{label}{required && <span className="text-[#E2A896]">*</span>}
         </label>
-        {description && <span className="fi text-[10.5px] text-[#6F6F76]">{description}</span>}
+        {description && <span className="fi text-[10.5px] text-[#7f91a7]">{description}</span>}
       </div>
       <label
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }}
         className={`relative flex flex-col items-center justify-center w-full h-32 rounded-xl ring-1 transition-all cursor-pointer group overflow-hidden ${
-          error ? 'ring-[#E2A896]/40 bg-[#241619]/40'
-            : isDragging ? 'ring-[#C6A15B] bg-[#C6A15B]/[0.06]'
-            : preview ? 'ring-[#8FC7A0]/30'
-            : 'ring-white/[0.06] bg-[#1B1B1E] hover:ring-[#C6A15B]/25'
+          error ? 'ring-[#d7515b]/50 bg-[#fff5f5]'
+            : isDragging ? 'ring-[#d6a800] bg-[#fff8df]'
+            : preview ? 'ring-[#2f9d69]/40'
+            : 'ring-[#dce4ec] bg-white hover:ring-[#d6a800]/60'
         }`}
       >
         {preview ? (
@@ -144,11 +145,11 @@ const UploadField = ({ label, description, accept, onChange, required, error, ic
           </>
         ) : (
           <div className="text-center p-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors ${isDragging ? 'bg-[#C6A15B]/20' : 'bg-[#212125]'}`}>
-              <Icon size={18} className={isDragging ? 'text-[#C6A15B]' : 'text-[#6F6F76]'} />
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors ${isDragging ? 'bg-[#fff0bd]' : 'bg-[#f0f3f6]'}`}>
+              <Icon size={18} className={isDragging ? 'text-[#a87f00]' : 'text-[#718195]'} />
             </div>
-            <p className="fi text-[12.5px] font-medium text-[#EDEDEE]">{isDragging ? 'Drop file here' : 'Click or drag to upload'}</p>
-            <p className="fi text-[10.5px] text-[#6F6F76] mt-0.5">PNG, JPG up to 5MB</p>
+            <p className="fi text-[12.5px] font-medium text-[#263545]">{isDragging ? 'Drop file here' : 'Click or drag to upload'}</p>
+            <p className="fi text-[10.5px] text-[#7f91a7] mt-0.5">PNG, JPG up to 5MB</p>
           </div>
         )}
         <input type="file" accept={accept} onChange={(e) => handleFile(e.target.files?.[0])} className="hidden" required={required} />
@@ -173,29 +174,29 @@ const PhoneInput = ({ value, onChange, placeholder, countryCode, onCountryChange
   };
   return (
     <div className="flex flex-col gap-2">
-      <label className="fi text-[13px] font-medium text-[#A0A0A6] flex items-center gap-1.5">
+      <label className="fi text-[13px] font-medium text-[#52657b] flex items-center gap-1.5">
         <Icon size={14} className="text-[#C6A15B]" />{placeholder}
       </label>
       <div className="flex gap-2">
         <div className="relative flex-shrink-0">
           <select value={countryCode} onChange={(e) => onCountryChange(e.target.value)}
-            className="appearance-none h-12 pl-3 pr-8 rounded-xl bg-[#212125] text-[#EDEDEE] text-[13px] outline-none focus:ring-2 focus:ring-[#C6A15B]/40 cursor-pointer">
+            className="appearance-none h-12 pl-3 pr-8 rounded-xl border border-[#dce4ec] bg-white text-[#263545] text-[13px] outline-none focus:ring-2 focus:ring-[#d6a800]/40 focus:border-[#d6a800] cursor-pointer">
             {countryOptions.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
           </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6F6F76] pointer-events-none" />
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#718195] pointer-events-none" />
         </div>
         <input type="tel" value={formatPhone(value)} onChange={handlePhoneChange} placeholder="Phone number" inputMode="numeric" required
-          className="flex-1 min-w-0 h-12 px-3.5 rounded-xl bg-[#212125] text-[#EDEDEE] text-[14px] outline-none focus:ring-2 focus:ring-[#C6A15B]/40 placeholder:text-[#57575D]" />
+          className="flex-1 min-w-0 h-12 px-3.5 rounded-xl border border-[#dce4ec] bg-white text-[#263545] text-[14px] outline-none focus:ring-2 focus:ring-[#d6a800]/40 focus:border-[#d6a800] placeholder:text-[#9ba8b8]" />
       </div>
     </div>
   );
 };
 
-const inputCls = 'fi w-full h-12 px-4 text-[14px] text-[#EDEDEE] bg-[#212125] rounded-xl outline-none transition-all focus:bg-[#27272C] focus:ring-2 focus:ring-[#C6A15B]/40 placeholder:text-[#57575D]';
+const inputCls = 'fi w-full h-12 px-4 text-[14px] text-[#263545] bg-white border border-[#dce4ec] rounded-xl outline-none transition-all focus:border-[#d6a800] focus:ring-2 focus:ring-[#d6a800]/30 placeholder:text-[#9ba8b8]';
 
 /* ── Main ── */
 const MonthlySalary = () => {
-  const { Userid } = useContext(UserContext);
+  const { Userid, NewName, currBalance, total_withdrawal, backend_wallet } = useContext(UserContext);
   const API = import.meta.env.VITE_API_BASE_URL;
   const triggerConfetti = useConfetti();
   const navigate = useNavigate();
@@ -273,9 +274,12 @@ const MonthlySalary = () => {
   };
 
   const pct = status?.requiredTeam ? Math.min(100, ((status.currentTeam || 0) / status.requiredTeam) * 100) : 0;
+  const accountProgress = backend_wallet ? Math.min(Math.round((Number(backend_wallet) / 3) * 100), 100) : 0;
+  const available = Number(currBalance || 0).toFixed(1).replace(/\.0$/, '');
+  const cashout = Number(total_withdrawal || 0).toFixed(1).replace(/\.0$/, '');
 
   return (
-    <div className="min-h-screen bg-[#161618]">
+    <div className="min-h-dvh bg-[#f5f5f4]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
         .fd { font-family: 'Cormorant', serif; }
@@ -291,12 +295,16 @@ const MonthlySalary = () => {
         .amount-breathe { animation: amountBreathe 3s ease-in-out infinite; }
       `}</style>
 
-      <NavBar />
+      <div className="mx-auto min-h-dvh max-w-md overflow-hidden bg-[#f5f5f4]">
+        <header className="min-h-[300px] rounded-b-[14px] bg-[#20262d] px-[25px] pt-[14px] shadow-[0_8px_20px_rgba(22,28,35,0.16)]">
+          <NavBar />
+          <div className="mt-[25px] flex items-center justify-between gap-3"><p className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold text-white"><span className="truncate">{NewName || 'Member'}</span><ShieldCheck size={17} className="shrink-0 text-[#e3b900]" /></p><span className="shrink-0 rounded-full bg-[#4c4330] px-2.5 py-1 text-[10px] font-semibold text-[#f5c927]">{accountProgress}% Progress</span></div>
+          <div className="mt-[18px] grid grid-cols-2"><div><p className="text-[27px] font-semibold leading-none tracking-[-0.04em] text-white"><span className="mr-0.5 text-[20px] text-[#dce4ee]">$</span>{available}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Available balance</p></div><div className="pt-[8px] text-right"><p className="text-[19px] font-semibold leading-none tracking-[-0.03em] text-[#c7d1dc]"><span className="mr-0.5 text-[14px]">$</span>{cashout}</p><p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-[#8191a5]">Total cashout</p></div></div>
+          <div className="mt-[31px] grid grid-cols-4 gap-5">{[["Wallet", BriefcaseBusiness, "/wallet"], ["Salary", Calendar, "/SalaryofMonth"], ["Team", Users, "/team"], ["Alert", Bell, "/alerts"]].map(([label, Icon, path]) => <button key={label} type="button" onClick={() => navigate(path)} className="flex min-w-0 flex-col items-center gap-1.5 text-[#93a1b3]"><span className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-[#303943]"><Icon size={19} strokeWidth={2} /></span><span className="text-[10px] font-medium">{label}</span></button>)}</div>
+        </header>
 
-      <main className="lg:pl-[120px] pb-28 lg:pb-12">
-        <div className="relative max-w-2xl mx-auto px-3 sm:px-6 pt-4 lg:pt-10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64"
-            style={{ background: 'radial-gradient(70% 100% at 50% 0%, rgba(198,161,91,0.05), transparent 70%)' }} />
+      <main className="pb-8">
+        <div className="relative mx-auto max-w-md px-4 pt-3">
 
           {loading ? (
             <div className="flex items-center justify-center py-32">
@@ -345,13 +353,13 @@ const MonthlySalary = () => {
               {status?.isEligible && (!status?.applicationStatus || status?.applicationStatus === 'rejected') && (
                 <>
                   <div className="rise relative">
-                    <h1 className="fd text-[26px] sm:text-[28px] font-medium text-[#EDEDEE] leading-tight">Verify your identity</h1>
-                    <p className="fi text-[13px] text-[#A0A0A6] mt-0.5">Complete your application to activate salary benefits</p>
+                    <h1 className="fi text-[21px] font-semibold text-[#17212b] leading-tight">Verify your identity</h1>
+                    <p className="fi text-[13px] text-[#7f91a7] mt-1">Complete your application to activate salary benefits</p>
                   </div>
 
-                  <div className="rise relative flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-[#C6A15B]/[0.06] ring-1 ring-[#C6A15B]/15 mt-5" style={{ animationDelay: '0.05s' }}>
-                    <ShieldCheck size={15} className="text-[#C6A15B] flex-shrink-0" />
-                    <p className="fi text-[11.5px] text-[#A0A0A6]">Your documents are encrypted and reviewed securely.</p>
+                  <div className="rise relative flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-[#fffaf0] ring-1 ring-[#f1e4c7] mt-4" style={{ animationDelay: '0.05s' }}>
+                    <ShieldCheck size={15} className="text-[#c39400] flex-shrink-0" />
+                    <p className="fi text-[11.5px] text-[#718195]">Your documents are encrypted and reviewed securely.</p>
                   </div>
 
                   {(error || success) && (
@@ -361,26 +369,26 @@ const MonthlySalary = () => {
                     </div>
                   )}
 
-                  <form onSubmit={handleSubmit} className="relative mt-5 flex flex-col gap-5" style={{ animationDelay: '0.1s' }}>
+                  <form onSubmit={handleSubmit} className="relative mt-3 flex flex-col gap-4" style={{ animationDelay: '0.1s' }}>
                     <div className="flex flex-col gap-2">
-                      <label className="fi text-[13px] font-medium text-[#A0A0A6]">Full legal name</label>
+                      <label className="fi text-[13px] font-medium text-[#52657b]">Full legal name</label>
                       <input type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Name as it appears on your ID" className={inputCls} required />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <label className="fi text-[13px] font-medium text-[#A0A0A6]">Document type</label>
+                        <label className="fi text-[13px] font-medium text-[#52657b]">Document type</label>
                         <div className="relative">
                           <select value={form.documentType} onChange={(e) => setForm({ ...form, documentType: e.target.value })} className={`${inputCls} appearance-none pr-10 cursor-pointer`} required>
                             <option value="nic">National ID</option>
                             <option value="passport">Passport</option>
                             <option value="driving_license">Driving License</option>
                           </select>
-                          <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6F6F76] pointer-events-none" />
+                          <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#718195] pointer-events-none" />
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <label className="fi text-[13px] font-medium text-[#A0A0A6]">Document number</label>
+                        <label className="fi text-[13px] font-medium text-[#52657b]">Document number</label>
                         <input type="text" value={form.documentNumber} onChange={(e) => setForm({ ...form, documentNumber: e.target.value })} placeholder="ID number" className={inputCls} required />
                       </div>
                     </div>
@@ -390,8 +398,8 @@ const MonthlySalary = () => {
 
                     <div className="flex flex-col gap-4 pt-1">
                       <div>
-                        <h3 className="fi text-[14px] font-semibold text-[#EDEDEE]">Verification documents</h3>
-                        <p className="fi text-[11px] text-[#6F6F76] mt-0.5">Upload clear images for verification</p>
+                        <h3 className="fi text-[14px] font-semibold text-[#17212b]">Verification documents</h3>
+                        <p className="fi text-[11px] text-[#7f91a7] mt-0.5">Upload clear images for verification</p>
                       </div>
                       <UploadField label="ID front side" description="Clear image of front" accept="image/*" onChange={(file) => setForm({ ...form, identityFront: file })} required error={uploadErrors.identityFront} icon={CreditCard} />
                       <UploadField label="ID back side" description="Clear image of back" accept="image/*" onChange={(file) => setForm({ ...form, identityBack: file })} required error={uploadErrors.identityBack} icon={CreditCard} />
@@ -498,6 +506,7 @@ const MonthlySalary = () => {
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 };

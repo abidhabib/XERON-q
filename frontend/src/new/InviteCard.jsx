@@ -10,7 +10,7 @@ const InviteCard = () => {
 
   useEffect(() => {
     if (Userid) {
-      setInviteLink(`https://webthree.run.place/signup?ref=${Userid}`);
+      setInviteLink(`https://rovexking.com/signup?ref=${Userid}`);
     }
   }, [Userid]);
 

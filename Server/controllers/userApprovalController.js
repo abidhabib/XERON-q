@@ -26,24 +26,24 @@ const assignLevelByActualTeam = async (userId) => {
   `, [userId, userId]);
 };
 
-export const approveUser = async (req, res) => {
-  const userId = req.params.userId;
-
-  if (!userId) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'User ID is required'
-    });
-  }
-
-  try {
-    await queryAsync('START TRANSACTION');
-
+// Uses the caller's database transaction. This is shared by manual approval
+// and the blockchain watcher, so referral credits can never be applied twice.
+export const approveUserAccount = async (userId) => {
     const [userDetails] = await queryAsync(`
-      SELECT id, name
+      SELECT id, name, approved
       FROM users
       WHERE id = ?
+      FOR UPDATE
     `, [userId]);
+
+    if (!userDetails) {
+      const error = new Error('User not found');
+      error.code = 'NOT_FOUND';
+      throw error;
+    }
+    if (userDetails.approved === 1) {
+      return { alreadyApproved: true };
+    }
 
     const [settings] = await queryAsync(`
       SELECT
@@ -64,8 +64,8 @@ export const approveUser = async (req, res) => {
     const referralBonus = (joining_fee * initial_percent) / 100;
     const webBackendFeeAmount = (joining_fee * webBackendFeePercent) / 100;
 
-    // Approve user
-    await queryAsync(`
+    // Approve user exactly once while the row is locked.
+    const approvalResult = await queryAsync(`
       UPDATE users
       SET
         approved = 1,
@@ -74,8 +74,12 @@ export const approveUser = async (req, res) => {
         blocked = 0,
         approved_at = CURRENT_TIMESTAMP,
         backend_wallet = backend_wallet + ?
-      WHERE id = ?
+      WHERE id = ? AND approved = 0
     `, [referralBonus, userId]);
+
+    if (approvalResult.affectedRows !== 1) {
+      return { alreadyApproved: true };
+    }
 
     // Update backend earnings
     if (webBackendFeeAmount > 0) {
@@ -212,20 +216,39 @@ Total team members: ${approvedCount}.`;
       ]);
     }
 
+    return {
+      alreadyApproved: false,
+      referrer_updated: !!referrerId,
+      web_backend_fee_collected: webBackendFeeAmount
+    };
+};
+
+export const approveUser = async (req, res) => {
+  const userId = req.params.userId;
+
+  if (!userId) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'User ID is required'
+    });
+  }
+
+  try {
+    await queryAsync('START TRANSACTION');
+    const result = await approveUserAccount(userId);
     await queryAsync('COMMIT');
 
     return res.status(200).json({
       status: 'success',
-      message: 'User approved and referrer updated',
-      referrer_updated: !!referrerId,
-      web_backend_fee_collected: webBackendFeeAmount
+      message: result.alreadyApproved ? 'User was already approved' : 'User approved and referrer updated',
+      ...result
     });
 
   } catch (error) {
 
     console.error('Transaction error in approveUser:', error);
 
-    await queryAsync('ROLLBACK');
+    try { await queryAsync('ROLLBACK'); } catch (_) {}
 
     return res.status(500).json({
       status: 'error',
