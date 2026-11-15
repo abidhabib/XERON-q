@@ -48,35 +48,35 @@ export const getUserWallets = (req, res) => {
 export const saveWalletAddress = (req, res) => {
   // ✅ Security: Get userId from session, ignore client-provided value
   const userId = req.session?.userId;
-  const { chain, address } = req.body;
 
   if (!userId) {
     return res.status(401).json({ success: false, error: 'Authentication required' });
   }
 
-  if (!chain || !address) {
+  const { chain, address } = req.body || {};
+  if (typeof chain !== 'string' || typeof address !== 'string' || !chain.trim() || !address.trim()) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
   // ✅ Security: Strict chain whitelist
   const allowedChains = ['bep20', 'trc20', 'eth', 'btc', 'sol', 'polygon'];
-  if (!allowedChains.includes(chain.toLowerCase())) {
+  const normalizedChain = chain.trim().toLowerCase();
+  if (!allowedChains.includes(normalizedChain)) {
     console.warn(`Invalid chain attempt: ${chain} by user ${userId}`);
     return res.status(400).json({ success: false, error: 'Unsupported blockchain' });
   }
 
-  const normalizedChain = chain.toLowerCase();
   const normalizedAddress = address.trim();
+
+  // ✅ Security: Prevent excessively long addresses (DoS protection)
+  if (normalizedAddress.length > 200) {
+    return res.status(400).json({ success: false, error: 'Address too long' });
+  }
 
   // ✅ Security: Server-side address validation (never trust client)
   if (!validateAddress(normalizedChain, normalizedAddress)) {
     console.warn(`Invalid address format for ${normalizedChain} by user ${userId}`);
     return res.status(400).json({ success: false, error: 'Invalid address format' });
-  }
-
-  // ✅ Security: Prevent excessively long addresses (DoS protection)
-  if (normalizedAddress.length > 200) {
-    return res.status(400).json({ success: false, error: 'Address too long' });
   }
 
   const sql = `
